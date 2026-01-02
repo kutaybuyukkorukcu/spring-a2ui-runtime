@@ -1,143 +1,89 @@
-# FogData
+# GenUI - Generative UI Platform
 
-Full-stack application with .NET Web API backend and React frontend.
+> Transform LLM responses into beautiful, interactive UI components.
 
-# FogData
+## Quick Start
 
-Full-stack application with .NET Web API backend and React frontend.
+### 1. Set your API key
+
+Create a `.env` file in the project root:
+
+```bash
+# For OpenAI
+SEMANTIC_KERNEL_PROVIDER=openai
+OPENAI_API_KEY=sk-your-openai-key-here
+
+# OR for Azure OpenAI
+SEMANTIC_KERNEL_PROVIDER=azureopenai
+AZURE_OPENAI_API_KEY=your-azure-key
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com
+AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o-mini
+```
+
+### 2. Run with Docker Compose
+
+```bash
+docker-compose up --build
+```
+
+This starts:
+- **Backend**: http://localhost:5001 (Spring Boot + Spring AI)
+- **Frontend**: http://localhost:3001 (React)
+
+### 3. Test the API
+
+```bash
+curl -X POST http://localhost:5001/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o-mini",
+    "stream": true,
+    "messages": [{"role": "user", "content": "What is the weather in Tokyo?"}]
+  }'
+```
+
+## API Keys
+
+There are **two ways** to provide API keys:
+
+### Option A: Environment Variables (Recommended for development)
+
+Set in `.env` file or export:
+```bash
+export OPENAI_API_KEY=sk-...
+```
+
+### Option B: Request Headers (BYOK - Bring Your Own Key)
+
+Pass per-request via headers:
+```bash
+curl -X POST http://localhost:5001/v1/chat/completions \
+  -H "X-LLM-API-Key: sk-your-key" \
+  -H "X-LLM-Provider: openai" \
+  ...
+```
+
+| Header | Description |
+|--------|-------------|
+| `X-LLM-API-Key` | Your LLM provider API key |
+| `X-LLM-Provider` | `openai` or `azure` |
+| `X-Azure-Endpoint` | Azure endpoint URL (if Azure) |
+| `X-Azure-Deployment` | Azure deployment name (if Azure) |
 
 ## Project Structure
 
 ```
-FogData/
-├── Controllers/          # API Controllers
-├── Models/              # DTOs and data models
-├── Services/            # Business logic layer
-├── Repositories/        # Data access layer
-├── Middleware/          # Custom middleware
-├── Extensions/          # Service extensions
-├── client/              # React TypeScript frontend
-│   ├── src/
-│   ├── public/
-│   └── vite.config.ts
-├── wwwroot/             # Built React app (production)
-├── Program.cs           # App entry point
-└── FogData.csproj
-
+genui-poc/
+├── backend-java/        # Spring Boot backend
+│   ├── src/main/java/   # Java source files
+│   ├── pom.xml          # Maven config
+│   └── Dockerfile       # Docker build
+├── client/              # React frontend
+├── docker-compose.yml   # Production compose
+└── .env                 # API keys (create this)
 ```
 
-## Development
+## Documentation
 
-### Prerequisites
-- .NET 9.0 SDK
-- Node.js 20.19+ or 22.12+ (for React development)
-- Docker and Docker Compose
-
-### Running Locally (Without Docker)
-
-**Backend:**
-```bash
-dotnet run
-```
-API will be available at `https://localhost:5000` (or check console output)
-
-**Frontend (Development):**
-```bash
-cd client
-npm install  # if not already installed
-npm run dev
-```
-React dev server runs at `http://localhost:5173` with API proxy configured
-
-### Running with Docker (Recommended)
-
-**Production Build:**
-```bash
-docker-compose up --build
-```
-- Backend: http://localhost:5001
-- Frontend: http://localhost:3001
-
-**Development with Hot Reload:**
-```bash
-docker-compose up --build
-```
-- Backend: http://localhost:5001 (auto-restarts on code changes)
-- Frontend: http://localhost:5173 (hot module reload)
-
-**Stop containers:**
-```bash
-docker-compose down
-```
-
-**View logs:**
-```bash
-docker-compose logs -f [service-name]
-```
-
-## API Endpoints
-
-- `GET /api/weatherforecast` - Get weather forecast data
-
-## Docker Development Features
-
-### Hot Reload Setup
-- **Backend**: Uses `dotnet watch run` with volume mounts
-- **Frontend**: Uses Vite HMR with volume mounts
-- **Automatic**: Code changes trigger rebuilds/restarts
-
-### Development vs Production
-- `docker-compose.yml` - Production configuration
-- `docker-compose.override.yml` - Development overrides (auto-loaded)
-
-### Networking
-- Services communicate via `fogdata-network`
-- Frontend proxies `/api/*` to backend container
-
-## Notes
-
-- CORS enabled in development for React app
-- Production serves React static files from `wwwroot/`
-- Vite proxy configured in `vite.config.ts` for development
-- Use record types for DTOs (available since .NET 5)
-- Interfaces required for services/repositories, NOT for models
-
-## Development
-
-### Prerequisites
-- .NET 9.0 SDK
-- Node.js 20.19+ or 22.12+ (for React development)
-
-### Running the Backend
-```bash
-dotnet run
-```
-API will be available at `https://localhost:5000` (or check console output)
-
-### Running the React Frontend (Development)
-```bash
-cd client
-npm install  # if not already installed
-npm run dev
-```
-React dev server runs at `http://localhost:5173` with API proxy configured
-
-### Building for Production
-```bash
-dotnet publish -c Release
-```
-This will:
-1. Build the .NET API
-2. Install npm dependencies
-3. Build React app to `wwwroot/`
-4. Package everything for deployment
-
-## API Endpoints
-
-- `GET /api/weatherforecast` - Get weather forecast data
-
-## Notes
-
-- CORS is enabled in development for React app
-- Production serves React static files from `wwwroot/`
-- Vite proxy forwards `/api/*` requests to backend in development
+- [Product Vision](./PRODUCT_VISION_V2.md)
+- [Backend README](./backend-java/README.md)
