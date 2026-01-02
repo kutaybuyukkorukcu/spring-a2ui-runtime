@@ -10,11 +10,11 @@ Create a `.env` file in the project root:
 
 ```bash
 # For OpenAI
-SEMANTIC_KERNEL_PROVIDER=openai
+GENUI_PROVIDER=openai
 OPENAI_API_KEY=sk-your-openai-key-here
 
 # OR for Azure OpenAI
-SEMANTIC_KERNEL_PROVIDER=azureopenai
+GENUI_PROVIDER=azureopenai
 AZURE_OPENAI_API_KEY=your-azure-key
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com
 AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o-mini
