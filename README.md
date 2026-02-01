@@ -28,7 +28,7 @@ docker-compose up --build
 
 This starts:
 - **Backend**: http://localhost:5001 (Spring Boot + Spring AI)
-- **Frontend**: http://localhost:3001 (React)
+- **Frontend**: http://localhost:5173 (React)
 
 ### 3. Test the API
 
