@@ -185,13 +185,23 @@
 
 ## 🔧 Technical Debt to Address
 
-- [ ] Add comprehensive API tests
+### Testing
+- [ ] Add integration tests for SSE streaming endpoint (`POST /fogui/transform/stream`) using WebTestClient
+  - Test SSE event streaming (chunk, result, usage, [DONE] events)
+  - Test error event handling when LLM fails
+  - Test empty/null content error events
+  - Note: MockMvc doesn't properly support async SSE testing with Spring Security
+
+### Infrastructure
 - [ ] Set up proper monitoring (DataDog, New Relic, or Prometheus)
 - [ ] Implement request queueing (Redis/BullMQ)
 - [ ] Database indexing optimization
 - [ ] CDN for static assets
 - [ ] Multi-region deployment
 
+### Notes
+- jakarta.servlet vs org.springframework.test.web.servlet - investigate compatibility
+
 ---
 
-**Last Updated:** January 9, 2026
+**Last Updated:** February 8, 2026
