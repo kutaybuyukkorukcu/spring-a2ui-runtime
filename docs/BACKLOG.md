@@ -20,6 +20,27 @@
 
 ---
 
+## 🟦 Shadcn/Tailwind Adapter MVP TODOs
+
+#### Canonical Component Coverage
+- [ ] Implement Table (with TableHeader, TableRow, TableCell) in shadcnAdapter
+- [ ] Implement List component in shadcnAdapter
+- [ ] Implement Stack and Grid layout components in shadcnAdapter
+- [ ] Ensure all primitives (Button, Input, Label, Card, Badge) are present and tested
+
+#### Prop/Variant Mapping
+- [ ] Add mapping logic if shadcn components require different prop names or variant values (or document limitations for MVP)
+
+#### Testing
+- [ ] Add unit/integration tests for shadcnAdapter to verify all canonical components render correctly
+- [ ] Test fallback rendering for unmapped components
+
+#### Documentation
+- [ ] Update README or add docs for shadcnAdapter usage and integration
+- [ ] Provide example usage in a sample app (client or dashboard)
+
+---
+
 ## 📋 Post-MVP Backlog
 
 ### 🔥 High Priority (Sprint 2)
