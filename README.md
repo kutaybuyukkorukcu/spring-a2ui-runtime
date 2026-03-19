@@ -1,173 +1,87 @@
-# GenUI - Generative UI Platform
+# FogUI
 
-> Transform LLM responses into beautiful, interactive UI components.
+FogUI is a full-stack platform for turning model output into renderable UI with a deterministic-ish contract and adapter-based rendering.
 
-## Quick Start
+## Monorepo Structure
 
-### 1. Set your API key
+- `fogui-java-core`: framework-agnostic canonical contracts, validation, and protocol translators.
+- `fogui-spring-starter`: auto-configuration starter for Spring Boot services.
+- `backend-java`: Spring Boot API for auth, API keys, quotas, and transform endpoints.
+- `packages/react`: `@fogui/react` SDK (`FogUIProvider`, `useFogUI`, `FogUIRenderer`, adapters).
+- `examples/react-demo`: local demo app for SDK integration.
+- `dashboard`: web dashboard for auth/profile/API-key management.
 
-Create a `.env` file in the project root:
+## Current Capabilities
+
+- API key and JWT-based authentication flows.
+- API key creation, revocation, rotation.
+- Monthly quota tracking per user.
+- A2UI inbound compatibility endpoint: `POST /fogui/compat/a2ui/inbound`.
+- Non-stream transform endpoint: `POST /fogui/transform`.
+- Streaming transform endpoint (SSE): `POST /fogui/transform/stream`.
+- Deterministic stream patch reconciliation in `fogui-java-core`.
+- React SDK with adapter mapping (`shadcnAdapter`, `headlessAdapter`).
+- Action lifecycle hooks (`onActionStart`, `onAction`, `onActionComplete`, `onActionError`).
+
+## Quick Start (Local)
+
+### 1) Backend
 
 ```bash
-# For OpenAI
-GENUI_PROVIDER=openai
-OPENAI_API_KEY=sk-your-openai-key-here
-
-# OR for Azure OpenAI
-GENUI_PROVIDER=azureopenai
-AZURE_OPENAI_API_KEY=your-azure-key
-AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com
-AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o-mini
+./backend-java/mvnw -f pom.xml -q -DskipTests package
+cd backend-java && ./mvnw spring-boot:run
 ```
 
-### 2. Run with Docker Compose
+Default backend URL: `http://localhost:5001`
+
+### 2) React SDK package
 
 ```bash
-docker-compose up --build
+cd packages/react
+npm install
+npm run test
+npm run build
 ```
 
-This starts:
-- **Backend**: http://localhost:5001 (Spring Boot + Spring AI)
-- **Frontend**: http://localhost:5173 (React)
-
-### 3. Test the API
+### 3) Demo app (optional)
 
 ```bash
-curl -X POST http://localhost:5001/v1/chat/completions \
+npm install --workspace examples/react-demo
+npm run dev --workspace examples/react-demo
+```
+
+## Environment (Backend)
+
+Core variables:
+
+- `OPENAI_API_KEY`
+- `OPENAI_BASE_URL` (default: `https://api.openai.com`)
+- `OPENAI_MODEL` (default: `gpt-4.1-nano`)
+- `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`
+- `JWT_SECRET`
+
+See `backend-java/src/main/resources/application.yml` for full defaults.
+
+## Transform API Example
+
+```bash
+curl -X POST http://localhost:5001/fogui/transform \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer fog_live_xxx" \
   -d '{
-    "model": "gpt-4o-mini",
-    "stream": true,
-    "messages": [{"role": "user", "content": "What is the weather in Tokyo?"}]
+    "content": "Summarize Q1 sales by region",
+    "context": {
+      "intent": "sales_summary",
+      "preferredComponents": ["card", "table"],
+      "instructions": "keep it concise"
+    }
   }'
 ```
 
-## API Keys
+## Docs
 
-There are **two ways** to provide API keys:
-
-### Option A: Environment Variables (Recommended for development)
-
-Set in `.env` file or export:
-```bash
-export OPENAI_API_KEY=sk-...
-```
-
-### Option B: Request Headers (BYOK - Bring Your Own Key)
-
-Pass per-request via headers:
-```bash
-curl -X POST http://localhost:5001/v1/chat/completions \
-  -H "X-LLM-API-Key: sk-your-key" \
-  -H "X-LLM-Provider: openai" \
-  ...
-```
-
-| Header | Description |
-|--------|-------------|
-| `X-LLM-API-Key` | Your LLM provider API key |
-| `X-LLM-Provider` | `openai` or `azure` |
-| `X-Azure-Endpoint` | Azure endpoint URL (if Azure) |
-| `X-Azure-Deployment` | Azure deployment name (if Azure) |
-
-## Project Structure
-
-```
-genui-poc/
-├── backend-java/        # Spring Boot backend
-│   ├── src/main/java/   # Java source files
-│   ├── pom.xml          # Maven config
-│   └── Dockerfile       # Docker build
-├── client/              # React frontend
-├── docker-compose.yml   # Production compose
-└── .env                 # API keys (create this)
-```
-
-## FogUI React + CLI
-
-FogUI consists of two core packages:
-- **`@fogui/react`**: The core React provider and hooks for rendering generative UI.
-- **`@fogui/cli`**: A command-line tool to bootstrap a component `Adapter` for your project.
-
-### 1. Installation
-
-```bash
-npm install @fogui/react @fogui/cli
-```
-
-### 2. Create a Component Adapter
-
-Run the CLI and follow the prompts to generate an adapter file tailored to your component library (e.g., Shadcn, Material UI). This file acts as a bridge between the FogUI schema and your actual UI components.
-
-```bash
-npx fogui create
-```
-
-This will create an `adapter.ts` (or a name you choose) in your specified directory.
-
-### 3. Integrate the Provider
-
-Wrap your application with the `FogUIProvider`, passing your newly created adapter and the API endpoint for the FogUI backend.
-
-```tsx
-import { FogUIProvider } from '@fogui/react';
-import { myAdapter } from './path/to/my-adapter'; // Import your generated adapter
-
-function App() {
-  return (
-    // The adapter tells FogUI how to render components
-    // The apiEndpoint points to the backend that transforms text to UI schemas
-    <FogUIProvider adapter={myAdapter} apiEndpoint="http://localhost:5001/v1/chat/completions">
-      {/* Your application components can now use useFogUI() hook */}
-    </FogUIProvider>
-  );
-}
-```
-
-## Schema & Adapter API
-
-For developers wanting to create or customize an adapter manually, it's important to understand the core data structures. FogUI uses a canonical component schema that your adapter must map to.
-
-### Canonical Component Schema
-
-The backend returns a tree of components matching this schema. Your adapter's job is to translate these abstract definitions into concrete UI. The standard components are:
-
-- **`Card`**: A container with a title, description, and children.
-- **`Table`**: Displays tabular data with headers and rows.
-- **`List`**: A simple ordered or unordered list of items.
-- **`Form`**: A container for input fields and buttons.
-- **`Input`**: A text, number, or password input field.
-- **`Button`**: A button with a label and an associated action.
-- **`Stack`**: A layout container for arranging items horizontally or vertically.
-- **`Grid`**: A layout container for arranging items in a grid.
-- **`Tabs` / `TabPane`**: A tabbed interface to switch between content panes.
-- **`Badge`**: A small component to display a status or label.
-
-### The Adapter Interface
-
-The `Adapter` is a simple object that tells the `FogUIProvider` how to render and map props for each component in the schema.
-
-```ts
-export interface Adapter {
-  // A map from schema componentType to your React component
-  components: {
-    Card: React.ComponentType<any>;
-    Table: React.ComponentType<any>;
-    // ... and so on for all schema components
-  };
-
-  // A function to transform props from the schema to your component's API
-  mapProps: (
-    componentType: FogUIComponent['componentType'],
-    props: any,
-  ) => any;
-}
-```
-
-- **`components`**: This is a key-value map where the key is the string `componentType` from the schema (e.g., "Card") and the value is your actual React component (e.g., `<ShadcnCard />`).
-- **`mapProps`**: This function receives the `componentType` and the `props` from the API response. It should return a new props object that matches the expected API of your component library. This is useful for renaming props (e.g., `title` -> `cardTitle`) or performing other transformations.
-
-## Documentation
-
-- [Product Vision](./PRODUCT_VISION_V2.md)
-- [Backend README](./backend-java/README.md)
+- Product backlog: `docs/BACKLOG.md`
+- OSS quickstart: `docs/OSS_QUICKSTART.md`
+- A2UI compatibility: `docs/A2UI_COMPATIBILITY.md`
+- Adapter guide: `docs/ADAPTER_GUIDE.md`
+- Agent conventions: `AGENTS.md`
