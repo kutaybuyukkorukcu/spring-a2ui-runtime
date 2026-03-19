@@ -212,6 +212,9 @@
   - Test error event handling when LLM fails
   - Test empty/null content error events
   - Note: MockMvc doesn't properly support async SSE testing with Spring Security
+- [ ] Add Testcontainers-based integration test suite (PostgreSQL) for backend core flows
+  - Replace H2 assumptions in key integration paths (auth, api keys, usage)
+  - Run in CI as a separate profile/stage
 
 ### Infrastructure
 - [ ] Set up proper monitoring (DataDog, New Relic, or Prometheus)
