@@ -1,231 +1,79 @@
-# FogUI Backlog
+# FogUI OSS Roadmap
 
-> Product roadmap and feature backlog for FogUI
+> Active backlog for OSS deterministic compatibility and rendering trust layer.
 
----
+## Current OSS Scope
 
-## ✅ MVP Complete
+1. Canonical contract + validation (`fogui-java-core`).
+2. Spring integration glue (`fogui-spring-starter`).
+3. React adapter rendering SDK (`@fogui/react`).
+4. Reference server + minimal demo for integration verification.
 
-### Core Features
-- [x] Authentication (Login/Register/Logout)
-- [x] API Key Management (Create, List, Revoke)
-- [x] Usage Display (Request count, quota, remaining)
-- [x] Account Settings (Email update, profile view)
-- [x] `@fogui/react` SDK (FogUIProvider, useFogUI, FogUIRenderer)
-- [x] Backend API (`/v1/chat/completions`, `/fogui/transform`)
-- [x] SSE Streaming support
-- [x] Docker + GitHub Actions CI/CD
-- [x] NPM package publishing automation
-- [x] VPS deployment (Coolify)
+Commercial/cloud features are intentionally tracked separately in `docs/ROADMAP_CLOUD.md`.
 
 ---
 
-## 🟦 Shadcn/Tailwind Adapter MVP TODOs
+## ✅ Completed Foundations
 
-#### Canonical Component Coverage
-- [ ] Implement Table (with TableHeader, TableRow, TableCell) in shadcnAdapter
-- [ ] Implement List component in shadcnAdapter
-- [ ] Implement Stack and Grid layout components in shadcnAdapter
-- [ ] Ensure all primitives (Button, Input, Label, Card, Badge) are present and tested
-
-#### Prop/Variant Mapping
-- [ ] Add mapping logic if shadcn components require different prop names or variant values (or document limitations for MVP)
-
-#### Testing
-- [ ] Add unit/integration tests for shadcnAdapter to verify all canonical components render correctly
-- [ ] Test fallback rendering for unmapped components
-
-#### Documentation
-- [ ] Update README or add docs for shadcnAdapter usage and integration
-- [ ] Provide example usage in a sample app (client or dashboard)
+- [x] Canonical response model (`GenerativeUIResponse`, blocks, thinking, metadata).
+- [x] Deterministic canonical validator.
+- [x] A2UI inbound translation endpoint and translator.
+- [x] Streaming parser + reconciliation helpers.
+- [x] React SDK core primitives (`FogUIProvider`, `useFogUI`, `FogUIRenderer`, adapters).
+- [x] Transform + stream reference APIs in `backend-java`.
 
 ---
 
-## 📋 Post-MVP Backlog
+## 🔥 Near-Term OSS Priorities
 
-### 🔥 High Priority (Sprint 2)
+### Contract and Compatibility
 
-#### Billing & Monetization
-- [ ] **Stripe Integration**
-  - Connect Stripe account
-  - Create subscription plans (Free, Pro, Enterprise)
-  - Webhook handling (subscription.created, invoice.paid)
-  - Upgrade/downgrade flow
-- [ ] **Pricing Tiers**
-  - Free: 1,000 transforms/month
-  - Pro: 50,000 transforms/month ($29/mo)
-  - Enterprise: Unlimited (custom pricing)
-- [ ] **Usage-based Billing**
-  - Track transforms per user
-  - Show cost estimates
-  - Billing history page
+- [ ] Add explicit version negotiation and compatibility checks in canonical contract tooling.
+- [ ] Expand canonical validation errors with stable machine-readable error codes and docs.
+- [ ] Add protocol conformance test fixtures for valid/invalid payload sets.
 
-#### Analytics Dashboard
-- [ ] **Usage Graphs**
-  - Requests over time (daily, weekly, monthly)
-  - Success/error rates
-  - Average response time
-- [ ] **Component Usage**
-  - Which component types are most used?
-  - Card vs Table vs List breakdown
-- [ ] **Export Data**
-  - CSV export of usage logs
-  - Monthly reports
+### Deterministic Streaming
 
----
+- [ ] Strengthen patch reconciliation semantics for partial/late/out-of-order stream fragments.
+- [ ] Add deterministic replay tests (same input stream -> same final snapshot).
+- [ ] Add reference integration tests for SSE stream lifecycle (`result`, `usage`, `error`, `done`).
 
-### 📦 Medium Priority (Sprint 3-4)
+### Design-System Integration
 
-#### Team Features
-- [ ] **Team Accounts**
-  - Invite team members
-  - Role-based access (Admin, Developer, Viewer)
-  - Shared API keys per team
-- [ ] **Team Usage**
-  - Aggregate usage across team
-  - Per-member usage breakdown
-  - Team billing
+- [ ] Complete shadcn adapter coverage (Table/List/Stack/Grid + tested mappings).
+- [ ] Add adapter conformance checks for missing component mappings and prop transforms.
+- [ ] Provide compact adapter templates for enterprise design systems.
 
-#### Developer Experience
-- [ ] **API Documentation Viewer**
-  - Interactive API docs
-  - Code examples in multiple languages
-  - Try API directly from dashboard
-- [ ] **Webhooks**
-  - Register webhook URLs
-  - Events: quota_warning, transform_error, etc.
-  - Webhook logs/debugging
-- [ ] **Rate Limiting UI**
-  - Set custom rate limits
-  - Per-key rate limits
-  - Burst allowance
+### OSS DX and Packaging
 
-#### Security & Monitoring
-- [ ] **Audit Logs**
-  - Track all API key operations
-  - Login history
-  - IP address tracking
-- [ ] **Alerts**
-  - Email when quota reaches 80%
-  - Slack/Discord notifications
-  - Error rate alerts
-- [ ] **API Key Expiration**
-  - Set expiration dates on keys
-  - Auto-rotate keys
-  - Key usage permissions
+- [ ] Publish Java artifacts for `fogui-java-core` and `fogui-spring-starter`.
+- [ ] Add docs for consuming Java artifacts in external Spring Boot services.
+- [ ] Add a minimal cross-stack quickstart showing protocol translation + renderer integration.
+
+### Observability and Reliability
+
+- [ ] Add reference metrics and tracing hooks (validation failures, stream reconciliation failures, latency).
+- [ ] Add structured error envelopes for compatibility endpoints.
+- [ ] Add runbook docs for common integration failures.
 
 ---
 
-### 🌟 Nice-to-Have (Future)
+## 📦 Medium-Term OSS Priorities
 
-#### CLI & SDK Tooling
-- [ ] **`@fogui/cli`** - CLI tool for project scaffolding
-  - `npx fogui init` - Initialize FogUI in existing project
-  - `npx fogui add <adapter>` - Add design system adapter
-  - Auto-detect TypeScript, Tailwind, existing design system
-- [ ] **Adapter Templates**
-  - Shadcn/Radix adapter (scaffold into user's project)
-  - Material UI adapter
-  - Ant Design adapter
-  - Custom/Empty adapter (for enterprise design systems)
-- [ ] **Chart Components** - Integrate with chart libraries (Recharts, Chart.js)
-
-#### Advanced Analytics
-- [ ] Real-time dashboard with WebSocket updates
-- [ ] Latency P50/P95/P99 metrics
-- [ ] Geographic usage map
-- [ ] User journey visualization
-
-#### Integration Marketplace
-- [ ] Pre-built integrations (Vercel, Netlify, Supabase)
-- [ ] One-click deploy examples
-- [ ] Community adapters gallery
-- [ ] Adapter testing/preview
-
-#### Enterprise Features
-- [ ] **SSO/SAML** integration
-- [ ] **Custom domains** (api.customer.com)
-- [ ] **SLA guarantees**
-- [ ] **Dedicated support**
-- [ ] **On-premise deployment** option
-- [ ] **SOC2/HIPAA compliance** documentation
-
-#### Community
-- [ ] **Public roadmap** (Canny or similar)
-- [ ] **Feature voting**
-- [ ] **Community Discord**
-- [ ] **Use case gallery** (showcase customer implementations)
+- [ ] CLI scaffolding for adapter starter templates (`@fogui/cli`).
+- [ ] Conformance test runner for contract + adapter compatibility checks.
+- [ ] Community adapter gallery and validation harness.
+- [ ] Additional protocol bridges beyond A2UI as ecosystem demand becomes concrete.
 
 ---
 
-## 🗺️ Roadmap Timeline
+## 📊 OSS Success Indicators
 
-| Phase | Timeline | Focus |
-|-------|----------|-------|
-| **MVP** | Weeks 1-2 | Auth, API keys, basic usage |
-| **Sprint 2** | Weeks 3-4 | Billing (Stripe), Analytics |
-| **Sprint 3** | Weeks 5-6 | Teams, Webhooks |
-| **Sprint 4** | Weeks 7-8 | Advanced security, Monitoring |
-| **Future** | Q2 2026+ | Enterprise features, Integrations |
+- [ ] New contributors can identify core/reference/archived modules in under 5 minutes.
+- [ ] Stable, versioned Java artifact releases are consumable externally.
+- [ ] Deterministic stream/conformance tests are passing in CI.
+- [ ] React SDK integrations can render canonical payloads with adapter coverage >= 80%.
 
 ---
 
-## 💡 Monetization Strategy
-
-### Target Segments
-
-| Segment | Use Case | Price Point |
-|---------|----------|-------------|
-| **Hobbyists** | Side projects, learning | Free tier |
-| **Startups** | Production apps, <10K users | $29-99/mo |
-| **Scale-ups** | High traffic, multiple apps | $299-999/mo |
-| **Enterprise** | Custom SLA, on-prem | Custom contract |
-
-### Revenue Drivers
-1. **Transform volume** (primary metric)
-2. **Team seats** (for collaboration)
-3. **Advanced features** (webhooks, SSO, etc.)
-4. **Support tiers** (community vs priority)
-
----
-
-## 📊 Success Metrics
-
-### MVP Launch Goals
-- [ ] 100 signups in first month
-- [ ] 10 paying customers (Pro plan)
-- [ ] <500ms P95 API latency
-- [ ] 99.9% uptime
-
-### Sprint 2 Goals
-- [ ] $1K MRR (Monthly Recurring Revenue)
-- [ ] 5% free-to-paid conversion
-- [ ] NPS score >40
-
----
-
-## 🔧 Technical Debt to Address
-
-### Testing
-- [ ] Add integration tests for SSE streaming endpoint (`POST /fogui/transform/stream`) using WebTestClient
-  - Test SSE event streaming (chunk, result, usage, [DONE] events)
-  - Test error event handling when LLM fails
-  - Test empty/null content error events
-  - Note: MockMvc doesn't properly support async SSE testing with Spring Security
-- [ ] Add Testcontainers-based integration test suite (PostgreSQL) for backend core flows
-  - Replace H2 assumptions in key integration paths (auth, api keys, usage)
-  - Run in CI as a separate profile/stage
-
-### Infrastructure
-- [ ] Set up proper monitoring (DataDog, New Relic, or Prometheus)
-- [ ] Implement request queueing (Redis/BullMQ)
-- [ ] Database indexing optimization
-- [ ] CDN for static assets
-- [ ] Multi-region deployment
-
-### Notes
-- jakarta.servlet vs org.springframework.test.web.servlet - investigate compatibility
-
----
-
-**Last Updated:** February 8, 2026
+**Last Updated:** March 25, 2026
