@@ -99,6 +99,25 @@ For local backend development inside this monorepo, use Maven reactor mode so si
 ./backend-java/mvnw -f pom.xml -pl backend-java -am test
 ```
 
+What this means:
+
+- `-am` builds required sibling modules (`fogui-java-core`, `fogui-spring-starter`) from local source in the same monorepo build.
+- Without reactor mode, `backend-java` resolves those dependencies from repositories (GitHub Packages is configured in `backend-java/pom.xml`).
+
+For standalone `cd backend-java && ./mvnw test`, configure Maven credentials in `~/.m2/settings.xml`:
+
+```xml
+<settings>
+  <servers>
+    <server>
+      <id>github</id>
+      <username>YOUR_GITHUB_USERNAME</username>
+      <password>YOUR_GITHUB_TOKEN</password>
+    </server>
+  </servers>
+</settings>
+```
+
 ## Environment (Reference Server)
 
 - `OPENAI_API_KEY`
