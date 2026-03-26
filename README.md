@@ -1,40 +1,62 @@
 # FogUI
 
-FogUI is a full-stack platform for turning model output into renderable UI with a deterministic-ish contract and adapter-based rendering.
+FogUI is an OSS-first deterministic runtime and rendering contract for agent/LLM-generated UI.
 
-## Monorepo Structure
+## What FogUI Is
 
-- `fogui-java-core`: framework-agnostic canonical contracts, validation, and protocol translators.
-- `fogui-spring-starter`: auto-configuration starter for Spring Boot services.
-- `backend-java`: Spring Boot API for auth, API keys, quotas, and transform endpoints.
+FogUI turns probabilistic model output into predictable, design-system-safe UI payloads before rendering.
+
+Core OSS responsibilities:
+
+- Canonical UI contract and validation.
+- A2UI inbound compatibility translation.
+- Deterministic stream patch reconciliation.
+- React adapter-based rendering into product design systems.
+
+## 2026 Direction
+
+FogUI is positioned as infrastructure, not a hosted dashboard product:
+
+- Backend trust runtime (`fogui-java-core` + `fogui-spring-starter`) is the center.
+- Protocol interoperability (A2UI today) is required, but FogUI is not a protocol-spec competitor.
+- `backend-java` stays as a reference integration server, not the primary product surface.
+- `packages/react` remains core because trust only matters if canonical outputs render safely.
+
+Roadmap details: `docs/ROADMAP_OSS.md`
+
+## Monorepo Modules
+
+### Core OSS modules
+
+- `fogui-java-core`: framework-agnostic canonical contracts, validation, translation primitives, deterministic utilities.
+- `fogui-spring-starter`: Spring Boot integration glue for auto-config, middleware hooks, and observability wiring.
 - `packages/react`: `@fogui/react` SDK (`FogUIProvider`, `useFogUI`, `FogUIRenderer`, adapters).
-- `examples/react-demo`: local demo app for SDK integration.
-- `dashboard`: web dashboard for auth/profile/API-key management.
 
-## Current Capabilities
+### Reference implementations
 
-- API key and JWT-based authentication flows.
-- API key creation, revocation, rotation.
-- Monthly quota tracking per user.
-- A2UI inbound compatibility endpoint: `POST /fogui/compat/a2ui/inbound`.
-- Non-stream transform endpoint: `POST /fogui/transform`.
-- Streaming transform endpoint (SSE): `POST /fogui/transform/stream`.
-- Deterministic stream patch reconciliation in `fogui-java-core`.
-- React SDK with adapter mapping (`shadcnAdapter`, `headlessAdapter`).
-- Action lifecycle hooks (`onActionStart`, `onAction`, `onActionComplete`, `onActionError`).
+- `backend-java`: reference server and integration harness.
+  - Core reference APIs: `POST /fogui/transform`, `POST /fogui/transform/stream`, `POST /fogui/compat/a2ui/inbound`.
+  - Auth/key/usage/profile APIs are reference-server optional and not part of core OSS contract.
+- `examples/react-demo`: minimal demo for transform + stream + compatibility validation.
 
-## Quick Start (Local)
+## Quick Start (OSS)
 
-### 1) Backend
+### 1) Build Java modules
 
 ```bash
 ./backend-java/mvnw -f pom.xml -q -DskipTests package
-cd backend-java && ./mvnw spring-boot:run
+```
+
+### 2) Run reference server
+
+```bash
+cd backend-java
+./mvnw spring-boot:run
 ```
 
 Default backend URL: `http://localhost:5001`
 
-### 2) React SDK package
+### 3) Build React SDK
 
 ```bash
 cd packages/react
@@ -43,16 +65,60 @@ npm run test
 npm run build
 ```
 
-### 3) Demo app (optional)
+### 4) Run minimal demo (optional)
 
 ```bash
-npm install --workspace examples/react-demo
-npm run dev --workspace examples/react-demo
+cd examples/react-demo
+npm install
+npm run dev
 ```
 
-## Environment (Backend)
+## Publish Java Modules (GitHub Packages)
 
-Core variables:
+FogUI Java modules can be published to GitHub Packages using the workflow:
+
+- `.github/workflows/java-publish.yml`
+
+How to publish:
+
+1. Go to Actions -> Java Publish and run the workflow manually.
+2. Or push a tag that matches `java-v*.*.*`.
+
+Published artifacts:
+
+- `com.genui:fogui-java-core`
+- `com.genui:fogui-spring-starter`
+
+Registry URL pattern:
+
+- `https://maven.pkg.github.com/<owner>/<repo>`
+
+For local backend development inside this monorepo, use Maven reactor mode so sibling modules are built together:
+
+```bash
+./backend-java/mvnw -f pom.xml -pl backend-java -am test
+```
+
+What this means:
+
+- `-am` builds required sibling modules (`fogui-java-core`, `fogui-spring-starter`) from local source in the same monorepo build.
+- Without reactor mode, `backend-java` resolves those dependencies from repositories (GitHub Packages is configured in `backend-java/pom.xml`).
+
+For standalone `cd backend-java && ./mvnw test`, configure Maven credentials in `~/.m2/settings.xml`:
+
+```xml
+<settings>
+  <servers>
+    <server>
+      <id>github</id>
+      <username>YOUR_GITHUB_USERNAME</username>
+      <password>YOUR_GITHUB_TOKEN</password>
+    </server>
+  </servers>
+</settings>
+```
+
+## Environment (Reference Server)
 
 - `OPENAI_API_KEY`
 - `OPENAI_BASE_URL` (default: `https://api.openai.com`)
@@ -60,28 +126,16 @@ Core variables:
 - `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`
 - `JWT_SECRET`
 
-See `backend-java/src/main/resources/application.yml` for full defaults.
-
-## Transform API Example
-
-```bash
-curl -X POST http://localhost:5001/fogui/transform \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer fog_live_xxx" \
-  -d '{
-    "content": "Summarize Q1 sales by region",
-    "context": {
-      "intent": "sales_summary",
-      "preferredComponents": ["card", "table"],
-      "instructions": "keep it concise"
-    }
-  }'
-```
+See `backend-java/src/main/resources/application.yml` for defaults.
 
 ## Docs
 
-- Product backlog: `docs/BACKLOG.md`
+- OSS roadmap (dated milestones): `docs/ROADMAP_OSS.md`
+- OSS execution backlog: `docs/BACKLOG.md`
 - OSS quickstart: `docs/OSS_QUICKSTART.md`
+- Architecture and module boundaries: `docs/ARCHITECTURE.md`
 - A2UI compatibility: `docs/A2UI_COMPATIBILITY.md`
 - Adapter guide: `docs/ADAPTER_GUIDE.md`
+- Java artifact publishing plan: `docs/JAVA_PUBLISHING_PLAN.md`
+- Commercial/cloud roadmap (deferred): `docs/ROADMAP_CLOUD.md`
 - Agent conventions: `AGENTS.md`
