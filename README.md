@@ -1,36 +1,43 @@
 # FogUI
 
-FogUI is an OSS-first deterministic compatibility and rendering layer for agent/LLM-generated UI.
+FogUI is an OSS-first deterministic runtime and rendering contract for agent/LLM-generated UI.
 
 ## What FogUI Is
 
-FogUI focuses on turning probabilistic agent output into predictable, design-system-native UI contracts.
+FogUI turns probabilistic model output into predictable, design-system-safe UI payloads before rendering.
 
 Core OSS responsibilities:
 
-- Canonical UI contracts and validation.
+- Canonical UI contract and validation.
 - A2UI inbound compatibility translation.
 - Deterministic stream patch reconciliation.
 - React adapter-based rendering into product design systems.
+
+## 2026 Direction
+
+FogUI is positioned as infrastructure, not a hosted dashboard product:
+
+- Backend trust runtime (`fogui-java-core` + `fogui-spring-starter`) is the center.
+- Protocol interoperability (A2UI today) is required, but FogUI is not a protocol-spec competitor.
+- `backend-java` stays as a reference integration server, not the primary product surface.
+- `packages/react` remains core because trust only matters if canonical outputs render safely.
+
+Roadmap details: `docs/ROADMAP_OSS.md`
 
 ## Monorepo Modules
 
 ### Core OSS modules
 
-- `fogui-java-core`: framework-agnostic canonical contracts, validation, translation primitives, and deterministic stream helpers.
-- `fogui-spring-starter`: Spring Boot auto-configuration for `fogui-java-core` services.
+- `fogui-java-core`: framework-agnostic canonical contracts, validation, translation primitives, deterministic utilities.
+- `fogui-spring-starter`: Spring Boot integration glue for auto-config, middleware hooks, and observability wiring.
 - `packages/react`: `@fogui/react` SDK (`FogUIProvider`, `useFogUI`, `FogUIRenderer`, adapters).
 
 ### Reference implementations
 
 - `backend-java`: reference server and integration harness.
   - Core reference APIs: `POST /fogui/transform`, `POST /fogui/transform/stream`, `POST /fogui/compat/a2ui/inbound`.
-  - Product-style auth/key/usage endpoints are supported here as optional reference-server capabilities.
-- `examples/react-demo`: minimal demo app for local SDK + reference API validation.
-
-### Archived
-
-- `archive/dashboard`: archived dashboard app (not active in default OSS docs/compose/CI).
+  - Auth/key/usage/profile APIs are reference-server optional and not part of core OSS contract.
+- `examples/react-demo`: minimal demo for transform + stream + compatibility validation.
 
 ## Quick Start (OSS)
 
@@ -78,11 +85,12 @@ See `backend-java/src/main/resources/application.yml` for defaults.
 
 ## Docs
 
+- OSS roadmap (dated milestones): `docs/ROADMAP_OSS.md`
+- OSS execution backlog: `docs/BACKLOG.md`
 - OSS quickstart: `docs/OSS_QUICKSTART.md`
-- OSS roadmap/backlog: `docs/BACKLOG.md`
-- Commercial/cloud roadmap (deferred track): `docs/ROADMAP_CLOUD.md`
-- Architecture & boundaries: `docs/ARCHITECTURE.md`
+- Architecture and module boundaries: `docs/ARCHITECTURE.md`
 - A2UI compatibility: `docs/A2UI_COMPATIBILITY.md`
 - Adapter guide: `docs/ADAPTER_GUIDE.md`
 - Java artifact publishing plan: `docs/JAVA_PUBLISHING_PLAN.md`
+- Commercial/cloud roadmap (deferred): `docs/ROADMAP_CLOUD.md`
 - Agent conventions: `AGENTS.md`

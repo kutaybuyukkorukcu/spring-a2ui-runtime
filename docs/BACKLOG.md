@@ -1,79 +1,70 @@
-# FogUI OSS Roadmap
+# FogUI OSS Backlog (Execution Board)
 
-> Active backlog for OSS deterministic compatibility and rendering trust layer.
+**Roadmap anchor:** `docs/ROADMAP_OSS.md`  
+**Last Updated:** March 26, 2026
 
-## Current OSS Scope
+This file tracks execution work for the active roadmap phases.  
+Commercial/cloud items stay out of this board and remain in `docs/ROADMAP_CLOUD.md`.
 
-1. Canonical contract + validation (`fogui-java-core`).
-2. Spring integration glue (`fogui-spring-starter`).
-3. React adapter rendering SDK (`@fogui/react`).
-4. Reference server + minimal demo for integration verification.
+## Current Focus Window
 
-Commercial/cloud features are intentionally tracked separately in `docs/ROADMAP_CLOUD.md`.
+Primary target window: **Phase 1 and early Phase 2**  
+(April 1, 2026 to July 1, 2026)
 
----
-
-## ✅ Completed Foundations
+## Foundations Already in Place
 
 - [x] Canonical response model (`GenerativeUIResponse`, blocks, thinking, metadata).
-- [x] Deterministic canonical validator.
+- [x] Canonical validator baseline.
 - [x] A2UI inbound translation endpoint and translator.
-- [x] Streaming parser + reconciliation helpers.
+- [x] Stream parsing and reconciliation baseline.
 - [x] React SDK core primitives (`FogUIProvider`, `useFogUI`, `FogUIRenderer`, adapters).
-- [x] Transform + stream reference APIs in `backend-java`.
+- [x] Reference APIs in `backend-java` (`/fogui/transform`, `/fogui/transform/stream`, `/fogui/compat/a2ui/inbound`).
 
----
+## Priority Queue (Now)
 
-## 🔥 Near-Term OSS Priorities
+### P0: Contract Hardening (`fogui-java-core`, `fogui-spring-starter`)
 
-### Contract and Compatibility
+- [ ] Add canonical contract version negotiation model.
+- [ ] Add deterministic validation error catalog with stable machine-readable codes.
+- [ ] Create golden fixture tests for valid/invalid canonical payloads.
+- [ ] Add compatibility checks for canonical version mismatches.
 
-- [ ] Add explicit version negotiation and compatibility checks in canonical contract tooling.
-- [ ] Expand canonical validation errors with stable machine-readable error codes and docs.
-- [ ] Add protocol conformance test fixtures for valid/invalid payload sets.
+### P0: Deterministic Stream Correctness (`fogui-java-core`, `backend-java`)
 
-### Deterministic Streaming
+- [ ] Formalize reconciliation invariants (partial, duplicate, out-of-order fragments).
+- [ ] Add deterministic stream replay tests (`same stream input -> same final snapshot`).
+- [ ] Add integration tests covering SSE lifecycle events (`result`, `usage`, `error`, `done`).
 
-- [ ] Strengthen patch reconciliation semantics for partial/late/out-of-order stream fragments.
-- [ ] Add deterministic replay tests (same input stream -> same final snapshot).
-- [ ] Add reference integration tests for SSE stream lifecycle (`result`, `usage`, `error`, `done`).
+### P1: Spring AI Reliability (`backend-java`, `fogui-spring-starter`)
 
-### Design-System Integration
+- [ ] Add generation policy abstraction (deterministic defaults and provider capability flags).
+- [ ] Add structured output failure taxonomy and stable API error envelope.
+- [ ] Add request correlation IDs across transform and stream paths.
+- [ ] Document Spring AI best-practice defaults for deterministic transform workloads.
 
-- [ ] Complete shadcn adapter coverage (Table/List/Stack/Grid + tested mappings).
-- [ ] Add adapter conformance checks for missing component mappings and prop transforms.
-- [ ] Provide compact adapter templates for enterprise design systems.
+### P1: React Adapter Trust (`packages/react`)
 
-### OSS DX and Packaging
+- [ ] Add adapter conformance checks for missing mappings and prop transformation errors.
+- [ ] Expand adapter tests for canonical component coverage.
+- [ ] Add deterministic action lifecycle test cases (`onActionStart -> onAction -> onActionComplete|onActionError`).
 
-- [ ] Publish Java artifacts for `fogui-java-core` and `fogui-spring-starter`.
-- [ ] Add docs for consuming Java artifacts in external Spring Boot services.
-- [ ] Add a minimal cross-stack quickstart showing protocol translation + renderer integration.
+### P2: OSS Packaging and Adoption
 
-### Observability and Reliability
+- [ ] Implement Java artifact publishing pipeline (`fogui-java-core`, `fogui-spring-starter`).
+- [ ] Publish external consumption guide for Spring Boot projects.
+- [ ] Keep `examples/react-demo` minimal and deterministic for smoke validation.
 
-- [ ] Add reference metrics and tracing hooks (validation failures, stream reconciliation failures, latency).
-- [ ] Add structured error envelopes for compatibility endpoints.
-- [ ] Add runbook docs for common integration failures.
+## Definition of Done for This Backlog Window
 
----
+All of the following must be true:
 
-## 📦 Medium-Term OSS Priorities
+1. Canonical validation and stream behavior are deterministically testable in CI.
+2. Spring AI transform behavior has documented policy defaults and predictable failure envelopes.
+3. Adapter behavior in React is guarded by conformance checks, not best-effort assumptions.
+4. Core OSS module boundaries are obvious in README + architecture docs.
 
-- [ ] CLI scaffolding for adapter starter templates (`@fogui/cli`).
-- [ ] Conformance test runner for contract + adapter compatibility checks.
-- [ ] Community adapter gallery and validation harness.
-- [ ] Additional protocol bridges beyond A2UI as ecosystem demand becomes concrete.
+## Stretch Items (Only if P0/P1 Complete)
 
----
-
-## 📊 OSS Success Indicators
-
-- [ ] New contributors can identify core/reference/archived modules in under 5 minutes.
-- [ ] Stable, versioned Java artifact releases are consumable externally.
-- [ ] Deterministic stream/conformance tests are passing in CI.
-- [ ] React SDK integrations can render canonical payloads with adapter coverage >= 80%.
-
----
-
-**Last Updated:** March 25, 2026
+- [ ] Compatibility report tooling for A2UI inbound payload diagnostics.
+- [ ] CLI scaffolding for adapter starter templates.
+- [ ] Protocol bridge exploration beyond A2UI (based on concrete demand).
