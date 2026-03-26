@@ -73,6 +73,32 @@ npm install
 npm run dev
 ```
 
+## Publish Java Modules (GitHub Packages)
+
+FogUI Java modules can be published to GitHub Packages using the workflow:
+
+- `.github/workflows/java-publish.yml`
+
+How to publish:
+
+1. Go to Actions -> Java Publish and run the workflow manually.
+2. Or push a tag that matches `java-v*.*.*`.
+
+Published artifacts:
+
+- `com.genui:fogui-java-core`
+- `com.genui:fogui-spring-starter`
+
+Registry URL pattern:
+
+- `https://maven.pkg.github.com/<owner>/<repo>`
+
+For local backend development inside this monorepo, use Maven reactor mode so sibling modules are built together:
+
+```bash
+./backend-java/mvnw -f pom.xml -pl backend-java -am test
+```
+
 ## Environment (Reference Server)
 
 - `OPENAI_API_KEY`
