@@ -135,6 +135,9 @@ See `backend-java/src/main/resources/application.yml` for defaults.
 - OSS quickstart: `docs/OSS_QUICKSTART.md`
 - Architecture and module boundaries: `docs/ARCHITECTURE.md`
 - A2UI compatibility: `docs/A2UI_COMPATIBILITY.md`
+- Advisors runtime pipeline: `docs/ADVISORS_RUNTIME.md`
+- Spring AI deterministic runtime guide: `docs/SPRING_AI_DETERMINISM.md`
+- Operations runbook (correlation + replay): `docs/OPERATIONS_RUNBOOK.md`
 - Adapter guide: `docs/ADAPTER_GUIDE.md`
 - Java artifact publishing plan: `docs/JAVA_PUBLISHING_PLAN.md`
 - Commercial/cloud roadmap (deferred): `docs/ROADMAP_CLOUD.md`
