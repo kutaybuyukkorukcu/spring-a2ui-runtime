@@ -24,23 +24,23 @@ Primary target window: **Phase 1 and early Phase 2**
 
 ### P0: Contract Hardening (`fogui-java-core`, `fogui-spring-starter`)
 
-- [ ] Add canonical contract version negotiation model.
-- [ ] Add deterministic validation error catalog with stable machine-readable codes.
-- [ ] Create golden fixture tests for valid/invalid canonical payloads.
-- [ ] Add compatibility checks for canonical version mismatches.
+- [x] Add canonical contract version negotiation model.
+- [x] Add deterministic validation error catalog with stable machine-readable codes.
+- [x] Create golden fixture tests for valid/invalid canonical payloads.
+- [x] Add compatibility checks for canonical version mismatches.
 
 ### P0: Deterministic Stream Correctness (`fogui-java-core`, `backend-java`)
 
-- [ ] Formalize reconciliation invariants (partial, duplicate, out-of-order fragments).
-- [ ] Add deterministic stream replay tests (`same stream input -> same final snapshot`).
-- [ ] Add integration tests covering SSE lifecycle events (`result`, `usage`, `error`, `done`).
+- [x] Formalize reconciliation invariants (partial, duplicate, out-of-order fragments).
+- [x] Add deterministic stream replay tests (`same stream input -> same final snapshot`).
+- [x] Add integration tests covering SSE lifecycle events (`result`, `usage`, `error`, `done`).
 
 ### P1: Spring AI Reliability (`backend-java`, `fogui-spring-starter`)
 
-- [ ] Add generation policy abstraction (deterministic defaults and provider capability flags).
-- [ ] Add structured output failure taxonomy and stable API error envelope.
-- [ ] Add request correlation IDs across transform and stream paths.
-- [ ] Document Spring AI best-practice defaults for deterministic transform workloads.
+- [x] Add generation policy abstraction (deterministic defaults and provider capability flags).
+- [x] Add structured output failure taxonomy and stable API error envelope.
+- [x] Add request correlation IDs across transform and stream paths.
+- [x] Document Spring AI best-practice defaults for deterministic transform workloads.
 
 ### P1: React Adapter Trust (`packages/react`)
 
