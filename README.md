@@ -2,6 +2,8 @@
 
 FogUI is an OSS-first deterministic runtime and rendering contract for agent/LLM-generated UI.
 
+Backend runtime that makes outputs predictable, validated, and safe before rendering.
+
 ## What FogUI Is
 
 FogUI turns probabilistic model output into predictable, design-system-safe UI payloads before rendering.
