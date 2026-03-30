@@ -2,6 +2,8 @@
 
 FogUI is an OSS-first deterministic runtime and rendering contract for agent/LLM-generated UI.
 
+Backend runtime that makes outputs predictable, validated, and safe before rendering.
+
 ## What FogUI Is
 
 FogUI turns probabilistic model output into predictable, design-system-safe UI payloads before rendering.
@@ -55,6 +57,13 @@ cd backend-java
 ```
 
 Default backend URL: `http://localhost:5001`
+
+Create a local reference-server API key:
+
+```bash
+cd ..
+./scripts/create-dev-api-key.sh --email you@example.com --password your-password-123
+```
 
 ### 3) Build React SDK
 

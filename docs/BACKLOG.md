@@ -44,15 +44,16 @@ Primary target window: **Phase 1 and early Phase 2**
 
 ### P1: React Adapter Trust (`packages/react`)
 
-- [ ] Add adapter conformance checks for missing mappings and prop transformation errors.
-- [ ] Expand adapter tests for canonical component coverage.
-- [ ] Add deterministic action lifecycle test cases (`onActionStart -> onAction -> onActionComplete|onActionError`).
+- [x] Add adapter conformance checks for missing mappings and prop transformation errors.
+- [x] Expand adapter tests for canonical component coverage.
+- [x] Add deterministic action lifecycle test cases (`onActionStart -> onAction -> onActionComplete|onActionError`).
+- [x] Finish breaking `@fogui/react` surface cleanup across README, demo, and migration notes.
 
 ### P2: OSS Packaging and Adoption
 
 - [ ] Implement Java artifact publishing pipeline (`fogui-java-core`, `fogui-spring-starter`).
 - [ ] Publish external consumption guide for Spring Boot projects.
-- [ ] Keep `examples/react-demo` minimal and deterministic for smoke validation.
+- [x] Keep `examples/react-demo` minimal and deterministic for smoke validation.
 
 ## Definition of Done for This Backlog Window
 
