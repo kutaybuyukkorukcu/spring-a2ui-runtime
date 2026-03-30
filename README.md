@@ -58,6 +58,13 @@ cd backend-java
 
 Default backend URL: `http://localhost:5001`
 
+Create a local reference-server API key:
+
+```bash
+cd ..
+./scripts/create-dev-api-key.sh --email you@example.com --password your-password-123
+```
+
 ### 3) Build React SDK
 
 ```bash
