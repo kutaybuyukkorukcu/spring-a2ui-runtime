@@ -6,13 +6,60 @@
 
     <groupId>com.genui</groupId>
     <artifactId>fogui-modules</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>${revision}</version>
     <packaging>pom</packaging>
     <name>FogUI Modules Reactor</name>
+    <description>Aggregator for FogUI Java modules and the reference backend</description>
+    <url>https://github.com/kutaybuyukkorukcu/FogUI</url>
+
+    <properties>
+        <revision>1.0.0-SNAPSHOT</revision>
+        <fogui.homepage>https://fogui.dev</fogui.homepage>
+        <fogui.project.url>https://github.com/kutaybuyukkorukcu/FogUI</fogui.project.url>
+        <fogui.github.packages.url>https://maven.pkg.github.com/kutaybuyukkorukcu/FogUI</fogui.github.packages.url>
+    </properties>
 
     <modules>
         <module>fogui-java-core</module>
         <module>fogui-spring-starter</module>
         <module>backend-java</module>
     </modules>
+
+    <organization>
+        <name>FogUI</name>
+        <url>${fogui.homepage}</url>
+    </organization>
+
+    <licenses>
+        <license>
+            <name>MIT</name>
+            <url>https://opensource.org/license/mit/</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <connection>scm:git:${fogui.project.url}.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/kutaybuyukkorukcu/FogUI.git</developerConnection>
+        <url>${fogui.project.url}</url>
+        <tag>HEAD</tag>
+    </scm>
+
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>${fogui.project.url}/issues</url>
+    </issueManagement>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>${fogui.github.packages.url}</url>
+        </repository>
+        <snapshotRepository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>${fogui.github.packages.url}</url>
+        </snapshotRepository>
+    </distributionManagement>
 </project>

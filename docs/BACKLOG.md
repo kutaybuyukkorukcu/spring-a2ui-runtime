@@ -1,15 +1,17 @@
 # FogUI OSS Backlog (Execution Board)
 
 **Roadmap anchor:** `docs/ROADMAP_OSS.md`  
-**Last Updated:** March 26, 2026
+**Last Updated:** March 31, 2026
 
 This file tracks execution work for the active roadmap phases.  
 Commercial/cloud items stay out of this board and remain in `docs/ROADMAP_CLOUD.md`.
 
 ## Current Focus Window
 
-Primary target window: **Phase 1 and early Phase 2**  
-(April 1, 2026 to July 1, 2026)
+Primary target window: **Phase 4 adoption and release discipline**  
+(April 1, 2026 to June 15, 2026)
+
+Phases 1 through 3 are effectively complete on `main`. This board now tracks the remaining work required to make those foundations externally consumable without cloning the monorepo.
 
 ## Foundations Already in Place
 
@@ -49,10 +51,16 @@ Primary target window: **Phase 1 and early Phase 2**
 - [x] Add deterministic action lifecycle test cases (`onActionStart -> onAction -> onActionComplete|onActionError`).
 - [x] Finish breaking `@fogui/react` surface cleanup across README, demo, and migration notes.
 
-### P2: OSS Packaging and Adoption
+### P4: OSS Packaging and Adoption
 
-- [ ] Implement Java artifact publishing pipeline (`fogui-java-core`, `fogui-spring-starter`).
-- [ ] Publish external consumption guide for Spring Boot projects.
+- [x] Lock GitHub Packages as the supported Java registry for the current OSS adoption tranche.
+- [x] Make Java publishing version-aware for tagged or manually dispatched releases.
+- [x] Publish a standalone Spring Boot external consumption guide.
+- [x] Document compatibility notes and upgrade expectations per tagged release.
+- [x] Expand observability starter docs for external operators.
+- [x] Add external Spring consumer sample for non-reactor verification.
+- [ ] Validate the published GitHub Packages flow from a clean external environment.
+- [ ] Add Maven Central-grade Java publishing follow-up (Sonatype/Central Portal flow, signing, and public-release hardening) after GitHub Packages hardening lands.
 - [x] Keep `examples/react-demo` minimal and deterministic for smoke validation.
 
 ## Definition of Done for This Backlog Window
@@ -62,7 +70,7 @@ All of the following must be true:
 1. Canonical validation and stream behavior are deterministically testable in CI.
 2. Spring AI transform behavior has documented policy defaults and predictable failure envelopes.
 3. Adapter behavior in React is guarded by conformance checks, not best-effort assumptions.
-4. Core OSS module boundaries are obvious in README + architecture docs.
+4. External teams can discover the supported Java registry, consume the published modules, and distinguish core-vs-reference boundaries from the docs alone.
 
 ## Stretch Items (Only if P0/P1 Complete)
 
