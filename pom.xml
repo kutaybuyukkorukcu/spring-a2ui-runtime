@@ -4,19 +4,22 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.4.1</version>
+        <relativePath/>
+    </parent>
+
     <groupId>com.genui</groupId>
     <artifactId>fogui-modules</artifactId>
     <version>${revision}</version>
     <packaging>pom</packaging>
     <name>FogUI Modules Reactor</name>
-    <description>Aggregator for FogUI Java modules and the reference backend</description>
-    <url>https://github.com/kutaybuyukkorukcu/FogUI</url>
 
     <properties>
         <revision>1.0.0-SNAPSHOT</revision>
-        <fogui.homepage>https://fogui.dev</fogui.homepage>
-        <fogui.project.url>https://github.com/kutaybuyukkorukcu/FogUI</fogui.project.url>
-        <fogui.github.packages.url>https://maven.pkg.github.com/kutaybuyukkorukcu/FogUI</fogui.github.packages.url>
+        <java.version>21</java.version>
     </properties>
 
     <modules>
@@ -24,11 +27,6 @@
         <module>fogui-spring-starter</module>
         <module>backend-java</module>
     </modules>
-
-    <organization>
-        <name>FogUI</name>
-        <url>${fogui.homepage}</url>
-    </organization>
 
     <licenses>
         <license>
@@ -38,28 +36,46 @@
         </license>
     </licenses>
 
-    <scm>
-        <connection>scm:git:${fogui.project.url}.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/kutaybuyukkorukcu/FogUI.git</developerConnection>
-        <url>${fogui.project.url}</url>
-        <tag>HEAD</tag>
-    </scm>
-
-    <issueManagement>
-        <system>GitHub Issues</system>
-        <url>${fogui.project.url}/issues</url>
-    </issueManagement>
-
     <distributionManagement>
         <repository>
             <id>github</id>
             <name>GitHub Packages</name>
-            <url>${fogui.github.packages.url}</url>
+            <url>https://maven.pkg.github.com/kutaybuyukkorukcu/FogUI</url>
         </repository>
         <snapshotRepository>
             <id>github</id>
             <name>GitHub Packages</name>
-            <url>${fogui.github.packages.url}</url>
+            <url>https://maven.pkg.github.com/kutaybuyukkorukcu/FogUI</url>
         </snapshotRepository>
     </distributionManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.6.0</version>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                    <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten-clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

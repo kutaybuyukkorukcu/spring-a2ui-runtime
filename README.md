@@ -26,8 +26,6 @@ FogUI is positioned as infrastructure, not a hosted dashboard product:
 
 Roadmap details: `docs/ROADMAP_OSS.md`
 
-Phases 1 through 3 are effectively complete on `main`; the active OSS work is now adoption and release discipline.
-
 ## Monorepo Modules
 
 ### Core OSS modules
@@ -42,11 +40,8 @@ Phases 1 through 3 are effectively complete on `main`; the active OSS work is no
   - Core reference APIs: `POST /fogui/transform`, `POST /fogui/transform/stream`, `POST /fogui/compat/a2ui/inbound`.
   - Auth/key/usage/profile APIs are reference-server optional and not part of core OSS contract.
 - `examples/react-demo`: minimal demo for transform + stream + compatibility validation.
-- `examples/spring-consumer`: standalone Spring Boot sample for non-reactor starter verification.
 
-## Quick Start (Monorepo / Reference Server)
-
-This quickstart is for working inside the FogUI monorepo. If you want to consume published Java artifacts from another Spring Boot project, use `docs/SPRING_BOOT_INTEGRATION_GUIDE.md`.
+## Quick Start (OSS)
 
 ### 1) Build Java modules
 
@@ -89,11 +84,7 @@ npm run dev
 
 ## Publish Java Modules (GitHub Packages)
 
-GitHub Packages is the current supported Java registry for FogUI OSS. Maven Central remains a later follow-up once release notes and compatibility policy are stable.
-
-External Spring Boot consumers should follow `docs/SPRING_BOOT_INTEGRATION_GUIDE.md`. Monorepo maintainers should keep using Maven reactor mode for local development.
-
-FogUI Java modules are published with the workflow:
+FogUI Java modules can be published to GitHub Packages using the workflow:
 
 - `.github/workflows/java-publish.yml`
 
@@ -101,7 +92,6 @@ How to publish:
 
 1. Go to Actions -> Java Publish and run the workflow manually with an explicit version such as `1.0.0`.
 2. Or push a tag that matches `java-v*.*.*`; the tag suffix becomes the published Maven version.
-3. Default branch builds remain on `1.0.0-SNAPSHOT` until the publish job overrides the shared `revision`.
 
 Published artifacts:
 
@@ -152,8 +142,6 @@ See `backend-java/src/main/resources/application.yml` for defaults.
 - OSS roadmap (dated milestones): `docs/ROADMAP_OSS.md`
 - OSS execution backlog: `docs/BACKLOG.md`
 - OSS quickstart: `docs/OSS_QUICKSTART.md`
-- Spring Boot integration guide: `docs/SPRING_BOOT_INTEGRATION_GUIDE.md`
-- Release compatibility policy: `docs/RELEASE_COMPATIBILITY.md`
 - Architecture and module boundaries: `docs/ARCHITECTURE.md`
 - A2UI compatibility: `docs/A2UI_COMPATIBILITY.md`
 - Advisors runtime pipeline: `docs/ADVISORS_RUNTIME.md`
