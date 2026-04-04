@@ -90,8 +90,8 @@ FogUI Java modules can be published to GitHub Packages using the workflow:
 
 How to publish:
 
-1. Go to Actions -> Java Publish and run the workflow manually.
-2. Or push a tag that matches `java-v*.*.*`.
+1. Go to Actions -> Java Publish and run the workflow manually with an explicit version such as `1.0.0`.
+2. Or push a tag that matches `java-v*.*.*`; the tag suffix becomes the published Maven version.
 
 Published artifacts:
 
