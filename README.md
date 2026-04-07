@@ -15,6 +15,21 @@ Core OSS responsibilities:
 - Deterministic stream patch reconciliation.
 - React adapter-based rendering into product design systems.
 
+## A2UI Supported Subset
+
+FogUI intentionally supports a conservative A2UI inbound subset in v1.
+
+| A2UI shape | v1 behavior |
+| --- | --- |
+| `thinking[]` object items | Translated into canonical `thinking` entries; `status` defaults to `complete`, `timestamp` stays optional. |
+| `content[]` text blocks with `type: text` and `value` or `text` | Translated into canonical text blocks. |
+| `content[]` component blocks with `componentType` or `name` | Translated into canonical component blocks with recursive `children` support. |
+| `content[]` nodes with `type: component` but no `componentType` or `name` | Translated deterministically as component type `unknown`. |
+| Unsupported object nodes or non-object blocks | Translated into `A2UiUnsupportedNode` fallback blocks with deterministic compatibility errors. |
+| Malformed `thinking` or `content` container shapes | Invalid sections are omitted and deterministic compatibility errors are returned; downstream canonical validation may still fail. |
+
+Detailed matrix and fixture-backed examples: `docs/A2UI_COMPATIBILITY.md`
+
 ## 2026 Direction
 
 FogUI is positioned as infrastructure, not a hosted dashboard product:
