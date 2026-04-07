@@ -23,8 +23,8 @@
     </properties>
 
     <modules>
-        <module>fogui-java-core</module>
-        <module>fogui-spring-starter</module>
+        <module>packages/fogui-java-core</module>
+        <module>packages/fogui-spring-boot-starter</module>
         <module>backend-java</module>
     </modules>
 

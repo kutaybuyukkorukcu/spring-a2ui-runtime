@@ -1,0 +1,25 @@
+{
+  "name": "unsupported nodes emit deterministic fallback blocks",
+  "payload": {
+    "content": [
+      {
+        "foo": "bar"
+      }
+    ]
+  },
+  "expectedThinkingCount": 0,
+  "expectedBlocks": [
+    {
+      "type": "component",
+      "componentType": "A2UiUnsupportedNode",
+      "fallbackReason": "unsupported_node"
+    }
+  ],
+  "expectedErrors": [
+    {
+      "path": "$.content[0]",
+      "code": "UNSUPPORTED_NODE",
+      "category": "COMPATIBILITY"
+    }
+  ]
+}

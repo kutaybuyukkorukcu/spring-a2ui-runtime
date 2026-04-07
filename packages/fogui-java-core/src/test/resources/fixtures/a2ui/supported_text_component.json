@@ -1,0 +1,37 @@
+{
+  "name": "supported text and named component blocks",
+  "payload": {
+    "thinking": [
+      {
+        "status": "complete",
+        "message": "Analyzing...",
+        "timestamp": "2026-03-28T00:00:00Z"
+      }
+    ],
+    "content": [
+      {
+        "type": "text",
+        "value": "Revenue increased 18% QoQ"
+      },
+      {
+        "type": "component",
+        "componentType": "Card",
+        "props": {
+          "title": "Revenue Summary"
+        }
+      }
+    ]
+  },
+  "expectedThinkingCount": 1,
+  "expectedBlocks": [
+    {
+      "type": "text",
+      "value": "Revenue increased 18% QoQ"
+    },
+    {
+      "type": "component",
+      "componentType": "Card"
+    }
+  ],
+  "expectedErrors": []
+}

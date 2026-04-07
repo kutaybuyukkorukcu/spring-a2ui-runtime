@@ -1,0 +1,26 @@
+{
+  "name": "invalid-contract-version-mismatch",
+  "expectedValid": false,
+  "context": {
+    "expectedContractVersion": "fogui/1.0"
+  },
+  "payload": {
+    "thinking": [],
+    "content": [
+      {
+        "type": "text",
+        "value": "hello"
+      }
+    ],
+    "metadata": {
+      "contractVersion": "fogui/0.9"
+    }
+  },
+  "expectedErrors": [
+    {
+      "path": "$.metadata.contractVersion",
+      "code": "CONTRACT_VERSION_MISMATCH",
+      "category": "VALIDATION"
+    }
+  ]
+}
