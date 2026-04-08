@@ -34,10 +34,16 @@ Detailed matrix and fixture-backed examples: `docs/A2UI_COMPATIBILITY.md`
 
 FogUI is positioned as infrastructure, not a hosted dashboard product:
 
-- Backend trust runtime (`fogui-java-core` + `fogui-spring-starter`) is the center.
+- Backend trust runtime (`packages/fogui-java-core` + `packages/fogui-spring-boot-starter`) is the center.
 - Protocol interoperability (A2UI today) is required, but FogUI is not a protocol-spec competitor.
 - `backend-java` stays as a reference integration server, not the primary product surface.
 - `packages/react` remains core because trust only matters if canonical outputs render safely.
+
+Deterministic behavior is not concentrated in `backend-java`. The publishable Java OSS value lives primarily in the shared modules:
+
+- `packages/fogui-java-core` owns canonical contract validation, compatibility translation, and deterministic stream reconciliation.
+- `packages/fogui-spring-boot-starter` owns Spring Boot auto-configuration, advisor wiring, and runtime policy integration.
+- `backend-java` consumes those modules to expose a reference HTTP server, SSE flow, and operational extras such as auth, usage, and persistence.
 
 Roadmap details: `docs/ROADMAP_OSS.md`
 
@@ -45,8 +51,8 @@ Roadmap details: `docs/ROADMAP_OSS.md`
 
 ### Core OSS modules
 
-- `fogui-java-core`: framework-agnostic canonical contracts, validation, translation primitives, deterministic utilities.
-- `fogui-spring-starter`: Spring Boot integration glue for auto-config, middleware hooks, and observability wiring.
+- `packages/fogui-java-core`: framework-agnostic canonical contracts, validation, translation primitives, deterministic utilities.
+- `packages/fogui-spring-boot-starter`: Spring Boot integration glue for auto-config, middleware hooks, and observability wiring.
 - `packages/react`: `@fogui/react` SDK (`FogUIProvider`, `useFogUI`, `FogUIRenderer`, adapters).
 
 ### Reference implementations
@@ -55,6 +61,8 @@ Roadmap details: `docs/ROADMAP_OSS.md`
   - Core reference APIs: `POST /fogui/transform`, `POST /fogui/transform/stream`, `POST /fogui/compat/a2ui/inbound`.
   - Auth/key/usage/profile APIs are reference-server optional and not part of core OSS contract.
 - `examples/react-demo`: minimal demo for transform + stream + compatibility validation.
+
+Java module migration notes: `docs/JAVA_MODULE_MIGRATION_PLAN.md`
 
 ## Quick Start (OSS)
 
@@ -125,7 +133,7 @@ For local backend development inside this monorepo, use Maven reactor mode so si
 
 What this means:
 
-- `-am` builds required sibling modules (`fogui-java-core`, `fogui-spring-starter`) from local source in the same monorepo build.
+- `-am` builds required sibling modules from local source in the same monorepo build.
 - Without reactor mode, `backend-java` resolves those dependencies from repositories (GitHub Packages is configured in `backend-java/pom.xml`).
 
 For standalone `cd backend-java && ./mvnw test`, configure Maven credentials in `~/.m2/settings.xml`:

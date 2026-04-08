@@ -1,0 +1,19 @@
+{
+  "name": "invalid-missing-content-array",
+  "expectedValid": false,
+  "context": null,
+  "payload": {
+    "thinking": [],
+    "content": null,
+    "metadata": {
+      "contractVersion": "fogui/1.0"
+    }
+  },
+  "expectedErrors": [
+    {
+      "path": "$.content",
+      "code": "MISSING_CONTENT",
+      "category": "VALIDATION"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "name": "invalid-text-value-type",
+  "expectedValid": false,
+  "context": null,
+  "payload": {
+    "thinking": [],
+    "content": [
+      {
+        "type": "text",
+        "value": 123
+      }
+    ],
+    "metadata": {
+      "contractVersion": "fogui/1.0"
+    }
+  },
+  "expectedErrors": [
+    {
+      "path": "$.content[0].value",
+      "code": "INVALID_TEXT_VALUE",
+      "category": "VALIDATION"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "component nodes without a name normalize to unknown",
+  "payload": {
+    "content": [
+      {
+        "type": "component",
+        "props": {
+          "title": "Unnamed component"
+        }
+      }
+    ]
+  },
+  "expectedThinkingCount": 0,
+  "expectedBlocks": [
+    {
+      "type": "component",
+      "componentType": "unknown"
+    }
+  ],
+  "expectedErrors": []
+}
