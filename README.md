@@ -60,9 +60,7 @@ Roadmap details: `docs/ROADMAP_OSS.md`
 - `backend-java`: reference server and integration harness.
   - Core reference APIs: `POST /fogui/transform`, `POST /fogui/transform/stream`, `POST /fogui/compat/a2ui/inbound`.
   - Auth/key/usage/profile APIs are reference-server optional and not part of core OSS contract.
-- `examples/react-demo`: minimal demo for transform + stream + compatibility validation.
-
-Java module migration notes: `docs/JAVA_MODULE_MIGRATION_PLAN.md`
+- `examples/transform-showcase`: transform-focused demo UI for local renderer validation against canonical backend responses.
 
 ## Quick Start (OSS)
 
@@ -97,10 +95,10 @@ npm run test
 npm run build
 ```
 
-### 4) Run minimal demo (optional)
+### 4) Run transform showcase (optional)
 
 ```bash
-cd examples/react-demo
+cd examples/transform-showcase
 npm install
 npm run dev
 ```
