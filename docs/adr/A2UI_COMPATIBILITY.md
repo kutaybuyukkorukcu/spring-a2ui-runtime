@@ -64,7 +64,9 @@ These behaviors are pinned by translator fixtures in `packages/fogui-java-core/s
 - React consumers call the compatibility endpoint only when they want backend translation.
 - The React package renders the resulting canonical FogUI response through the normal adapter pipeline.
 
-## Example request
+## Example Translation
+
+### A2UI-like request payload
 
 ```json
 {
@@ -74,10 +76,81 @@ These behaviors are pinned by translator fixtures in `packages/fogui-java-core/s
   "content": [
     { "type": "text", "value": "Revenue increased 18% QoQ" },
     {
-      "type": "component",
-      "componentType": "Card",
+      "name": "Card",
       "props": { "title": "Revenue Summary" }
     }
   ]
 }
 ```
+
+### Canonical FogUI output in `result`
+
+```json
+{
+  "thinking": [
+    {
+      "status": "complete",
+      "message": "Analyzing...",
+      "timestamp": "2026-04-14T18:30:00Z"
+    }
+  ],
+  "content": [
+    {
+      "type": "text",
+      "value": "Revenue increased 18% QoQ"
+    },
+    {
+      "type": "component",
+      "componentType": "Card",
+      "props": {
+        "title": "Revenue Summary"
+      }
+    }
+  ],
+  "metadata": {
+    "contractVersion": "fogui/1.0"
+  }
+}
+```
+
+### Example endpoint response
+
+```json
+{
+  "success": true,
+  "requestId": "req_1234567890",
+  "result": {
+    "thinking": [
+      {
+        "status": "complete",
+        "message": "Analyzing...",
+        "timestamp": "2026-04-14T18:30:00Z"
+      }
+    ],
+    "content": [
+      {
+        "type": "text",
+        "value": "Revenue increased 18% QoQ"
+      },
+      {
+        "type": "component",
+        "componentType": "Card",
+        "props": {
+          "title": "Revenue Summary"
+        }
+      }
+    ],
+    "metadata": {
+      "contractVersion": "fogui/1.0"
+    }
+  },
+  "translationErrors": [],
+  "validationErrors": []
+}
+```
+
+The important boundary is:
+
+- Request payload can be A2UI-like and use compatibility-friendly shapes such as named components.
+- Response `result` is always canonical FogUI output.
+- `translationErrors` and `validationErrors` explain what was recovered, normalized, or rejected during translation.

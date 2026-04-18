@@ -1,15 +1,22 @@
 # FogUI OSS Backlog (Execution Board)
 
-**Roadmap anchor:** `docs/ROADMAP_OSS.md`  
-**Last Updated:** April 9, 2026
+**Last Updated:** April 12, 2026
 
-This file tracks execution work for the active roadmap phases.  
-Commercial/cloud items stay out of this board and remain in `docs/ROADMAP_CLOUD.md`.
+This file is the primary execution board for FogUI OSS.
+It tracks the work needed to prove, measure, and package FogUI as a deterministic runtime/library for developers.
 
 ## Current Focus Window
 
-Primary target window: **publishable Java runtime support, determinism benchmarking, and implementation hardening**  
-(External adoption depends on extracting the reusable runtime surface and proving determinism with repeatable measurements.)
+Primary target window: **determinism proof, comparison harness, and implementation hardening**  
+(The immediate goal is to show, with evidence, whether FogUI improves repeatability, validity, and render safety versus raw model or A2UI-like output without the FogUI deterministic layer.)
+
+## Core Outcome Question 
+
+FogUI's current outcome target is straightforward:
+
+1. Run the same user intent through a baseline path and a FogUI path.
+2. Measure how stable, valid, and render-safe the results are.
+3. Publish a clear with-FogUI vs without-FogUI outcome.
 
 ## Foundations Already in Place
 
@@ -25,25 +32,32 @@ Primary target window: **publishable Java runtime support, determinism benchmark
 
 ## Priority Queue (Now)
 
-### P0: Publishable Java Runtime Support (`packages/fogui-java-core`, `packages/fogui-spring-boot-starter`, `backend-java`, `docs`)
+### P0: Determinism Proof and Comparison Harness (`backend-java`, `packages/fogui-java-core`, `examples/transform-showcase`, `docs`)
 
-- [ ] Define the publishable Java product boundary clearly: core canonical engine, Spring AI policy/advisor integration, and reusable runtime orchestration must be consumable without copying `backend-java` internals.
-- [ ] Extract or formalize the reusable runtime layer that currently lives only in `backend-java` (transform orchestration, stream orchestration, request correlation, stable error envelope, prompt SPI, and SSE lifecycle handling).
-- [ ] Decide whether that reusable layer should ship as a new publishable module (for example a Spring runtime/web starter) instead of remaining reference-server-only code.
-- [ ] Publish an external Spring Boot integration guide that shows how teams use the released Java artifacts to build deterministic transform/stream services without cloning the monorepo.
+- [x] Define the comparison modes used in evaluation: raw/direct model structured output without FogUI, FogUI transform path, and FogUI A2UI inbound compatibility path where relevant.
+- [x] Build a repeatability harness that runs the same scenario multiple times per mode and stores raw outputs, normalized canonical snapshots, diagnostics, and final stream snapshots for comparison.
+- [x] Add benchmark scenario sets for low-ambiguity structured prompts, medium-ambiguity layout prompts, intentionally ambiguous stress cases, and A2UI inbound compatibility payloads.
+- [x] Produce machine-readable comparison output plus a human-readable report suitable for publishing outcome claims.
 
-### P0: Determinism Benchmark and Reporting Kit (`backend-java`, `packages/fogui-java-core`, `examples/transform-showcase`, `docs`)
+### P0: Result Calculation and Claim Criteria (`backend-java`, `packages/fogui-java-core`, `examples/transform-showcase`, `docs`)
 
-- [ ] Build a repeatability harness that runs transform and stream scenarios multiple times and stores normalized canonical snapshots for comparison.
-- [ ] Define the metrics that matter for the article and product claims: canonical validity rate, exact component-tree stability, exact normalized JSON stability, and stream final-snapshot stability.
-- [ ] Add benchmark scenario sets for low-ambiguity structured prompts, medium-ambiguity layout prompts, and intentionally ambiguous stress cases.
-- [ ] Produce machine-readable benchmark output plus a human-readable report that can back article claims and future CI quality signals.
+- [x] Define the metrics that matter for the outcome: canonical validity rate, exact normalized JSON stability, exact component-tree stability, final render stability, stream final-snapshot stability, translation/validation diagnostic rate, and fallback-component rate.
+- [ ] Write down what "deterministic enough" means for FogUI right now: stable canonical shape, stable error codes, stable stream lifecycle, acceptable model-level variance, and measurable improvement versus the raw baseline.
+- [ ] Add paired "with FogUI / without FogUI" examples for representative intents so the outcome can show concrete before/after behavior instead of only aggregate metrics.
+- [ ] Define publication claim boundaries clearly: what FogUI guarantees deterministically, what remains model-variant, and how comparisons are normalized to stay fair.
 
 ### P0: Runtime Confidence and Determinism Observation (`backend-java`, `examples/transform-showcase`, `docs`)
 
 - [ ] Run manual `examples/transform-showcase` sessions against repeated prompts and compare transform stability; compare stream stability directly against the backend stream endpoint.
-- [ ] Write down what “deterministic enough” means for FogUI right now: stable canonical shape, stable error codes, stable stream lifecycle, and acceptable model-level variance.
-- [ ] Add or refine repeatability checks around transform and stream flows before prioritizing external adoption.
+- [ ] Validate the proposed "deterministic enough" thresholds against real runs and adjust them if observed behavior does not support the claim boundary.
+- [ ] Add or refine repeatability checks around transform and stream flows before promoting public determinism claims.
+
+### P1: Publishable Java Runtime Support (`packages/fogui-java-core`, `packages/fogui-spring-boot-starter`, `backend-java`, `docs`)
+
+- [ ] Define the publishable Java runtime/library boundary clearly: core canonical engine, Spring AI policy/advisor integration, and reusable runtime orchestration must be consumable without copying `backend-java` internals.
+- [ ] Extract or formalize the reusable runtime layer that currently lives only in `backend-java` (transform orchestration, stream orchestration, request correlation, stable error envelope, prompt SPI, and SSE lifecycle handling).
+- [ ] Decide whether that reusable layer should ship as a new publishable module (for example a Spring runtime/web starter) instead of remaining reference-server-only code.
+- [ ] Publish a Spring Boot integration guide that shows how developers use the released Java artifacts to build deterministic transform/stream services without cloning the monorepo.
 
 ### P0: A2UI Compatibility Hardening (`packages/fogui-java-core`, `backend-java`, `docs`)
 
@@ -57,10 +71,10 @@ Primary target window: **publishable Java runtime support, determinism benchmark
 - [x] Clarify in docs that `@fogui/react` remains a narrow reference renderer and demo surface while backend determinism stays the primary OSS investment area.
 - [ ] Decide whether showcase validation remains a local/reference check or grows into a required CI gate.
 
-### Backlog: OSS Packaging and Adoption (`packages/fogui-java-core`, `packages/fogui-spring-boot-starter`, `docs`)
+### Backlog: OSS Packaging and Developer Onboarding (`packages/fogui-java-core`, `packages/fogui-spring-boot-starter`, `docs`)
 
 - [x] Implement interim Java artifact publishing pipeline (`fogui-java-core`, `fogui-spring-starter`) via GitHub Packages.
-- [ ] Publish external consumption guide for Spring Boot projects.
+- [ ] Publish Spring Boot consumption guide for published artifacts.
 - [ ] Define Maven Central publication path (group ownership, signing, staging, release metadata, automation). GitHub Packages remains the interim release lane.
 - [ ] Write release policy and compatibility notes per Java release.
 
@@ -82,18 +96,18 @@ Primary target window: **publishable Java runtime support, determinism benchmark
 - [x] Add deterministic action lifecycle test cases (`onActionStart -> onAction -> onActionComplete|onActionError`).
 - [x] Finish breaking `@fogui/react` surface cleanup across README, demo, and migration notes.
 
-Protocol note: no active roadmap item exists to expand protocol support beyond A2UI unless product direction changes.
+Protocol note: no active backlog item exists to expand protocol support beyond A2UI unless scope changes.
 
 ## Definition of Done for This Backlog Window
 
 All of the following must be true:
 
-1. External Spring Boot teams can understand which FogUI Java artifacts to adopt and can integrate the reusable runtime surface without copying `backend-java` internals.
-2. Real transform and stream runs have been observed and measured enough to establish whether outputs are deterministic enough for the current goals.
-3. Determinism claims are backed by repeatable benchmark output rather than ad hoc demo observations.
+1. The same intent scenarios can be run repeatedly with and without FogUI under controlled settings.
+2. Comparison output exists for validity, normalized JSON stability, render stability, stream stability, diagnostics, and fallback behavior.
+3. A human-readable outcome report exists with representative with-FogUI vs without-FogUI examples and a defensible conclusion.
 4. A2UI supported subset and deterministic diagnostics are explicit enough that unsupported payloads are easy to reason about.
 5. Spring AI transform behavior remains deterministic and fully covered by policy, correlation, and stable error-envelope checks.
-6. Core vs reference boundaries remain obvious in docs, including React as a reference renderer rather than the protocol owner.
+6. The reusable runtime surface and publishable Java artifact boundary are clear enough for follow-on packaging work.
 
 ## Stretch Items (Only if P0/P1 Complete)
 
