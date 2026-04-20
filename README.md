@@ -8,6 +8,8 @@ Backend runtime that makes outputs predictable, validated, and safe before rende
 
 FogUI turns probabilistic model output into predictable, design-system-safe UI payloads before rendering.
 
+FogUI makes runtime guarantees about the response contract, diagnostics, and stream lifecycle.
+
 Core OSS responsibilities:
 
 - Canonical UI contract and validation.
@@ -28,13 +30,13 @@ FogUI intentionally supports a conservative A2UI inbound subset in v1.
 | Unsupported object nodes or non-object blocks | Translated into `A2UiUnsupportedNode` fallback blocks with deterministic compatibility errors. |
 | Malformed `thinking` or `content` container shapes | Invalid sections are omitted and deterministic compatibility errors are returned; downstream canonical validation may still fail. |
 
-Detailed matrix and fixture-backed examples: `docs/A2UI_COMPATIBILITY.md`
+Detailed matrix and fixture-backed examples: `docs/adr/A2UI_COMPATIBILITY.md`
 
 ## 2026 Direction
 
 FogUI is positioned as infrastructure, not a hosted dashboard product:
 
-- Backend trust runtime (`packages/fogui-java-core` + `packages/fogui-spring-boot-starter`) is the center.
+- Backend trust runtime (`packages/fogui-java-core` + `packages/fogui-spring-boot-starter` + `packages/fogui-spring-web-starter`) is the center.
 - Protocol interoperability (A2UI today) is required, but FogUI is not a protocol-spec competitor.
 - `backend-java` stays as a reference integration server, not the primary product surface.
 - `packages/react` remains core because trust only matters if canonical outputs render safely.
@@ -43,9 +45,10 @@ Deterministic behavior is not concentrated in `backend-java`. The publishable Ja
 
 - `packages/fogui-java-core` owns canonical contract validation, compatibility translation, and deterministic stream reconciliation.
 - `packages/fogui-spring-boot-starter` owns Spring Boot auto-configuration, advisor wiring, and runtime policy integration.
-- `backend-java` consumes those modules to expose a reference HTTP server, SSE flow, and operational extras such as auth, usage, and persistence.
+- `packages/fogui-spring-web-starter` owns reusable HTTP/runtime orchestration for transform, stream, compatibility, prompt SPI, and request correlation.
+- `backend-java` consumes those modules to expose a reference host application plus operational extras such as auth, usage, and persistence.
 
-Roadmap details: `docs/ROADMAP_OSS.md`
+Current execution backlog: `docs/BACKLOG.md`
 
 ## Monorepo Modules
 
@@ -53,6 +56,7 @@ Roadmap details: `docs/ROADMAP_OSS.md`
 
 - `packages/fogui-java-core`: framework-agnostic canonical contracts, validation, translation primitives, deterministic utilities.
 - `packages/fogui-spring-boot-starter`: Spring Boot integration glue for auto-config, middleware hooks, and observability wiring.
+- `packages/fogui-spring-web-starter`: reusable Spring web/runtime layer for transform, stream, compatibility routes, prompt SPI, and request correlation.
 - `packages/react`: `@fogui/react` SDK (`FogUIProvider`, `useFogUI`, `FogUIRenderer`, adapters).
 
 ### Reference implementations
@@ -161,15 +165,12 @@ See `backend-java/src/main/resources/application.yml` for defaults.
 
 ## Docs
 
-- OSS roadmap (dated milestones): `docs/ROADMAP_OSS.md`
 - OSS execution backlog: `docs/BACKLOG.md`
-- OSS quickstart: `docs/OSS_QUICKSTART.md`
-- Architecture and module boundaries: `docs/ARCHITECTURE.md`
-- A2UI compatibility: `docs/A2UI_COMPATIBILITY.md`
-- Advisors runtime pipeline: `docs/ADVISORS_RUNTIME.md`
-- Spring AI deterministic runtime guide: `docs/SPRING_AI_DETERMINISM.md`
-- Operations runbook (correlation + replay): `docs/OPERATIONS_RUNBOOK.md`
-- Adapter guide: `docs/ADAPTER_GUIDE.md`
-- Java artifact publishing plan: `docs/JAVA_PUBLISHING_PLAN.md`
-- Commercial/cloud roadmap (deferred): `docs/ROADMAP_CLOUD.md`
+- Architecture and module boundaries: `docs/adr/ARCHITECTURE.md`
+- A2UI compatibility: `docs/adr/A2UI_COMPATIBILITY.md`
+- Advisors runtime pipeline: `docs/adr/ADVISORS_RUNTIME.md`
+- Spring AI deterministic runtime guide: `docs/adr/SPRING_AI_DETERMINISM.md`
+- Adapter guide: `docs/adr/ADAPTER_GUIDE.md`
+- Java artifact publishing plan: `docs/adr/JAVA_PUBLISHING_PLAN.md`
+- Archived benchmark result: `docs/benchmark-results/determinism-evaluation-2026-04-17.md`
 - Agent conventions: `AGENTS.md`
