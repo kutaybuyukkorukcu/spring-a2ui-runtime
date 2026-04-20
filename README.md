@@ -116,8 +116,9 @@ How to publish:
 
 Published artifacts:
 
-- `com.genui:fogui-java-core`
-- `com.genui:fogui-spring-starter`
+- `com.fogui:fogui-java-core`
+- `com.fogui:fogui-spring-starter`
+- `com.fogui:fogui-spring-web-starter`
 
 Registry URL pattern:
 

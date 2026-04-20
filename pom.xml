@@ -11,7 +11,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.genui</groupId>
+    <groupId>com.fogui</groupId>
     <artifactId>fogui-modules</artifactId>
     <version>${revision}</version>
     <packaging>pom</packaging>
@@ -25,6 +25,7 @@
     <modules>
         <module>packages/fogui-java-core</module>
         <module>packages/fogui-spring-boot-starter</module>
+        <module>packages/fogui-spring-web-starter</module>
         <module>backend-java</module>
     </modules>
 
