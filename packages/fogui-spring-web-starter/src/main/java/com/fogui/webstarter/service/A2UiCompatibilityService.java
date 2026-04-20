@@ -32,12 +32,12 @@ public class A2UiCompatibilityService {
                         .build());
 
         boolean success = translation.getErrors().isEmpty() && validationErrors.isEmpty();
-        return Map.of(
-                "success", success,
-                "requestId", requestId,
-                "result", translation.getResponse(),
-                "translationErrors", translation.getErrors(),
-                "validationErrors", validationErrors
-        );
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("success", success);
+        result.put("requestId", requestId);
+        result.put("result", translation.getResponse());
+        result.put("translationErrors", translation.getErrors());
+        result.put("validationErrors", validationErrors);
+        return result;
     }
 }

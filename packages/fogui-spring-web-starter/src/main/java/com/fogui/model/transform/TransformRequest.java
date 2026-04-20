@@ -1,11 +1,18 @@
 package com.fogui.model.transform;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.util.List;
 
 /**
  * Request body for the /fogui/transform endpoint.
  * Accepts raw LLM output and optional context hints.
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class TransformRequest {
 
     /**
@@ -19,30 +26,9 @@ public class TransformRequest {
      */
     private TransformContext context;
 
-    public TransformRequest() {
-    }
-
-    public TransformRequest(String content, TransformContext context) {
-        this.content = content;
-        this.context = context;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
-    }
-
-    public TransformContext getContext() {
-        return context;
-    }
-
-    public void setContext(TransformContext context) {
-        this.context = context;
-    }
-
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class TransformContext {
         /**
          * Hint about the user's intent (e.g., "weather_query", "data_analysis")
@@ -58,38 +44,5 @@ public class TransformRequest {
          * Custom instructions for the transformation.
          */
         private String instructions;
-
-        public TransformContext() {
-        }
-
-        public TransformContext(String intent, List<String> preferredComponents, String instructions) {
-            this.intent = intent;
-            this.preferredComponents = preferredComponents;
-            this.instructions = instructions;
-        }
-
-        public String getIntent() {
-            return intent;
-        }
-
-        public void setIntent(String intent) {
-            this.intent = intent;
-        }
-
-        public List<String> getPreferredComponents() {
-            return preferredComponents;
-        }
-
-        public void setPreferredComponents(List<String> preferredComponents) {
-            this.preferredComponents = preferredComponents;
-        }
-
-        public String getInstructions() {
-            return instructions;
-        }
-
-        public void setInstructions(String instructions) {
-            this.instructions = instructions;
-        }
     }
 }

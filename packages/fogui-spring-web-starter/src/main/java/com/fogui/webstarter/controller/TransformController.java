@@ -9,8 +9,7 @@ import com.fogui.starter.advisor.FogUiAdvisorException;
 import com.fogui.webstarter.properties.FogUiWebProperties;
 import com.fogui.webstarter.service.TransformExecutionException;
 import com.fogui.webstarter.service.TransformService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -23,11 +22,10 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("${fogui.web.base-path:/fogui}")
 public class TransformController {
-
-        private static final Logger LOGGER = LoggerFactory.getLogger(TransformController.class);
 
     private final TransformService transformService;
     private final RequestCorrelationService requestCorrelationService;
@@ -66,12 +64,12 @@ public class TransformController {
                     .header(RequestCorrelationService.REQUEST_ID_HEADER, requestId)
                     .body(TransformResponse.error(ex.getMessage(), ex.getErrorCode(), ex.getDetails(), requestId));
         } catch (FogUiAdvisorException ex) {
-            LOGGER.warn("Transform deterministic advisor failure", ex);
+            log.warn("Transform deterministic advisor failure", ex);
             return ResponseEntity.unprocessableEntity()
                     .header(RequestCorrelationService.REQUEST_ID_HEADER, requestId)
                     .body(TransformResponse.error(ex.getMessage(), ex.getErrorCode(), ex.getDetails(), requestId));
         } catch (Exception ex) {
-            LOGGER.error("Transform error", ex);
+            log.error("Transform error", ex);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .header(RequestCorrelationService.REQUEST_ID_HEADER, requestId)
                     .body(TransformResponse.error(
