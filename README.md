@@ -38,15 +38,15 @@ FogUI is positioned as infrastructure, not a hosted dashboard product:
 
 - Backend trust runtime (`packages/fogui-java-core` + `packages/fogui-spring-boot-starter` + `packages/fogui-spring-web-starter`) is the center.
 - Protocol interoperability (A2UI today) is required, but FogUI is not a protocol-spec competitor.
-- `backend-java` stays as a reference integration server, not the primary product surface.
+- `apps/be-transform-showcase` stays as a reference integration server, not the primary product surface.
 - `packages/react` remains core because trust only matters if canonical outputs render safely.
 
-Deterministic behavior is not concentrated in `backend-java`. The publishable Java OSS value lives primarily in the shared modules:
+Deterministic behavior is not concentrated in `apps/be-transform-showcase`. The publishable Java OSS value lives primarily in the shared modules:
 
 - `packages/fogui-java-core` owns canonical contract validation, compatibility translation, and deterministic stream reconciliation.
 - `packages/fogui-spring-boot-starter` owns Spring Boot auto-configuration, advisor wiring, and runtime policy integration.
 - `packages/fogui-spring-web-starter` owns reusable HTTP/runtime orchestration for transform, stream, compatibility, prompt SPI, and request correlation.
-- `backend-java` consumes those modules to expose a reference host application plus operational extras such as auth, usage, and persistence.
+- `apps/be-transform-showcase` consumes those modules to expose a reference host application plus operational extras such as auth, usage, and persistence.
 
 Current execution backlog: `docs/BACKLOG.md`
 
@@ -61,34 +61,27 @@ Current execution backlog: `docs/BACKLOG.md`
 
 ### Reference implementations
 
-- `backend-java`: reference server and integration harness.
+- `apps/be-transform-showcase`: reference server and integration harness.
   - Core reference APIs: `POST /fogui/transform`, `POST /fogui/transform/stream`, `POST /fogui/compat/a2ui/inbound`.
   - Auth/key/usage/profile APIs are reference-server optional and not part of core OSS contract.
-- `examples/transform-showcase`: transform-focused demo UI for local renderer validation against canonical backend responses.
+- `apps/fe-transform-showcase`: transform-focused demo UI for local renderer validation against canonical backend responses.
 
 ## Quick Start (OSS)
 
 ### 1) Build Java modules
 
 ```bash
-./backend-java/mvnw -f pom.xml -q -DskipTests package
+./apps/be-transform-showcase/mvnw -f pom.xml -q -DskipTests package
 ```
 
 ### 2) Run reference server
 
 ```bash
-cd backend-java
+cd apps/be-transform-showcase
 ./mvnw spring-boot:run
 ```
 
 Default backend URL: `http://localhost:5001`
-
-Create a local reference-server API key:
-
-```bash
-cd ..
-./scripts/create-dev-api-key.sh --email you@example.com --password your-password-123
-```
 
 ### 3) Build React SDK
 
@@ -102,7 +95,7 @@ npm run build
 ### 4) Run transform showcase (optional)
 
 ```bash
-cd examples/transform-showcase
+cd apps/fe-transform-showcase
 npm install
 npm run dev
 ```
@@ -131,15 +124,15 @@ Registry URL pattern:
 For local backend development inside this monorepo, use Maven reactor mode so sibling modules are built together:
 
 ```bash
-./backend-java/mvnw -f pom.xml -pl backend-java -am test
+./apps/be-transform-showcase/mvnw -f pom.xml -pl apps/be-transform-showcase -am test
 ```
 
 What this means:
 
 - `-am` builds required sibling modules from local source in the same monorepo build.
-- Without reactor mode, `backend-java` resolves those dependencies from repositories (GitHub Packages is configured in `backend-java/pom.xml`).
+- Without reactor mode, `apps/be-transform-showcase` resolves those dependencies from repositories (GitHub Packages is configured in `apps/be-transform-showcase/pom.xml`).
 
-For standalone `cd backend-java && ./mvnw test`, configure Maven credentials in `~/.m2/settings.xml`:
+For standalone `cd apps/be-transform-showcase && ./mvnw test`, configure Maven credentials in `~/.m2/settings.xml`:
 
 ```xml
 <settings>
@@ -155,13 +148,16 @@ For standalone `cd backend-java && ./mvnw test`, configure Maven credentials in 
 
 ## Environment (Reference Server)
 
+The root `.env.example` is only for local app and Docker Compose runs. Package consumers do not need it.
+
 - `OPENAI_API_KEY`
 - `OPENAI_BASE_URL` (default: `https://api.openai.com`)
 - `OPENAI_MODEL` (default: `gpt-4.1-nano`)
 - `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`
 - `JWT_SECRET`
+- `SENTRY_DSN` (optional)
 
-See `backend-java/src/main/resources/application.yml` for defaults.
+See `apps/be-transform-showcase/src/main/resources/application.yml` for defaults.
 
 ## Docs
 

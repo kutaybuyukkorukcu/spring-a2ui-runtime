@@ -27,21 +27,21 @@ FogUI's current outcome target is straightforward:
 - [x] A2UI inbound translation endpoint and translator.
 - [x] Stream parsing and reconciliation baseline.
 - [x] React SDK core primitives (`FogUIProvider`, `useFogUI`, `FogUIRenderer`, adapters).
-- [x] Reference APIs in `backend-java` (`/fogui/transform`, `/fogui/transform/stream`, `/fogui/compat/a2ui/inbound`).
+- [x] Reference APIs in `apps/be-transform-showcase` (`/fogui/transform`, `/fogui/transform/stream`, `/fogui/compat/a2ui/inbound`).
 - [x] Deterministic Spring AI advisor/runtime policy stack.
 - [x] Interim Java artifact publishing workflow via GitHub Packages.
 - [x] Module-level JaCoCo XML coverage generation for active Java OSS modules.
 
 ## Priority Queue (Now)
 
-### P0: Publishable Java Runtime Support (`packages/fogui-java-core`, `packages/fogui-spring-boot-starter`, `packages/fogui-spring-web-starter`, `backend-java`, `docs`)
+### P0: Publishable Java Runtime Support (`packages/fogui-java-core`, `packages/fogui-spring-boot-starter`, `packages/fogui-spring-web-starter`, `apps/be-transform-showcase`, `docs`)
 
-- [x] Define the publishable Java runtime/library boundary clearly: `fogui-java-core` owns canonical contract logic, `fogui-spring-boot-starter` owns Spring AI policy/advisor integration, and `fogui-spring-web-starter` owns reusable transform/stream/compat runtime orchestration without copying `backend-java` internals.
+- [x] Define the publishable Java runtime/library boundary clearly: `fogui-java-core` owns canonical contract logic, `fogui-spring-boot-starter` owns Spring AI policy/advisor integration, and `fogui-spring-web-starter` owns reusable transform/stream/compat runtime orchestration without copying `apps/be-transform-showcase` internals.
 - [x] Extract and formalize the reusable runtime layer into `packages/fogui-spring-web-starter` (transform orchestration, stream orchestration, request correlation, stable error envelope, prompt SPI, and SSE lifecycle handling).
 - [x] Ship that reusable runtime layer as a publishable module (`com.fogui:fogui-spring-web-starter`) instead of keeping it reference-server-only.
 - [ ] Publish a Spring Boot integration guide that shows how developers use the released Java artifacts to build deterministic transform/stream services without cloning the monorepo.
 
-### P0: Article Support and Claim Framing (`docs`, `examples/transform-showcase`)
+### P0: Article Support and Claim Framing (`docs`, `apps/fe-transform-showcase`)
 
 - [x] Archive one live benchmark result in `docs/benchmark-results/determinism-evaluation-2026-04-17.md`.
 - [ ] Write down FogUI runtime guarantees explicitly: stable canonical response shape, stable validation and error diagnostics, request correlation, stable stream lifecycle, and render-safe canonical output. Make clear that semantic determinism for similar user intent is out of scope.
@@ -49,15 +49,15 @@ FogUI's current outcome target is straightforward:
 - [ ] Define publication claim boundaries clearly: what FogUI guarantees deterministically, what remains model-variant, and how A2UI compatibility should be described.
 - [ ] Distill the archived benchmark result into an article-ready findings summary, conclusion, and screenshots.
 
-### P0: A2UI Compatibility Hardening (`packages/fogui-java-core`, `backend-java`, `docs`)
+### P0: A2UI Compatibility Hardening (`packages/fogui-java-core`, `apps/be-transform-showcase`, `docs`)
 
 - [x] Publish an explicit supported-subset matrix for A2UI inbound payloads.
 - [x] Expand deterministic diagnostics docs for unsupported nodes, fallback emission, and validation interplay.
 - [x] Add fixture-driven examples for supported, fallback, and rejected A2UI payload shapes.
 
-### P1: Reference Surface Discipline (`packages/react`, `examples/transform-showcase`, `docs`)
+### P1: Reference Surface Discipline (`packages/react`, `apps/fe-transform-showcase`, `docs`)
 
-- [x] Keep `examples/transform-showcase` focused as a minimal deterministic transform showcase.
+- [x] Keep `apps/fe-transform-showcase` focused as a minimal deterministic transform showcase.
 - [x] Clarify in docs that `@fogui/react` remains a narrow reference renderer and demo surface while backend determinism stays the primary OSS investment area.
 - [ ] Decide whether showcase validation remains a local/reference check or grows into a required CI gate.
 
@@ -97,7 +97,7 @@ Protocol note: no active backlog item exists to expand protocol support beyond A
 
 All of the following must be true:
 
-1. External Spring Boot teams can understand which FogUI Java artifacts to adopt and can integrate the reusable runtime surface without copying `backend-java` internals.
+1. External Spring Boot teams can understand which FogUI Java artifacts to adopt and can integrate the reusable runtime surface without copying `apps/be-transform-showcase` internals.
 2. Archived benchmark evidence and article-ready examples support narrow product claims about canonical runtime safety, render trust, diagnostics, and interoperability.
 3. FogUI claims are framed as runtime guarantees, not semantic determinism.
 4. A2UI supported subset and deterministic diagnostics are explicit enough that unsupported payloads are easy to reason about.

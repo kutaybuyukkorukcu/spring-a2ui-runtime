@@ -26,7 +26,7 @@
         <module>packages/fogui-java-core</module>
         <module>packages/fogui-spring-boot-starter</module>
         <module>packages/fogui-spring-web-starter</module>
-        <module>backend-java</module>
+        <module>apps/be-transform-showcase</module>
     </modules>
 
     <licenses>

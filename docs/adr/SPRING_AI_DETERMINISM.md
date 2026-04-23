@@ -56,13 +56,13 @@ For deterministic transform workloads:
 Run from repository root:
 
 ```bash
-./backend-java/mvnw -B -f pom.xml -pl :fogui-java-core test -Dtest=CanonicalConformanceFixtureTest,StreamReplayDeterminismTest
-./backend-java/mvnw -B -f pom.xml -pl :fogui-spring-starter test
-./backend-java/mvnw -B -f pom.xml -pl backend-java test -Dtest=TransformControllerUnitTest,TransformControllerTest,A2UiCompatibilityControllerTest,ChatClientFactoryTest
+./apps/be-transform-showcase/mvnw -B -f pom.xml -pl :fogui-java-core test -Dtest=CanonicalConformanceFixtureTest,StreamReplayDeterminismTest
+./apps/be-transform-showcase/mvnw -B -f pom.xml -pl :fogui-spring-starter test
+./apps/be-transform-showcase/mvnw -B -f pom.xml -pl apps/be-transform-showcase test -Dtest=TransformControllerUnitTest,TransformControllerTest,A2UiCompatibilityControllerTest,ChatClientFactoryTest
 ```
 
 CI-only evaluator lane:
 
 ```bash
-./backend-java/mvnw -B -f pom.xml -pl backend-java -am test -Dtest=ModelEvaluationSuite -Dsurefire.failIfNoSpecifiedTests=false
+./apps/be-transform-showcase/mvnw -B -f pom.xml -pl apps/be-transform-showcase -am test -Dtest=ModelEvaluationSuite -Dsurefire.failIfNoSpecifiedTests=false
 ```

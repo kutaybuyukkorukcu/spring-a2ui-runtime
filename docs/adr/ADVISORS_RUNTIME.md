@@ -6,7 +6,7 @@ This document describes the Spring AI Advisors pipeline used by FogUI determinis
 FogUI uses a hybrid split:
 
 1. Reusable deterministic advisors in `packages/fogui-spring-boot-starter`.
-2. HTTP/runtime mapping in `backend-java`.
+2. HTTP/runtime mapping in `apps/be-transform-showcase`.
 
 Defaults:
 
@@ -96,7 +96,7 @@ If outputs are rejected unexpectedly:
 4. Re-run conformance and replay tests:
 
 ```bash
-./backend-java/mvnw -B -f pom.xml -pl :fogui-java-core test -Dtest=CanonicalConformanceFixtureTest,StreamReplayDeterminismTest
-./backend-java/mvnw -B -f pom.xml -pl :fogui-spring-starter test
+./apps/be-transform-showcase/mvnw -B -f pom.xml -pl :fogui-java-core test -Dtest=CanonicalConformanceFixtureTest,StreamReplayDeterminismTest
+./apps/be-transform-showcase/mvnw -B -f pom.xml -pl :fogui-spring-starter test
 ```
 
