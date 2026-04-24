@@ -53,12 +53,13 @@ public class StreamPatchReconciler {
     private Map<String, Object> chooseMetadata(Map<String, Object> previous, Map<String, Object> incoming) {
         boolean hasPrevious = previous != null && !previous.isEmpty();
         boolean hasIncoming = incoming != null && !incoming.isEmpty();
-
+        
+        Map<String, Object> merged = new HashMap<>();
+        
         if (!hasPrevious && !hasIncoming) {
-            return null;
+            return merged;
         }
 
-        Map<String, Object> merged = new HashMap<>();
         if (hasPrevious) {
             merged.putAll(previous);
         }

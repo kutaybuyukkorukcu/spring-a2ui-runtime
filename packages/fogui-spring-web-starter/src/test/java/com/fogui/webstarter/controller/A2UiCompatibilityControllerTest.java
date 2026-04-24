@@ -49,14 +49,17 @@ class A2UiCompatibilityControllerTest {
         assertNotNull(body);
         assertEquals(Boolean.TRUE, body.get("success"));
 
-        GenerativeUIResponse result = cast(body.get("result"), GenerativeUIResponse.class);
+        GenerativeUIResponse result = cast(body.get("result"));
         ContentBlock content = result.getContent().getFirst();
         assertEquals("text", content.getType());
         assertEquals("hello from a2ui", content.getValue());
         assertEquals("fogui/1.0", result.getMetadata().get("contractVersion"));
 
-        assertTrue(cast(body.get("translationErrors"), java.util.List.class).isEmpty());
-        assertTrue(cast(body.get("validationErrors"), java.util.List.class).isEmpty());
+        List<?> translationErrors = cast(body.get("translationErrors"));
+        List<?> validationErrors = cast(body.get("validationErrors"));
+
+        assertTrue(translationErrors.isEmpty());
+        assertTrue(validationErrors.isEmpty());
         assertTrue(response.getHeaders().containsKey(RequestCorrelationService.REQUEST_ID_HEADER));
     }
 
@@ -83,13 +86,13 @@ class A2UiCompatibilityControllerTest {
         assertEquals("req-123", body.get("requestId"));
         assertEquals("req-123", response.getHeaders().getFirst(RequestCorrelationService.REQUEST_ID_HEADER));
 
-        GenerativeUIResponse result = cast(body.get("result"), GenerativeUIResponse.class);
+        GenerativeUIResponse result = cast(body.get("result"));
         ContentBlock content = result.getContent().getFirst();
         assertEquals("A2UiUnsupportedNode", content.getComponentType());
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> T cast(Object value, Class<T> ignoredType) {
+    private static <T> T cast(Object value) {
         return (T) value;
     }
 }

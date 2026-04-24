@@ -39,6 +39,25 @@ class TransformPromptsTest {
         }
 
         @Test
+        @DisplayName("should keep prompt sections in deterministic order")
+        void shouldKeepPromptSectionsInDeterministicOrder() {
+            String content = "User content";
+            String contextHints = "This is for a dashboard";
+
+            String prompt = TransformPrompts.buildTransformPrompt(content, contextHints);
+
+            int contentIndex = prompt.indexOf("---\n" + content + "\n---");
+            int contextIndex = prompt.indexOf("Additional context: " + contextHints);
+            int reminderIndex = prompt.indexOf("Canonical response rules:");
+            int instructionIndex = prompt.indexOf("Respond with the JSON structure only. Do not add prose or code fences.");
+
+            assertTrue(contentIndex >= 0);
+            assertTrue(contextIndex > contentIndex);
+            assertTrue(reminderIndex > contextIndex);
+            assertTrue(instructionIndex > reminderIndex);
+        }
+
+        @Test
         @DisplayName("should not include context section when hints are null")
         void shouldNotIncludeContextSectionWhenHintsNull() {
             String content = "User content";
@@ -65,7 +84,7 @@ class TransformPromptsTest {
 
             String prompt = TransformPrompts.buildTransformPrompt(content, null);
 
-            assertTrue(prompt.contains("Respond with the JSON structure only. Do not add prose or code fences."));
+            assertTrue(prompt.endsWith("Respond with the JSON structure only. Do not add prose or code fences."));
         }
 
         @Test

@@ -266,7 +266,7 @@ public class TransformStreamProcessor {
         details.put("expectedContractVersion", FogUiCanonicalContract.CURRENT_CONTRACT_VERSION);
         details.put("routeMode", FogUiAdvisorContextKeys.ROUTE_TRANSFORM_STREAM);
         if (requestId != null) {
-            details.put("requestId", requestId);
+            details.put(REQUEST_ID_KEY, requestId);
         }
         return details;
     }

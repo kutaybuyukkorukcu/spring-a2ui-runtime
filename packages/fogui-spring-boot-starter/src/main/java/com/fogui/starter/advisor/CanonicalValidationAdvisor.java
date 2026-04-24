@@ -193,7 +193,7 @@ public class CanonicalValidationAdvisor implements CallAdvisor {
     private Map<String, Object> baseDetails(ChatClientRequest request) {
         Map<String, Object> details = new LinkedHashMap<>();
         details.put("expectedContractVersion", FogUiCanonicalContract.CURRENT_CONTRACT_VERSION);
-        if (request != null && request.context() != null) {
+        if (request != null) {
             Object requestId = request.context().get(FogUiAdvisorContextKeys.REQUEST_ID);
             if (requestId != null) {
                 details.put("requestId", requestId);

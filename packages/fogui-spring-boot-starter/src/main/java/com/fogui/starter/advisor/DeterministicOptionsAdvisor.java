@@ -9,6 +9,9 @@ import org.springframework.ai.chat.client.advisor.api.BaseAdvisor;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.lang.NonNull;
+
+import java.util.Objects;
 
 /**
  * Applies deterministic generation policy to both call and stream advisor paths.
@@ -22,19 +25,19 @@ public class DeterministicOptionsAdvisor implements BaseAdvisor {
     }
 
     @Override
-    public ChatClientRequest before(ChatClientRequest request, AdvisorChain advisorChain) {
-        Prompt prompt = request.prompt();
-        if (prompt == null) {
-            return request;
-        }
+    public @NonNull ChatClientRequest before(@NonNull ChatClientRequest request, @NonNull AdvisorChain advisorChain) {
+        Prompt prompt = Objects.requireNonNull(request.prompt());
 
         OpenAiChatOptions deterministicOptions = buildDeterministicOptions(prompt.getOptions());
-        Prompt updatedPrompt = prompt.mutate().chatOptions(deterministicOptions).build();
+        Prompt updatedPrompt = Objects.requireNonNull(prompt.mutate().chatOptions(deterministicOptions).build());
         return request.mutate().prompt(updatedPrompt).build();
     }
 
     @Override
-    public ChatClientResponse after(ChatClientResponse response, AdvisorChain advisorChain) {
+    public @NonNull ChatClientResponse after(
+            @NonNull ChatClientResponse response,
+            @NonNull AdvisorChain advisorChain
+    ) {
         return response;
     }
 
@@ -73,7 +76,7 @@ public class DeterministicOptionsAdvisor implements BaseAdvisor {
     }
 
     @Override
-    public String getName() {
+    public @NonNull String getName() {
         return "foguiDeterministicOptionsAdvisor";
     }
 }
