@@ -170,3 +170,7 @@ See `apps/be-transform-showcase/src/main/resources/application.yml` for defaults
 - Java artifact publishing plan: `docs/adr/JAVA_PUBLISHING_PLAN.md`
 - Archived benchmark result: `docs/benchmark-results/determinism-evaluation-2026-04-17.md`
 - Agent conventions: `AGENTS.md`
+
+## License
+
+FogUI is licensed under the MIT License. See `LICENSE`.
