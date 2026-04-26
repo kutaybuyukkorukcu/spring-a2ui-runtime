@@ -192,12 +192,8 @@ class JwtServiceTest {
             JwtService shortLivedService = new JwtService("test-secret-key-minimum-32-characters-long", 0);
             String token = shortLivedService.generateToken(testUser);
 
-            // Token should still be decodable but expired
-            // Note: With 0 hours, the token might already be expired
-            DecodedJWT decoded = shortLivedService.decodeToken(token);
-
-            // The decode itself may fail due to expiration validation
-            // This is expected behavior
+            assertNotNull(token);
+            assertDoesNotThrow(() -> shortLivedService.decodeToken(token));
         }
     }
 }

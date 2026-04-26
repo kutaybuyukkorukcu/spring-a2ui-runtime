@@ -13,7 +13,7 @@ import java.util.List;
  */
 public class ApiKeyUserDetails implements UserDetails {
 
-    private final User user;
+    private final transient User user;
 
     public ApiKeyUserDetails(User user) {
         this.user = user;

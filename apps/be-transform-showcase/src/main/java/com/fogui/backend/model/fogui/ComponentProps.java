@@ -14,6 +14,9 @@ import java.util.Map;
  */
 public class ComponentProps {
 
+    private ComponentProps() {
+    }
+
     /**
      * Card component props - aligns with CardRendererProps
      */

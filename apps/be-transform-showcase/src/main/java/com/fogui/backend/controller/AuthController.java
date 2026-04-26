@@ -20,6 +20,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Authentication controller for user registration and login.
@@ -31,6 +32,8 @@ import java.util.Map;
 @Tag(name = "Authentication (Reference Optional)", description = "Optional reference-server account registration and login endpoints")
 public class AuthController {
 
+        private static final String ERROR_KEY = "error";
+
         private final UserRepository userRepository;
         private final PasswordEncoder passwordEncoder;
         private final JwtService jwtService;
@@ -40,20 +43,20 @@ public class AuthController {
          */
         @PostMapping("/register")
         @Operation(summary = "Register user", description = "Creates a new user account and returns an access token")
-        public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+        public ResponseEntity<Object> register(@Valid @RequestBody RegisterRequest request) {
                 // Check if email already exists
                 if (userRepository.existsByEmail(request.getEmail().toLowerCase())) {
                         return ResponseEntity.status(HttpStatus.CONFLICT)
-                                        .body(Map.of("error", "Email already registered"));
+                                        .body(Map.of(ERROR_KEY, "Email already registered"));
                 }
 
                 // Create new user
-                User user = User.builder()
+                User user = Objects.requireNonNull(User.builder()
                                 .email(request.getEmail().toLowerCase())
                                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                                 .role(UserRole.FREE)
                                 .monthlyQuota(UserRole.FREE.getMonthlyQuota())
-                                .build();
+                                .build());
 
                 user = userRepository.save(user);
                 log.info("New user registered: {}", user.getEmail());
@@ -69,7 +72,7 @@ public class AuthController {
          */
         @PostMapping("/login")
         @Operation(summary = "Login user", description = "Authenticates credentials and returns an access token")
-        public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+        public ResponseEntity<Object> login(@Valid @RequestBody LoginRequest request) {
                 var userOpt = userRepository.findByEmail(request.getEmail().toLowerCase())
                                 .filter(user -> passwordEncoder.matches(request.getPassword(), user.getPasswordHash()))
                                 .filter(User::getActive);
@@ -82,7 +85,7 @@ public class AuthController {
                 }
 
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                                .body(Map.of("error", "Invalid email or password"));
+                                .body(Map.of(ERROR_KEY, "Invalid email or password"));
         }
 
         /**
@@ -90,10 +93,10 @@ public class AuthController {
          */
         @GetMapping("/me")
         @Operation(summary = "Get current user", description = "Returns profile details for the authenticated user")
-        public ResponseEntity<?> me(@AuthenticationPrincipal ApiKeyUserDetails userDetails) {
+        public ResponseEntity<Object> me(@AuthenticationPrincipal ApiKeyUserDetails userDetails) {
                 if (userDetails == null) {
                         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                                        .body(Map.of("error", "Not authenticated"));
+                                        .body(Map.of(ERROR_KEY, "Not authenticated"));
                 }
 
                 User user = userDetails.getUser();

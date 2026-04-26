@@ -14,6 +14,7 @@ import com.fogui.webstarter.prompt.TransformPromptProvider;
 import com.fogui.webstarter.runtime.FogUiTransformRuntime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.lang.NonNull;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
 
@@ -129,7 +130,7 @@ public class TransformStreamProcessor {
         }
         emitter.send(SseEmitter.event()
                 .name(ERROR_KEY)
-                .data(objectMapper.writeValueAsString(errorJson)));
+                .data(writeJson(errorJson)));
     }
 
     private String extractContextHints(TransformRequest request) {
@@ -156,7 +157,7 @@ public class TransformStreamProcessor {
         try {
             emitter.send(SseEmitter.event()
                     .name("result")
-                    .data(objectMapper.writeValueAsString(normalized)));
+                    .data(writeJson(normalized)));
         } catch (IOException ex) {
             LOGGER.error("Error sending partial result", ex);
         }
@@ -182,7 +183,7 @@ public class TransformStreamProcessor {
     private void sendStreamResult(SseEmitter emitter, String content, String requestId) throws IOException {
         emitter.send(SseEmitter.event()
                 .name("result")
-                .data(objectMapper.writeValueAsString(parseAndNormalizeFinalResponse(content, requestId))));
+                .data(writeJson(parseAndNormalizeFinalResponse(content, requestId))));
     }
 
     private GenerativeUIResponse parseAndNormalizeFinalResponse(String content, String requestId) {
@@ -287,7 +288,11 @@ public class TransformStreamProcessor {
         usageJson.put(REQUEST_ID_KEY, requestId == null ? "" : requestId);
         emitter.send(SseEmitter.event()
                 .name("usage")
-                .data(objectMapper.writeValueAsString(usageJson)));
+                .data(writeJson(usageJson)));
+    }
+
+    private @NonNull String writeJson(Object value) throws IOException {
+        return Objects.requireNonNull(objectMapper.writeValueAsString(value));
     }
 
     private int estimateTokens(String content) {

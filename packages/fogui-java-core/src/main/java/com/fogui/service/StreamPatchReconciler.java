@@ -26,7 +26,8 @@ public class StreamPatchReconciler {
         GenerativeUIResponse merged = GenerativeUIResponse.builder().build();
         merged.setThinking(chooseThinking(previous.getThinking(), incoming.getThinking()));
         merged.setContent(chooseContent(previous.getContent(), incoming.getContent()));
-        merged.setMetadata(chooseMetadata(previous.getMetadata(), incoming.getMetadata()));
+        Map<String, Object> metadata = chooseMetadata(previous.getMetadata(), incoming.getMetadata());
+        merged.setMetadata(metadata.isEmpty() ? null : metadata);
         return merged;
     }
 
@@ -55,7 +56,7 @@ public class StreamPatchReconciler {
         boolean hasIncoming = incoming != null && !incoming.isEmpty();
 
         if (!hasPrevious && !hasIncoming) {
-            return null;
+            return new HashMap<>();
         }
 
         Map<String, Object> merged = new HashMap<>();

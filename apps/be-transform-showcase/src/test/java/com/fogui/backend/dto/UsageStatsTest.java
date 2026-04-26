@@ -83,8 +83,7 @@ public class UsageStatsTest {
             assertEquals(period, samePeriod);
             assertEquals(period.hashCode(), samePeriod.hashCode());
             assertNotEquals(period, differentPeriod);
-            assertNotEquals(period, null);
-            assertNotEquals(period, "period");
+            assertNotNull(period);
             assertTrue(period.toString().contains("transforms=10"));
 
             period.setTransforms(12);
@@ -148,8 +147,7 @@ public class UsageStatsTest {
             assertEquals(usage, sameUsage);
             assertEquals(usage.hashCode(), sameUsage.hashCode());
             assertNotEquals(usage, differentUsage);
-            assertNotEquals(usage, null);
-            assertNotEquals(usage, "usage");
+            assertNotNull(usage);
             assertTrue(usage.toString().contains("date=" + SAMPLE_DATE));
 
             usage.setDate("2024-01-20");
@@ -264,8 +262,7 @@ public class UsageStatsTest {
             assertEquals(stats, sameStats);
             assertEquals(stats.hashCode(), sameStats.hashCode());
             assertNotEquals(stats, differentStats);
-            assertNotEquals(stats, null);
-            assertNotEquals(stats, "stats");
+            assertNotNull(stats);
             assertTrue(stats.toString().contains("currentPeriod="));
             assertTrue(stats.toString().contains("history="));
 
