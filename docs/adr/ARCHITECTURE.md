@@ -37,7 +37,7 @@ The easiest way to understand FogUI is as a layered runtime stack.
 1. `packages/fogui-java-core` defines the canonical contract and deterministic rules.
 2. `packages/fogui-spring-boot-starter` wires those rules into Spring Boot and Spring AI policy/advisor behavior.
 3. `packages/fogui-spring-web-starter` exposes reusable HTTP/runtime orchestration for transform, stream, and compatibility flows.
-4. `backend-java` is the reference host application that consumes the reusable starters and adds app-specific concerns.
+4. `apps/be-transform-showcase` is the reference host application that consumes the reusable starters and adds app-specific concerns.
 5. `packages/react` renders the canonical result safely on the client side.
 
 ## Core OSS Modules
@@ -80,7 +80,7 @@ Responsibilities:
 5. Hide model-execution details behind `FogUiTransformRuntime`, with a default `SpringAiTransformRuntime` implementation.
 6. Provide property-driven enablement and routing controls through `FogUiWebProperties`.
 
-This module is the publishable runtime/web surface that moved reusable orchestration out of `backend-java`. It is the key reason external Spring teams no longer need to copy the reference server just to expose FogUI transform or compatibility routes. If you are changing `POST /fogui/transform`, `POST /fogui/transform/stream`, request correlation, prompt construction hooks, or SSE lifecycle handling, this is the module to inspect first.
+This module is the publishable runtime/web surface that moved reusable orchestration out of `apps/be-transform-showcase`. It is the key reason external Spring teams no longer need to copy the reference server just to expose FogUI transform or compatibility routes. If you are changing `POST /fogui/transform`, `POST /fogui/transform/stream`, request correlation, prompt construction hooks, or SSE lifecycle handling, this is the module to inspect first.
 
 ### `packages/react` (`@fogui/react`)
 
@@ -97,9 +97,9 @@ This package consumes the canonical contract; it does not define or validate the
 
 ## Reference Implementations
 
-### `backend-java`
+### `apps/be-transform-showcase`
 
-`backend-java` is the reference host application, not the reusable runtime product center.
+`apps/be-transform-showcase` is the reference host application, not the reusable runtime product center.
 
 Responsibilities:
 
@@ -107,9 +107,9 @@ Responsibilities:
 2. Host the reference HTTP server and optional operational APIs.
 3. Add application-specific concerns such as auth, persistence, usage, and profile endpoints.
 
-This means `backend-java` is where application hosting concerns belong, but it should not be the place where reusable transform, stream, compatibility, or request-correlation logic lives.
+This means `apps/be-transform-showcase` is where application hosting concerns belong, but it should not be the place where reusable transform, stream, compatibility, or request-correlation logic lives.
 
-### `examples/transform-showcase`
+### `apps/fe-transform-showcase`
 
 This is a manual validation surface, not a core runtime module.
 
@@ -126,7 +126,7 @@ The intended dependency flow is one-way and easy to reason about:
 1. `packages/fogui-java-core` has no web or host-app concerns.
 2. `packages/fogui-spring-boot-starter` builds on the core.
 3. `packages/fogui-spring-web-starter` builds on the core plus the Spring starter.
-4. `backend-java` consumes the reusable starters and adds application concerns.
+4. `apps/be-transform-showcase` consumes the reusable starters and adds application concerns.
 5. `packages/react` consumes canonical output but remains separate from the Java runtime stack.
 
 That split keeps the most reusable logic lower in the stack and the most application-specific logic higher in the stack.
@@ -160,7 +160,7 @@ Use this rule of thumb when deciding where to work:
 1. Change canonical schema, validation, or translation behavior in `packages/fogui-java-core`.
 2. Change advisor behavior or runtime policy in `packages/fogui-spring-boot-starter`.
 3. Change HTTP routes, prompt SPI, request correlation, or stream orchestration in `packages/fogui-spring-web-starter`.
-4. Change auth, persistence, or app-specific operational APIs in `backend-java`.
+4. Change auth, persistence, or app-specific operational APIs in `apps/be-transform-showcase`.
 5. Change rendering or adapter behavior in `packages/react`.
 
 ## Architectural Boundary Decisions
@@ -168,7 +168,7 @@ Use this rule of thumb when deciding where to work:
 These decisions are intentional and should remain stable unless scope changes:
 
 1. FogUI makes runtime-contract guarantees, not semantic-generation guarantees.
-2. Reusable web/runtime orchestration belongs in `packages/fogui-spring-web-starter`, not in `backend-java`.
+2. Reusable web/runtime orchestration belongs in `packages/fogui-spring-web-starter`, not in `apps/be-transform-showcase`.
 3. Prompt construction is an SPI so applications can customize prompt content without forking the transport layer.
 4. Model execution is abstracted behind `FogUiTransformRuntime` so the HTTP contract can stay stable while provider wiring evolves.
 5. Feature toggles such as base path, route enablement, stream timeout, and runtime model override live in `FogUiWebProperties`.

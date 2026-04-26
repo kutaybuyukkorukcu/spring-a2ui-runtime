@@ -14,11 +14,13 @@ import org.springframework.ai.chat.client.advisor.api.CallAdvisorChain;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
+import org.springframework.lang.NonNull;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Call-path advisor that enforces canonical contract metadata and validation in a
@@ -43,12 +45,18 @@ public class CanonicalValidationAdvisor implements CallAdvisor {
     }
 
     @Override
-    public ChatClientResponse adviseCall(ChatClientRequest request, CallAdvisorChain chain) {
-        ChatClientResponse response = chain.nextCall(request);
+    public @NonNull ChatClientResponse adviseCall(
+            @NonNull ChatClientRequest request,
+            @NonNull CallAdvisorChain chain
+    ) {
+        ChatClientResponse response = Objects.requireNonNull(chain.nextCall(request));
         return validateAndNormalize(response, request);
     }
 
-    private ChatClientResponse validateAndNormalize(ChatClientResponse response, ChatClientRequest request) {
+    private @NonNull ChatClientResponse validateAndNormalize(
+            @NonNull ChatClientResponse response,
+            @NonNull ChatClientRequest request
+    ) {
         String rawAssistantContent = readAssistantContent(response);
         if (rawAssistantContent == null || rawAssistantContent.isBlank()) {
             if (failFast) {
@@ -103,10 +111,10 @@ public class CanonicalValidationAdvisor implements CallAdvisor {
                         .build());
     }
 
-    private ChatClientResponse rewriteAssistantContent(
-            ChatClientResponse response,
+        private @NonNull ChatClientResponse rewriteAssistantContent(
+            @NonNull ChatClientResponse response,
             String normalizedJson,
-            ChatClientRequest request
+            @NonNull ChatClientRequest request
     ) {
         ChatResponse chatResponse = response.chatResponse();
         if (chatResponse == null || chatResponse.getResult() == null || chatResponse.getResult().getOutput() == null) {
@@ -120,7 +128,7 @@ public class CanonicalValidationAdvisor implements CallAdvisor {
         AssistantMessage firstAssistantMessage = firstGeneration.getOutput();
 
         AssistantMessage normalizedAssistant = AssistantMessage.builder()
-                .content(normalizedJson)
+            .content(Objects.requireNonNull(normalizedJson))
                 .properties(firstAssistantMessage.getMetadata())
                 .toolCalls(firstAssistantMessage.getToolCalls())
                 .media(firstAssistantMessage.getMedia())
@@ -193,7 +201,7 @@ public class CanonicalValidationAdvisor implements CallAdvisor {
     private Map<String, Object> baseDetails(ChatClientRequest request) {
         Map<String, Object> details = new LinkedHashMap<>();
         details.put("expectedContractVersion", FogUiCanonicalContract.CURRENT_CONTRACT_VERSION);
-        if (request != null && request.context() != null) {
+        if (request != null) {
             Object requestId = request.context().get(FogUiAdvisorContextKeys.REQUEST_ID);
             if (requestId != null) {
                 details.put("requestId", requestId);
@@ -213,7 +221,7 @@ public class CanonicalValidationAdvisor implements CallAdvisor {
     }
 
     @Override
-    public String getName() {
+    public @NonNull String getName() {
         return "foguiCanonicalValidationAdvisor";
     }
 }

@@ -6,7 +6,7 @@ package com.fogui.starter.advisor;
 public class FogUiAdvisorException extends RuntimeException {
 
     private final String errorCode;
-    private final Object details;
+    private final transient Object details;
 
     public FogUiAdvisorException(String message, String errorCode, Object details) {
         super(message);

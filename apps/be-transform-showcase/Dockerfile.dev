@@ -1,0 +1,26 @@
+# Development Dockerfile with hot reload
+FROM maven:3.9-eclipse-temurin-21
+
+WORKDIR /workspace
+
+# Copy reactor + module poms
+COPY pom.xml .
+COPY packages/fogui-java-core/pom.xml packages/fogui-java-core/pom.xml
+COPY packages/fogui-spring-boot-starter/pom.xml packages/fogui-spring-boot-starter/pom.xml
+COPY packages/fogui-spring-web-starter/pom.xml packages/fogui-spring-web-starter/pom.xml
+COPY apps/be-transform-showcase/pom.xml apps/be-transform-showcase/pom.xml
+
+# Copy source trees
+COPY packages/fogui-java-core/src packages/fogui-java-core/src
+COPY packages/fogui-spring-boot-starter/src packages/fogui-spring-boot-starter/src
+COPY packages/fogui-spring-web-starter/src packages/fogui-spring-web-starter/src
+COPY apps/be-transform-showcase/src apps/be-transform-showcase/src
+
+# Expose port and debug port
+EXPOSE 5001 5005
+
+# Enable JDWP for VS Code attach debugging in the dev container.
+ENV SPRING_BOOT_RUN_JVM_ARGS="-Dspring.devtools.restart.enabled=true -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+
+# Install the local reactor first, then launch only the backend module.
+CMD ["sh", "-c", "mvn -q -DskipTests -pl apps/be-transform-showcase -am install && mvn -f apps/be-transform-showcase/pom.xml spring-boot:run -Dspring-boot.run.jvmArguments=\"$SPRING_BOOT_RUN_JVM_ARGS\""]

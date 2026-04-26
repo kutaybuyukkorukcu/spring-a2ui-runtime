@@ -55,48 +55,53 @@ public class FogUiCanonicalValidator {
             return;
         }
 
-        if (block.getType() == null || block.getType().isBlank()) {
+        String blockType = block.getType();
+        if (blockType == null || blockType.isBlank()) {
             errors.add(error(path + ".type", FogUiErrorCode.MISSING_TYPE, "type is required"));
             return;
         }
 
-        if ("text".equals(block.getType())) {
-            if (!(block.getValue() instanceof String)) {
-                errors.add(error(
-                        path + ".value",
-                        FogUiErrorCode.INVALID_TEXT_VALUE,
-                        "text block value must be a string"));
-            }
+        switch (blockType) {
+            case "text" -> validateTextBlock(block, path, errors);
+            case "component" -> validateComponentBlock(block, path, errors);
+            default -> errors.add(error(
+                    path + ".type",
+                    FogUiErrorCode.UNSUPPORTED_TYPE,
+                    "type must be 'text' or 'component'"));
+        }
+    }
+
+    private void validateTextBlock(ContentBlock block, String path, List<CanonicalValidationError> errors) {
+        if (!(block.getValue() instanceof String)) {
+            errors.add(error(
+                    path + ".value",
+                    FogUiErrorCode.INVALID_TEXT_VALUE,
+                    "text block value must be a string"));
+        }
+    }
+
+    private void validateComponentBlock(ContentBlock block, String path, List<CanonicalValidationError> errors) {
+        if (block.getComponentType() == null || block.getComponentType().isBlank()) {
+            errors.add(error(
+                    path + ".componentType",
+                    FogUiErrorCode.MISSING_COMPONENT_TYPE,
+                    "componentType is required"));
+        }
+
+        if (block.getProps() != null && !(block.getProps() instanceof Map)) {
+            errors.add(error(
+                    path + ".props",
+                    FogUiErrorCode.INVALID_PROPS,
+                    "props must be an object when provided"));
+        }
+
+        if (block.getChildren() == null) {
             return;
         }
 
-        if ("component".equals(block.getType())) {
-            if (block.getComponentType() == null || block.getComponentType().isBlank()) {
-                errors.add(error(
-                        path + ".componentType",
-                        FogUiErrorCode.MISSING_COMPONENT_TYPE,
-                        "componentType is required"));
-            }
-
-            if (block.getProps() != null && !(block.getProps() instanceof java.util.Map)) {
-                errors.add(error(
-                        path + ".props",
-                        FogUiErrorCode.INVALID_PROPS,
-                        "props must be an object when provided"));
-            }
-
-            if (block.getChildren() != null) {
-                for (int i = 0; i < block.getChildren().size(); i++) {
-                    validateBlock(block.getChildren().get(i), path + ".children[" + i + "]", errors);
-                }
-            }
-            return;
+        for (int i = 0; i < block.getChildren().size(); i++) {
+            validateBlock(block.getChildren().get(i), path + ".children[" + i + "]", errors);
         }
-
-        errors.add(error(
-                path + ".type",
-                FogUiErrorCode.UNSUPPORTED_TYPE,
-                "type must be 'text' or 'component'"));
     }
 
     private void validateContractVersion(

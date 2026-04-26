@@ -5,11 +5,13 @@ import com.fogui.model.fogui.GenerativeUIResponse;
 import com.fogui.model.fogui.ThinkingItem;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 class StreamPatchReconcilerTest {
@@ -31,6 +33,23 @@ class StreamPatchReconcilerTest {
         assertEquals("hello", merged.getContent().getFirst().getValue());
         assertEquals("a2ui", merged.getMetadata().get("sourceProtocol"));
     }
+
+        @Test
+        void shouldDefensivelyCopyIncomingMetadataWhenNormalizingFirstSnapshot() {
+                Map<String, Object> metadata = new HashMap<>();
+                metadata.put("sourceProtocol", "a2ui");
+
+                GenerativeUIResponse incoming = GenerativeUIResponse.builder()
+                                .metadata(metadata)
+                                .build();
+
+                GenerativeUIResponse merged = reconciler.reconcile(null, incoming);
+                metadata.put("sourceProtocol", "mutated");
+
+                assertNotNull(merged.getMetadata());
+                assertNotSame(metadata, merged.getMetadata());
+                assertEquals("a2ui", merged.getMetadata().get("sourceProtocol"));
+        }
 
     @Test
     void shouldKeepPreviousBlocksWhenIncomingPatchHasEmptyArrays() {
