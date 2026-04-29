@@ -19,12 +19,16 @@ import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.ResponseFormat;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.lang.NonNull;
+import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -68,7 +72,7 @@ class DeterministicAdvisorsDeterminismTest {
                     String baselineFingerprint = null;
                     for (int i = 0; i < REPETITIONS; i++) {
                         String rawCanonicalJson = chatClient
-                                .prompt(promptWithNonDeterministicOptions())
+                            .prompt(Objects.requireNonNull(promptWithNonDeterministicOptions()))
                                 .advisors(spec -> spec
                                         .param(FogUiAdvisorContextKeys.REQUEST_ID, "req-advisor-1")
                                         .param(FogUiAdvisorContextKeys.ROUTE_MODE, FogUiAdvisorContextKeys.ROUTE_TRANSFORM))
@@ -92,6 +96,8 @@ class DeterministicAdvisorsDeterminismTest {
                         assertEquals(0.0, options.getTemperature());
                         assertEquals(1.0, options.getTopP());
                         assertEquals(17, options.getSeed());
+                        assertNotNull(options.getResponseFormat());
+                        assertEquals(ResponseFormat.Type.JSON_OBJECT, options.getResponseFormat().getType());
                     }
                 });
     }
@@ -119,7 +125,7 @@ class DeterministicAdvisorsDeterminismTest {
                     for (int i = 0; i < REPETITIONS; i++) {
                         try {
                             chatClient
-                                    .prompt(promptWithNonDeterministicOptions())
+                                    .prompt(Objects.requireNonNull(promptWithNonDeterministicOptions()))
                                     .advisors(spec -> spec
                                             .param(FogUiAdvisorContextKeys.REQUEST_ID, "req-advisor-fail")
                                             .param(FogUiAdvisorContextKeys.ROUTE_MODE, FogUiAdvisorContextKeys.ROUTE_TRANSFORM))
@@ -161,14 +167,14 @@ class DeterministicAdvisorsDeterminismTest {
                 });
     }
 
-    private Prompt promptWithNonDeterministicOptions() {
+    private @NonNull Prompt promptWithNonDeterministicOptions() {
         OpenAiChatOptions options = OpenAiChatOptions.builder()
                 .model(MODEL_NAME)
                 .build();
         options.setTemperature(0.77);
         options.setTopP(0.31);
         options.setSeed(999);
-        return new Prompt("Transform this content", options);
+        return Objects.requireNonNull(new Prompt("Transform this content", options));
     }
 
     private String canonicalFingerprint(String rawCanonicalJson) {
@@ -206,7 +212,7 @@ class DeterministicAdvisorsDeterminismTest {
         }
 
         @Override
-        public ChatResponse call(Prompt prompt) {
+        public @NonNull ChatResponse call(Prompt prompt) {
             ChatOptions options = prompt.getOptions();
             if (options instanceof OpenAiChatOptions openAiChatOptions) {
                 observedOptions.add(OpenAiChatOptions.fromOptions(openAiChatOptions));
@@ -214,13 +220,18 @@ class DeterministicAdvisorsDeterminismTest {
                 observedOptions.add(OpenAiChatOptions.builder().build());
             }
 
-            AssistantMessage assistantMessage = new AssistantMessage(assistantJson);
+            AssistantMessage assistantMessage = new AssistantMessage(Objects.requireNonNull(assistantJson));
             return new ChatResponse(List.of(new Generation(assistantMessage)));
         }
 
         @Override
-        public ChatOptions getDefaultOptions() {
-            return OpenAiChatOptions.builder().model(MODEL_NAME).build();
+        public @NonNull ChatOptions getDefaultOptions() {
+            return Objects.requireNonNull(OpenAiChatOptions.builder().model(MODEL_NAME).build());
+        }
+
+        @Override
+        public @NonNull Flux<ChatResponse> stream(Prompt prompt) {
+            return Objects.requireNonNull(Flux.just(call(prompt)));
         }
     }
 }
