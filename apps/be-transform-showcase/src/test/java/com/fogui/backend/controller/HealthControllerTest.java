@@ -39,7 +39,7 @@ class HealthControllerTest {
     void rootShouldReturnApiInfo() throws Exception {
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("FogUI Reference Server"))
+            .andExpect(jsonPath("$.name").value("FogUI Showcase Host"))
                 .andExpect(jsonPath("$.version").value("1.0.0"))
                 .andExpect(jsonPath("$.description").exists())
                 .andExpect(jsonPath("$.endpoints").exists());

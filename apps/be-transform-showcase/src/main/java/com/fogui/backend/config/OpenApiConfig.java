@@ -13,10 +13,9 @@ public class OpenApiConfig {
     public OpenAPI fogUiOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("FogUI Reference Server API")
+                        .title("FogUI Showcase Host API")
                         .description(
-                                "Reference server for FogUI deterministic transform, stream, and compatibility APIs. "
-                                        + "Auth/API-key endpoints are optional reference capabilities.")
+                                "Showcase host for FogUI deterministic transform, stream, and compatibility APIs.")
                         .version("1.0.0")
                         .license(new License().name("MIT")));
     }

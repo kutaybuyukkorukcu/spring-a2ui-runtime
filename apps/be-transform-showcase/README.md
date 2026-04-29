@@ -1,16 +1,15 @@
-# FogUI Reference Server (Spring Boot)
+# FogUI Showcase Host (Spring Boot)
 
-`apps/be-transform-showcase` is the **reference implementation** for FogUI integration.
+`apps/be-transform-showcase` is the **showcase host application** for FogUI integration.
 
-It demonstrates how to expose deterministic transform/stream/compatibility APIs and includes optional reference endpoints for JWT-backed auth, profile, and usage inspection.
+It demonstrates how to expose deterministic transform/stream/compatibility APIs so the frontend showcase can validate canonical UI responses against a running Spring Boot app.
 
 ## Tech Stack
 
 - Java 21
 - Spring Boot 3.4.x
 - Spring AI (`spring-ai-starter-model-openai`)
-- Spring Security + JWT
-- PostgreSQL + Flyway
+- Minimal Spring Boot host wiring around the reusable FogUI starters
 
 ## Run Locally
 
@@ -20,6 +19,24 @@ cd apps/be-transform-showcase && ./mvnw spring-boot:run
 ```
 
 Reference server URL: `http://localhost:5001`
+
+## Run With Docker
+
+Production-style container:
+
+```bash
+docker compose up --build backend
+```
+
+Backend URL: `http://localhost:8080`
+
+Hot-reload dev container:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build backend
+```
+
+Backend URL: `http://localhost:5001`
 
 ## Core OSS Reference APIs
 
@@ -39,18 +56,12 @@ These are public endpoints and do not require API keys or JWTs.
 
 Every canonical output includes `metadata.contractVersion = "fogui/1.0"`.
 
-## Reference-Server Optional APIs
+## Showcase Host APIs
 
-These are useful for integration harness scenarios, but are not considered FogUI core OSS contract APIs:
+These are the app-specific convenience endpoints kept around the core FogUI routes:
 
 - `GET /health`
 - `GET /`
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/auth/me`
-- `GET /api/usage/stats`
-- `GET /api/user/profile`
-- `PUT /api/user/profile`
 
 ## LLM Configuration
 
@@ -78,15 +89,11 @@ The backend currently supports OpenAI-compatible providers only.
   - `requestId`
   - `details` (optional)
 
-## Database Configuration
+## Runtime Notes
 
-- `DATABASE_URL`
-- `DATABASE_USER`
-- `DATABASE_PASSWORD`
-
-Flyway migration: `src/main/resources/db/migration/V1__initial_schema.sql`
-
-This database wiring is still active for the reference app's auth, profile, and usage flows.
+- This host app is intentionally thin and delegates reusable transform/stream/compatibility behavior to the FogUI starters.
+- Product-style concerns such as auth, profile management, JWT, and database-backed writes are not part of the showcase surface.
+- Chat-model integration and SSE streaming remain part of the showcase surface for validating live transform behavior.
 
 ## Testing
 

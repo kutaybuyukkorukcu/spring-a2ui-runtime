@@ -1,6 +1,7 @@
 package com.fogui.backend.service;
 
 import com.fogui.starter.policy.FogUiGenerationPolicy;
+import com.fogui.starter.policy.FogUiGenerationPolicyProperties;
 import com.fogui.starter.policy.FogUiGenerationPolicyService;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +9,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.ResponseFormat;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -79,9 +81,24 @@ public class ChatClientFactory {
         options.setTemperature(policy.getTemperature());
         options.setTopP(policy.getTopP());
         options.setSeed(policy.getSeed());
+        options.setResponseFormat(toResponseFormat(policy.getResponseFormat()));
         options.setMaxTokens(policy.getMaxTokens());
         options.setMaxCompletionTokens(policy.getMaxCompletionTokens());
         return options;
+    }
+
+    private ResponseFormat toResponseFormat(FogUiGenerationPolicyProperties.ResponseFormatMode responseFormatMode) {
+        if (responseFormatMode == null || responseFormatMode == FogUiGenerationPolicyProperties.ResponseFormatMode.NONE) {
+            return null;
+        }
+
+        if (responseFormatMode == FogUiGenerationPolicyProperties.ResponseFormatMode.JSON_OBJECT) {
+            return ResponseFormat.builder()
+                    .type(ResponseFormat.Type.JSON_OBJECT)
+                    .build();
+        }
+
+        throw new IllegalArgumentException("Unsupported response format mode: " + responseFormatMode);
     }
 
     /**
@@ -106,11 +123,12 @@ public class ChatClientFactory {
     void logDeterministicPolicy() {
         FogUiGenerationPolicy policy = generationPolicyService.resolve(getActiveModelName());
         log.info(
-                "Deterministic generation policy active: model={}, temperature={}, topP={}, seed={}, maxTokens={}, maxCompletionTokens={}, skipped={}",
+            "Deterministic generation policy active: model={}, temperature={}, topP={}, seed={}, responseFormat={}, maxTokens={}, maxCompletionTokens={}, skipped={}",
                 policy.getModel(),
                 policy.getTemperature(),
                 policy.getTopP(),
                 policy.getSeed(),
+            policy.getResponseFormat(),
                 policy.getMaxTokens(),
                 policy.getMaxCompletionTokens(),
                 policy.getSkippedOptions());
