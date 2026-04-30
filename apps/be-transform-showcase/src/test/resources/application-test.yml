@@ -1,23 +1,6 @@
-# Test profile configuration
-# Uses H2 in-memory database for tests
+# Test profile configuration for the thin showcase host.
 
 spring:
-  datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
-    username: sa
-    password: 
-    driver-class-name: org.h2.Driver
-  
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
-  
-  flyway:
-    enabled: false
-
   ai:
     openai:
       api-key: test-openai-api-key
@@ -25,20 +8,6 @@ spring:
       chat:
         options:
           model: llama-3.3-70b-versatile
-    google:
-      genai:
-        api-key: test-google-api-key
-        chat:
-          options:
-            model: gemini-2.5-flash
-
-fogui:
-  ai:
-    provider: openai
-
-jwt:
-  secret: test-jwt-secret-key-that-is-at-least-32-characters-long
-  expiration-hours: 24
 
 logging:
   level:

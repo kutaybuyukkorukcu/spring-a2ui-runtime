@@ -36,9 +36,9 @@ public class HealthController {
     @Operation(summary = "API info", description = "Returns API metadata and endpoint overview")
     public ResponseEntity<Map<String, Object>> info() {
         return ResponseEntity.ok(Map.of(
-                "name", "FogUI Reference Server",
+                "name", "FogUI Showcase Host",
                 "version", "1.0.0",
-                "description", "Reference implementation for FogUI deterministic transform and compatibility APIs",
+                "description", "Showcase host for FogUI deterministic transform and compatibility APIs",
                 "endpoints", Map.of(
                         "health", "GET /health",
                         "transform", "POST /fogui/transform",
@@ -46,6 +46,6 @@ public class HealthController {
                         "compatA2UiInbound", "POST /fogui/compat/a2ui/inbound"),
                 "notes", Map.of(
                         "coreOssApis", "Transform and compatibility endpoints are the primary OSS reference surface",
-                        "referenceOptionalApis", "Auth/API-key/usage/profile endpoints are optional reference-server capabilities")));
+                        "showcaseRole", "This app exists to validate backend output against the local UI showcase")));
     }
 }

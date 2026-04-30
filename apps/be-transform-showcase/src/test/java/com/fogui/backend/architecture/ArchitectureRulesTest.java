@@ -19,7 +19,8 @@ class ArchitectureRulesTest {
         private static final ArchRule REPOSITORIES_SHOULD_BE_INTERFACES_AND_FOLLOW_NAMING = classes()
             .that().resideInAPackage("..repository..")
             .should().beInterfaces()
-            .andShould().haveSimpleNameEndingWith("Repository");
+                        .andShould().haveSimpleNameEndingWith("Repository")
+                        .allowEmptyShould(true);
 
         private static final ArchRule CONTROLLERS_SHOULD_FOLLOW_NAMING_CONVENTION = classes()
             .that().resideInAPackage("..controller..")
@@ -28,7 +29,8 @@ class ArchitectureRulesTest {
         private static final ArchRule SECURITY_FILTERS_SHOULD_EXTEND_ONCE_PER_REQUEST_FILTER = classes()
             .that().resideInAPackage("..security..")
             .and().haveSimpleNameEndingWith("Filter")
-            .should().beAssignableTo(OncePerRequestFilter.class);
+                        .should().beAssignableTo(OncePerRequestFilter.class)
+                        .allowEmptyShould(true);
 
         private static final ArchRule SERVICES_SHOULD_NOT_DEPEND_ON_CONTROLLERS = noClasses()
             .that().resideInAPackage("..service..")
@@ -36,7 +38,8 @@ class ArchitectureRulesTest {
 
         private static final ArchRule DTO_LAYER_SHOULD_NOT_DEPEND_ON_WEB_OR_REPO_LAYERS = noClasses()
             .that().resideInAPackage("..dto..")
-            .should().dependOnClassesThat().resideInAnyPackage("..controller..", "..repository..");
+                        .should().dependOnClassesThat().resideInAnyPackage("..controller..", "..repository..")
+                        .allowEmptyShould(true);
 
         @Test
         void repositoriesShouldBeInterfacesAndFollowNaming() {

@@ -1,6 +1,7 @@
 package com.fogui.backend.service;
 
 import com.fogui.starter.policy.FogUiGenerationPolicy;
+import com.fogui.starter.policy.FogUiGenerationPolicyProperties;
 import com.fogui.starter.policy.FogUiGenerationPolicyService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -10,11 +11,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.api.ResponseFormat;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.lang.NonNull;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
-import java.util.function.Supplier;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -29,9 +32,27 @@ import static org.mockito.Mockito.when;
 class ChatClientFactoryTest {
 
     private ObjectProvider<List<Advisor>> advisorProvider(List<Advisor> advisors) {
-        ObjectProvider<List<Advisor>> provider = mock(ObjectProvider.class);
-        when(provider.getIfAvailable((Supplier<List<Advisor>>) org.mockito.ArgumentMatchers.any())).thenReturn(advisors);
-        return provider;
+        return new ObjectProvider<>() {
+            @Override
+            public @NonNull List<Advisor> getObject(@NonNull Object... args) {
+                return Objects.requireNonNull(advisors);
+            }
+
+            @Override
+            public @NonNull List<Advisor> getIfAvailable() {
+                return Objects.requireNonNull(advisors);
+            }
+
+            @Override
+            public @NonNull List<Advisor> getIfUnique() {
+                return Objects.requireNonNull(advisors);
+            }
+
+            @Override
+            public @NonNull List<Advisor> getObject() {
+                return Objects.requireNonNull(advisors);
+            }
+        };
     }
 
     private FogUiGenerationPolicyService mockPolicyService() {
@@ -120,6 +141,7 @@ class ChatClientFactoryTest {
         policy.setTemperature(0.1);
         policy.setTopP(0.95);
         policy.setSeed(42);
+        policy.setResponseFormat(FogUiGenerationPolicyProperties.ResponseFormatMode.JSON_OBJECT);
         policy.setMaxTokens(1024);
         policy.setMaxCompletionTokens(512);
         when(service.resolve("gpt-4.1-nano")).thenReturn(policy);
@@ -136,6 +158,8 @@ class ChatClientFactoryTest {
         assertEquals(0.1, options.getTemperature());
         assertEquals(0.95, options.getTopP());
         assertEquals(42, options.getSeed());
+        assertNotNull(options.getResponseFormat());
+        assertEquals(ResponseFormat.Type.JSON_OBJECT, options.getResponseFormat().getType());
         assertEquals(1024, options.getMaxTokens());
         assertEquals(512, options.getMaxCompletionTokens());
     }

@@ -38,7 +38,7 @@ FogUI is positioned as infrastructure, not a hosted dashboard product:
 
 - Backend trust runtime (`packages/fogui-java-core` + `packages/fogui-spring-boot-starter` + `packages/fogui-spring-web-starter`) is the center.
 - Protocol interoperability (A2UI today) is required, but FogUI is not a protocol-spec competitor.
-- `apps/be-transform-showcase` stays as a reference integration server, not the primary product surface.
+- `apps/be-transform-showcase` stays as a showcase host application, not the primary product surface.
 - `packages/react` remains core because trust only matters if canonical outputs render safely.
 
 Deterministic behavior is not concentrated in `apps/be-transform-showcase`. The publishable Java OSS value lives primarily in the shared modules:
@@ -46,7 +46,7 @@ Deterministic behavior is not concentrated in `apps/be-transform-showcase`. The 
 - `packages/fogui-java-core` owns canonical contract validation, compatibility translation, and deterministic stream reconciliation.
 - `packages/fogui-spring-boot-starter` owns Spring Boot auto-configuration, advisor wiring, and runtime policy integration.
 - `packages/fogui-spring-web-starter` owns reusable HTTP/runtime orchestration for transform, stream, compatibility, prompt SPI, and request correlation.
-- `apps/be-transform-showcase` consumes those modules to expose a reference host application plus operational extras such as auth, usage, and persistence.
+- `apps/be-transform-showcase` consumes those modules to expose a thin showcase host for validating transform, stream, and compatibility behavior.
 
 Current execution backlog: `docs/BACKLOG.md`
 
@@ -61,9 +61,8 @@ Current execution backlog: `docs/BACKLOG.md`
 
 ### Reference implementations
 
-- `apps/be-transform-showcase`: reference server and integration harness.
+- `apps/be-transform-showcase`: showcase host and integration harness.
   - Core reference APIs: `POST /fogui/transform`, `POST /fogui/transform/stream`, `POST /fogui/compat/a2ui/inbound`.
-  - Auth/key/usage/profile APIs are reference-server optional and not part of core OSS contract.
 - `apps/fe-transform-showcase`: transform-focused demo UI for local renderer validation against canonical backend responses.
 
 ## Quick Start (OSS)
@@ -74,7 +73,7 @@ Current execution backlog: `docs/BACKLOG.md`
 ./apps/be-transform-showcase/mvnw -f pom.xml -q -DskipTests package
 ```
 
-### 2) Run reference server
+### 2) Run showcase backend
 
 ```bash
 cd apps/be-transform-showcase
@@ -145,19 +144,6 @@ For standalone `cd apps/be-transform-showcase && ./mvnw test`, configure Maven c
   </servers>
 </settings>
 ```
-
-## Environment (Reference Server)
-
-The root `.env.example` is only for local app and Docker Compose runs. Package consumers do not need it.
-
-- `OPENAI_API_KEY`
-- `OPENAI_BASE_URL` (default: `https://api.openai.com`)
-- `OPENAI_MODEL` (default: `gpt-4.1-nano`)
-- `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`
-- `JWT_SECRET`
-- `SENTRY_DSN` (optional)
-
-See `apps/be-transform-showcase/src/main/resources/application.yml` for defaults.
 
 ## Docs
 
