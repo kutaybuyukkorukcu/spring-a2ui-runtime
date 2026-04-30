@@ -22,9 +22,8 @@ public class FogUiProviderResolver {
     }
 
     public @NonNull FogUiProviderType resolve(@Nullable ChatOptions chatOptions) {
-        FogUiProviderType detectedFromOptions = FogUiProviderType.fromChatOptions(chatOptions);
-        if (detectedFromOptions != FogUiProviderType.UNKNOWN) {
-            return detectedFromOptions;
+        if (chatOptions != null) {
+            return FogUiProviderType.fromChatOptions(chatOptions);
         }
 
         for (Map.Entry<FogUiProviderType, List<String>> entry : PROVIDER_PROPERTY_KEYS.entrySet()) {

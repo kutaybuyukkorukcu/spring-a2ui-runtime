@@ -12,7 +12,7 @@ public class AnthropicChatOptionsCustomizer implements FogUiChatOptionsCustomize
 
     @Override
     public boolean supports(@NonNull FogUiProviderType providerType, @Nullable ChatOptions incomingOptions) {
-        return providerType == FogUiProviderType.ANTHROPIC || incomingOptions instanceof AnthropicChatOptions;
+        return supportsProvider(FogUiProviderType.ANTHROPIC, providerType, incomingOptions, AnthropicChatOptions.class);
     }
 
     @Override

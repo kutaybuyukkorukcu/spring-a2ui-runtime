@@ -13,7 +13,11 @@ public class AzureOpenAiChatOptionsCustomizer implements FogUiChatOptionsCustomi
 
     @Override
     public boolean supports(@NonNull FogUiProviderType providerType, @Nullable ChatOptions incomingOptions) {
-        return providerType == FogUiProviderType.AZURE_OPENAI || incomingOptions instanceof AzureOpenAiChatOptions;
+        return supportsProvider(
+                FogUiProviderType.AZURE_OPENAI,
+                providerType,
+                incomingOptions,
+                AzureOpenAiChatOptions.class);
     }
 
     @Override

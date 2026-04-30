@@ -10,6 +10,20 @@ public interface FogUiChatOptionsCustomizer {
 
     @NonNull ChatOptions customize(@Nullable ChatOptions incomingOptions, @NonNull FogUiGenerationPolicy policy);
 
+    default boolean supportsProvider(
+            @NonNull FogUiProviderType expectedProviderType,
+            @NonNull FogUiProviderType resolvedProviderType,
+            @Nullable ChatOptions incomingOptions,
+            @NonNull Class<? extends ChatOptions> providerOptionsType
+    ) {
+        if (providerOptionsType.isInstance(incomingOptions)) {
+            return true;
+        }
+
+        return (incomingOptions == null || FogUiProviderType.fromChatOptions(incomingOptions) == FogUiProviderType.UNKNOWN)
+                && resolvedProviderType == expectedProviderType;
+    }
+
     default int getOrder() {
         return Integer.MAX_VALUE;
     }

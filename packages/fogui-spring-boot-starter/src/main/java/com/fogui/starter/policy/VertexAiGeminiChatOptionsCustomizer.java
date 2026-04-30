@@ -14,7 +14,11 @@ public class VertexAiGeminiChatOptionsCustomizer implements FogUiChatOptionsCust
 
     @Override
     public boolean supports(@NonNull FogUiProviderType providerType, @Nullable ChatOptions incomingOptions) {
-        return providerType == FogUiProviderType.VERTEX_AI_GEMINI || incomingOptions instanceof VertexAiGeminiChatOptions;
+        return supportsProvider(
+                FogUiProviderType.VERTEX_AI_GEMINI,
+                providerType,
+                incomingOptions,
+                VertexAiGeminiChatOptions.class);
     }
 
     @Override

@@ -7,6 +7,7 @@ import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Method;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 public class GenericChatOptionsCustomizer implements FogUiChatOptionsCustomizer {
 
@@ -17,29 +18,64 @@ public class GenericChatOptionsCustomizer implements FogUiChatOptionsCustomizer 
 
     @Override
     public @NonNull ChatOptions customize(@Nullable ChatOptions incomingOptions, @NonNull FogUiGenerationPolicy policy) {
-        if (incomingOptions == null) {
-            ChatOptions.Builder builder = ChatOptions.builder();
-            if (StringUtils.hasText(policy.getModel())) {
-                builder.model(Objects.requireNonNull(policy.getModel()));
-            }
-            if (policy.getTemperature() != null) {
-                builder.temperature(policy.getTemperature());
-            }
-            if (policy.getTopP() != null) {
-                builder.topP(policy.getTopP());
-            }
-            if (policy.getMaxTokens() != null) {
-                builder.maxTokens(policy.getMaxTokens());
-            }
-            return Objects.requireNonNull(builder.build());
+        if (incomingOptions == null || isDefaultChatOptions(incomingOptions)) {
+            return buildDefaultChatOptions(incomingOptions, policy);
         }
 
         ChatOptions copiedOptions = Objects.requireNonNull(incomingOptions.copy());
-        setIfPresent(copiedOptions, "setModel", String.class, policy.getModel());
-        setIfPresent(copiedOptions, "setTemperature", Double.class, policy.getTemperature());
-        setIfPresent(copiedOptions, "setTopP", Double.class, policy.getTopP());
-        setIfPresent(copiedOptions, "setMaxTokens", Integer.class, policy.getMaxTokens());
+        applyPolicy(copiedOptions, policy);
         return copiedOptions;
+    }
+
+    private @NonNull ChatOptions buildDefaultChatOptions(
+            @Nullable ChatOptions incomingOptions,
+            @NonNull FogUiGenerationPolicy policy
+    ) {
+        ChatOptions.Builder builder = ChatOptions.builder();
+        copyGenericOptions(builder, incomingOptions);
+        applyPolicy(builder, policy);
+        return Objects.requireNonNull(builder.build());
+    }
+
+    private void copyGenericOptions(ChatOptions.Builder builder, @Nullable ChatOptions incomingOptions) {
+        if (incomingOptions == null) {
+            return;
+        }
+
+        applyIfPresent(incomingOptions.getModel(), builder::model);
+        applyIfPresent(incomingOptions.getTemperature(), builder::temperature);
+        applyIfPresent(incomingOptions.getTopP(), builder::topP);
+        applyIfPresent(incomingOptions.getMaxTokens(), builder::maxTokens);
+    }
+
+    private void applyPolicy(ChatOptions.Builder builder, @NonNull FogUiGenerationPolicy policy) {
+        applyTextIfPresent(policy.getModel(), builder::model);
+        applyIfPresent(policy.getTemperature(), builder::temperature);
+        applyIfPresent(policy.getTopP(), builder::topP);
+        applyIfPresent(policy.getMaxTokens(), builder::maxTokens);
+    }
+
+    private void applyPolicy(ChatOptions copiedOptions, @NonNull FogUiGenerationPolicy policy) {
+        applyTextIfPresent(policy.getModel(), value -> setIfPresent(copiedOptions, "setModel", String.class, value));
+        applyIfPresent(policy.getTemperature(), value -> setIfPresent(copiedOptions, "setTemperature", Double.class, value));
+        applyIfPresent(policy.getTopP(), value -> setIfPresent(copiedOptions, "setTopP", Double.class, value));
+        applyIfPresent(policy.getMaxTokens(), value -> setIfPresent(copiedOptions, "setMaxTokens", Integer.class, value));
+    }
+
+    private void applyTextIfPresent(@Nullable String value, Consumer<String> applier) {
+        if (StringUtils.hasText(value)) {
+            applier.accept(Objects.requireNonNull(value));
+        }
+    }
+
+    private <T> void applyIfPresent(@Nullable T value, Consumer<T> applier) {
+        if (value != null) {
+            applier.accept(value);
+        }
+    }
+
+    private boolean isDefaultChatOptions(@NonNull ChatOptions incomingOptions) {
+        return incomingOptions.getClass().getSimpleName().contains("DefaultChatOptions");
     }
 
     @Override

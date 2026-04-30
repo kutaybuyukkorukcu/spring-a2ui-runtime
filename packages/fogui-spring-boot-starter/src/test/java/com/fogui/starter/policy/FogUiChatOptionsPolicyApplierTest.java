@@ -93,16 +93,54 @@ class FogUiChatOptionsPolicyApplierTest {
 
     @Test
     void shouldFallbackToGenericChatOptionsWhenProviderIsUnknown() {
+        FogUiGenerationPolicyProperties properties = defaultProperties();
+        properties.setTemperature(0.25);
+        properties.setTopP(0.35);
+        properties.setMaxTokens(250);
+
         ChatOptions incomingOptions = ChatOptions.builder()
-            .model("generic-model")
-            .build();
+                .model("generic-model")
+                .temperature(0.85)
+                .topP(0.95)
+                .maxTokens(25)
+                .build();
 
-        ChatOptions options = newApplier(new MockEnvironment(), defaultProperties()).apply(incomingOptions);
+        ChatOptions options = newApplier(new MockEnvironment(), properties).apply(incomingOptions);
 
+        assertThat(options).isNotSameAs(incomingOptions);
         assertThat(options.getModel()).isEqualTo("generic-model");
-        assertThat(options.getTemperature()).isEqualTo(0.0);
-        assertThat(options.getTopP()).isEqualTo(1.0);
-        assertThat(options.getMaxTokens()).isEqualTo(1000);
+        assertThat(options.getTemperature()).isEqualTo(0.25);
+        assertThat(options.getTopP()).isEqualTo(0.35);
+        assertThat(options.getMaxTokens()).isEqualTo(250);
+    }
+
+    @Test
+    void shouldNotInferProviderFromEnvironmentWhenGenericChatOptionsAreProvided() {
+        FogUiGenerationPolicyProperties properties = defaultProperties();
+        properties.setTemperature(0.25);
+        properties.setTopP(0.35);
+        properties.setMaxTokens(250);
+
+        ChatOptions incomingOptions = ChatOptions.builder()
+                .model("generic-model")
+                .temperature(0.85)
+                .topP(0.95)
+                .maxTokens(25)
+                .build();
+
+        MockEnvironment environment = new MockEnvironment()
+                .withProperty("spring.ai.openai.chat.options.model", "gpt-4.1-nano")
+                .withProperty("spring.ai.anthropic.chat.options.model", "claude-3-5-sonnet");
+
+        ChatOptions options = newApplier(environment, properties).apply(incomingOptions);
+
+        assertThat(options).isNotSameAs(incomingOptions);
+        assertThat(options).isNotInstanceOf(OpenAiChatOptions.class);
+        assertThat(options).isNotInstanceOf(AnthropicChatOptions.class);
+        assertThat(options.getModel()).isEqualTo("generic-model");
+        assertThat(options.getTemperature()).isEqualTo(0.25);
+        assertThat(options.getTopP()).isEqualTo(0.35);
+        assertThat(options.getMaxTokens()).isEqualTo(250);
     }
 
     private FogUiChatOptionsPolicyApplier newApplier(MockEnvironment environment, FogUiGenerationPolicyProperties properties) {

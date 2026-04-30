@@ -13,7 +13,7 @@ public class OpenAiChatOptionsCustomizer implements FogUiChatOptionsCustomizer {
 
     @Override
     public boolean supports(@NonNull FogUiProviderType providerType, @Nullable ChatOptions incomingOptions) {
-        return providerType == FogUiProviderType.OPENAI || incomingOptions instanceof OpenAiChatOptions;
+        return supportsProvider(FogUiProviderType.OPENAI, providerType, incomingOptions, OpenAiChatOptions.class);
     }
 
     @Override
