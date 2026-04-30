@@ -14,6 +14,7 @@ Configured through `fogui.deterministic.*`:
 - `fogui.deterministic.temperature` (default `0.0`)
 - `fogui.deterministic.top-p` (default `1.0`)
 - `fogui.deterministic.seed` (optional)
+- `fogui.deterministic.response-format` (default `json-object`)
 - `fogui.deterministic.max-tokens` (optional)
 - `fogui.deterministic.max-completion-tokens` (optional)
 
@@ -22,6 +23,7 @@ Capability flags:
 - `fogui.deterministic.capabilities.temperature`
 - `fogui.deterministic.capabilities.top-p`
 - `fogui.deterministic.capabilities.seed`
+- `fogui.deterministic.capabilities.response-format`
 - `fogui.deterministic.capabilities.max-tokens`
 - `fogui.deterministic.capabilities.max-completion-tokens`
 
@@ -38,9 +40,14 @@ Advisor controls:
 
 1. `ChatClientFactory` builds `ChatClient` with `defaultAdvisors(...)`.
 2. `DeterministicOptionsAdvisor` applies policy for both call and stream requests.
-3. `CanonicalValidationAdvisor` enforces canonical contract in call path, stamps contract version, and fail-fast throws deterministic exceptions on violations.
-4. Controllers pass `requestId` and route mode as advisor params for correlation.
-5. Startup logs include resolved model/options and skipped capability-gated options.
+3. The starter resolves provider intent first from the incoming `ChatOptions` type and then, when prompts start without options, from configured Spring AI model properties.
+4. FogUI maps the deterministic policy into first-class provider-specific option objects for OpenAI, Azure OpenAI, Anthropic, and Vertex AI Gemini, then falls back to generic `ChatOptions` for other providers.
+5. `CanonicalValidationAdvisor` enforces canonical contract in call path, stamps contract version, and fail-fast throws deterministic exceptions on violations.
+6. Controllers pass `requestId` and route mode as advisor params for correlation.
+7. Startup logs include resolved model/options and skipped capability-gated options.
+8. Structured-output controls are translated per provider. Example: OpenAI uses `responseFormat=json_object`, while Gemini uses `responseMimeType=application/json`.
+
+Detailed provider mapping: `docs/adr/SPRING_AI_PROVIDER_OPTIONS.md`
 
 ## Recommended Defaults
 
@@ -49,7 +56,8 @@ For deterministic transform workloads:
 1. Keep `temperature=0.0`.
 2. Keep `top-p=1.0` unless provider docs require a different stable value.
 3. Use `seed` only when provider supports it and reliability goals warrant it.
-4. Keep strict canonical validation and fail safe on malformed structures.
+4. Keep `response-format=json-object` enabled so providers with structured-output controls can reduce malformed assistant payloads before parse/validate stages.
+5. Keep strict canonical validation and fail safe on malformed structures.
 
 ## Verification Commands
 

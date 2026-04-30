@@ -24,6 +24,12 @@ public class FogUiGenerationPolicyProperties {
     private Integer seed;
 
     /**
+     * Structured response format mode for providers supporting server-side JSON
+     * shaping.
+     */
+    private ResponseFormatMode responseFormat = ResponseFormatMode.JSON_OBJECT;
+
+    /**
      * Optional max output token limit for providers supporting max tokens.
      */
     private Integer maxTokens;
@@ -40,6 +46,7 @@ public class FogUiGenerationPolicyProperties {
         private boolean temperature = true;
         private boolean topP = true;
         private boolean seed = true;
+        private boolean responseFormat = true;
         private boolean maxTokens = true;
         private boolean maxCompletionTokens = true;
 
@@ -67,6 +74,14 @@ public class FogUiGenerationPolicyProperties {
             this.seed = seed;
         }
 
+        public boolean isResponseFormat() {
+            return responseFormat;
+        }
+
+        public void setResponseFormat(boolean responseFormat) {
+            this.responseFormat = responseFormat;
+        }
+
         public boolean isMaxTokens() {
             return maxTokens;
         }
@@ -82,6 +97,11 @@ public class FogUiGenerationPolicyProperties {
         public void setMaxCompletionTokens(boolean maxCompletionTokens) {
             this.maxCompletionTokens = maxCompletionTokens;
         }
+    }
+
+    public enum ResponseFormatMode {
+        NONE,
+        JSON_OBJECT
     }
 
     public Double getTemperature() {
@@ -106,6 +126,14 @@ public class FogUiGenerationPolicyProperties {
 
     public void setSeed(Integer seed) {
         this.seed = seed;
+    }
+
+    public ResponseFormatMode getResponseFormat() {
+        return responseFormat;
+    }
+
+    public void setResponseFormat(ResponseFormatMode responseFormat) {
+        this.responseFormat = responseFormat;
     }
 
     public Integer getMaxTokens() {

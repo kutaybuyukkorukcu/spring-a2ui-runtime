@@ -22,6 +22,11 @@ public class FogUiGenerationPolicyService {
         Double temperature = choose(capabilities.isTemperature(), properties.getTemperature(), "temperature", skipped);
         Double topP = choose(capabilities.isTopP(), properties.getTopP(), "topP", skipped);
         Integer seed = choose(capabilities.isSeed(), properties.getSeed(), "seed", skipped);
+        FogUiGenerationPolicyProperties.ResponseFormatMode responseFormat = choose(
+            capabilities.isResponseFormat(),
+            properties.getResponseFormat(),
+            "responseFormat",
+            skipped);
         Integer maxTokens = choose(capabilities.isMaxTokens(), properties.getMaxTokens(), "maxTokens", skipped);
         Integer maxCompletionTokens = choose(
                 capabilities.isMaxCompletionTokens(),
@@ -34,6 +39,7 @@ public class FogUiGenerationPolicyService {
         policy.setTemperature(temperature);
         policy.setTopP(topP);
         policy.setSeed(seed);
+        policy.setResponseFormat(responseFormat);
         policy.setMaxTokens(maxTokens);
         policy.setMaxCompletionTokens(maxCompletionTokens);
         policy.setSkippedOptions(skipped);

@@ -12,6 +12,7 @@ public class FogUiGenerationPolicy {
     private Double temperature;
     private Double topP;
     private Integer seed;
+    private FogUiGenerationPolicyProperties.ResponseFormatMode responseFormat;
     private Integer maxTokens;
     private Integer maxCompletionTokens;
     private List<String> skippedOptions = new ArrayList<>();
@@ -46,6 +47,14 @@ public class FogUiGenerationPolicy {
 
     public void setSeed(Integer seed) {
         this.seed = seed;
+    }
+
+    public FogUiGenerationPolicyProperties.ResponseFormatMode getResponseFormat() {
+        return responseFormat;
+    }
+
+    public void setResponseFormat(FogUiGenerationPolicyProperties.ResponseFormatMode responseFormat) {
+        this.responseFormat = responseFormat;
     }
 
     public Integer getMaxTokens() {

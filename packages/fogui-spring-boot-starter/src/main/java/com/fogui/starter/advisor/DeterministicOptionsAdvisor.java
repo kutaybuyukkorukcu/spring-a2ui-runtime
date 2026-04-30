@@ -1,14 +1,12 @@
 package com.fogui.starter.advisor;
 
-import com.fogui.starter.policy.FogUiGenerationPolicy;
-import com.fogui.starter.policy.FogUiGenerationPolicyService;
+import com.fogui.starter.policy.FogUiChatOptionsPolicyApplier;
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.client.advisor.api.AdvisorChain;
 import org.springframework.ai.chat.client.advisor.api.BaseAdvisor;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.lang.NonNull;
 
 import java.util.Objects;
@@ -18,17 +16,17 @@ import java.util.Objects;
  */
 public class DeterministicOptionsAdvisor implements BaseAdvisor {
 
-    private final FogUiGenerationPolicyService generationPolicyService;
+    private final FogUiChatOptionsPolicyApplier chatOptionsPolicyApplier;
 
-    public DeterministicOptionsAdvisor(FogUiGenerationPolicyService generationPolicyService) {
-        this.generationPolicyService = generationPolicyService;
+    public DeterministicOptionsAdvisor(FogUiChatOptionsPolicyApplier chatOptionsPolicyApplier) {
+        this.chatOptionsPolicyApplier = chatOptionsPolicyApplier;
     }
 
     @Override
     public @NonNull ChatClientRequest before(@NonNull ChatClientRequest request, @NonNull AdvisorChain advisorChain) {
         Prompt prompt = Objects.requireNonNull(request.prompt());
 
-        OpenAiChatOptions deterministicOptions = buildDeterministicOptions(prompt.getOptions());
+        ChatOptions deterministicOptions = chatOptionsPolicyApplier.apply(prompt.getOptions());
         Prompt updatedPrompt = Objects.requireNonNull(prompt.mutate().chatOptions(deterministicOptions).build());
         return request.mutate().prompt(updatedPrompt).build();
     }
@@ -39,35 +37,6 @@ public class DeterministicOptionsAdvisor implements BaseAdvisor {
             @NonNull AdvisorChain advisorChain
     ) {
         return response;
-    }
-
-    private OpenAiChatOptions buildDeterministicOptions(ChatOptions incomingOptions) {
-        String requestedModel = readModel(incomingOptions);
-        FogUiGenerationPolicy policy = generationPolicyService.resolve(requestedModel);
-
-        OpenAiChatOptions options = incomingOptions instanceof OpenAiChatOptions openAiOptions
-                ? OpenAiChatOptions.fromOptions(openAiOptions)
-                : OpenAiChatOptions.builder().build();
-
-        if (requestedModel != null && !requestedModel.isBlank()) {
-            options.setModel(requestedModel);
-        } else if (policy.getModel() != null && !policy.getModel().isBlank()) {
-            options.setModel(policy.getModel());
-        }
-
-        options.setTemperature(policy.getTemperature());
-        options.setTopP(policy.getTopP());
-        options.setSeed(policy.getSeed());
-        options.setMaxTokens(policy.getMaxTokens());
-        options.setMaxCompletionTokens(policy.getMaxCompletionTokens());
-        return options;
-    }
-
-    private String readModel(ChatOptions options) {
-        if (options instanceof OpenAiChatOptions openAiOptions) {
-            return openAiOptions.getModel();
-        }
-        return null;
     }
 
     @Override

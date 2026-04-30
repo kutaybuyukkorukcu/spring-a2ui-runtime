@@ -152,6 +152,7 @@ For standalone `cd apps/be-transform-showcase && ./mvnw test`, configure Maven c
 - A2UI compatibility: `docs/adr/A2UI_COMPATIBILITY.md`
 - Advisors runtime pipeline: `docs/adr/ADVISORS_RUNTIME.md`
 - Spring AI deterministic runtime guide: `docs/adr/SPRING_AI_DETERMINISM.md`
+- Spring AI provider options matrix: `docs/adr/SPRING_AI_PROVIDER_OPTIONS.md`
 - Adapter guide: `docs/adr/ADAPTER_GUIDE.md`
 - Java artifact publishing plan: `docs/adr/JAVA_PUBLISHING_PLAN.md`
 - Archived benchmark result: `docs/benchmark-results/determinism-evaluation-2026-04-17.md`

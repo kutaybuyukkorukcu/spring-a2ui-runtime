@@ -7,8 +7,13 @@ import com.fogui.starter.advisor.CanonicalValidationAdvisor;
 import com.fogui.starter.advisor.DeterministicOptionsAdvisor;
 import com.fogui.starter.advisor.FogUiAdvisorOrder;
 import com.fogui.starter.advisor.FogUiAdvisorsProperties;
+import com.fogui.starter.policy.FogUiChatOptionsCustomizer;
+import com.fogui.starter.policy.FogUiChatOptionsPolicyApplier;
 import com.fogui.starter.policy.FogUiGenerationPolicyProperties;
+import com.fogui.starter.policy.FogUiGenerationPolicyProperties.ResponseFormatMode;
 import com.fogui.starter.policy.FogUiGenerationPolicyService;
+import com.fogui.starter.policy.FogUiProviderResolver;
+import com.fogui.starter.policy.GenericChatOptionsCustomizer;
 import com.fogui.service.StreamPatchReconciler;
 import com.fogui.service.UIResponseParser;
 import org.junit.jupiter.api.Test;
@@ -31,9 +36,13 @@ class FogUiCoreAutoConfigurationTest {
             assertThat(context).hasSingleBean(StreamPatchReconciler.class);
             assertThat(context).hasSingleBean(FogUiGenerationPolicyProperties.class);
             assertThat(context).hasSingleBean(FogUiGenerationPolicyService.class);
+            assertThat(context).hasSingleBean(FogUiProviderResolver.class);
+            assertThat(context).hasSingleBean(FogUiChatOptionsPolicyApplier.class);
             assertThat(context).hasSingleBean(FogUiAdvisorsProperties.class);
             assertThat(context).hasSingleBean(DeterministicOptionsAdvisor.class);
             assertThat(context).hasSingleBean(CanonicalValidationAdvisor.class);
+            assertThat(context.getBeansOfType(FogUiChatOptionsCustomizer.class).values())
+                    .anyMatch(GenericChatOptionsCustomizer.class::isInstance);
         });
     }
 
@@ -44,6 +53,8 @@ class FogUiCoreAutoConfigurationTest {
                         "fogui.deterministic.temperature=0.2",
                         "fogui.deterministic.top-p=0.9",
                         "fogui.deterministic.seed=42",
+                        "fogui.deterministic.response-format=json-object",
+                        "fogui.deterministic.capabilities.response-format=false",
                         "fogui.deterministic.capabilities.seed=false")
                 .run(context -> {
                     FogUiGenerationPolicyService service = context.getBean(FogUiGenerationPolicyService.class);
@@ -52,8 +63,19 @@ class FogUiCoreAutoConfigurationTest {
                     assertThat(policy.getTemperature()).isEqualTo(0.2);
                     assertThat(policy.getTopP()).isEqualTo(0.9);
                     assertThat(policy.getSeed()).isNull();
-                    assertThat(policy.getSkippedOptions()).contains("seed");
+                    assertThat(policy.getResponseFormat()).isNull();
+                    assertThat(policy.getSkippedOptions()).contains("seed", "responseFormat");
                 });
+    }
+
+    @Test
+    void shouldDefaultResponseFormatToJsonObject() {
+        contextRunner.run(context -> {
+            FogUiGenerationPolicyService service = context.getBean(FogUiGenerationPolicyService.class);
+            var policy = service.resolve("gpt-4.1-nano");
+
+            assertThat(policy.getResponseFormat()).isEqualTo(ResponseFormatMode.JSON_OBJECT);
+        });
     }
 
     @Test
