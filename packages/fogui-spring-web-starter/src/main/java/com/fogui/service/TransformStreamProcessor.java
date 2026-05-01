@@ -1,6 +1,9 @@
 package com.fogui.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fogui.contract.a2ui.A2UiErrorResponse;
+import com.fogui.contract.a2ui.A2UiMessage;
+import com.fogui.contract.a2ui.A2UiOutboundMapper;
 import com.fogui.contract.CanonicalValidationContext;
 import com.fogui.contract.CanonicalValidationError;
 import com.fogui.contract.FogUiCanonicalContract;
@@ -23,16 +26,17 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class TransformStreamProcessor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TransformStreamProcessor.class);
 
-    private static final String ERROR_KEY = "error";
+    private static final String MESSAGE_EVENT = "message";
+    private static final String ERROR_EVENT = "error";
     private static final String REQUEST_ID_KEY = "requestId";
     private static final String EXCEPTION_TYPE_KEY = "exceptionType";
-    private static final int TOKEN_ESTIMATE_DIVISOR = 4;
 
     private final FogUiTransformRuntime transformRuntime;
     private final TransformPromptProvider transformPromptProvider;
@@ -40,6 +44,7 @@ public class TransformStreamProcessor {
     private final StreamPatchReconciler streamPatchReconciler;
     private final FogUiCanonicalValidator canonicalValidator;
     private final ObjectMapper objectMapper;
+    private final A2UiOutboundMapper a2UiOutboundMapper = new A2UiOutboundMapper();
 
     public TransformStreamProcessor(
             FogUiTransformRuntime transformRuntime,
@@ -68,6 +73,7 @@ public class TransformStreamProcessor {
             var prompt = transformPromptProvider.createPrompt(request.getContent(), extractContextHints(request));
             var fullContent = new StringBuilder();
             var previousResponse = new AtomicReference<GenerativeUIResponse>(null);
+            var renderStarted = new AtomicBoolean(false);
             String advisorRequestId = requestId == null ? "" : requestId;
 
             var requestSpec = chatClient.prompt(Objects.requireNonNull(prompt));
@@ -79,9 +85,9 @@ public class TransformStreamProcessor {
                     .content()
                     .doOnNext(chunk -> {
                         fullContent.append(chunk);
-                        emitPartialResult(fullContent, emitter, previousResponse);
+                        emitPartialResult(fullContent, emitter, previousResponse, renderStarted);
                     })
-                    .doOnComplete(() -> handleStreamComplete(emitter, fullContent, request, startTime, requestId))
+                    .doOnComplete(() -> handleStreamComplete(emitter, fullContent, requestId, renderStarted))
                     .doOnError(error -> handleStreamError(error, emitter, requestId))
                     .onErrorResume(error -> Flux.empty())
                     .subscribe();
@@ -121,16 +127,14 @@ public class TransformStreamProcessor {
             String requestId,
             Object details
     ) throws IOException {
-        var errorJson = objectMapper.createObjectNode();
-        errorJson.put(ERROR_KEY, errorMessage);
-        errorJson.put("code", errorCode);
-        errorJson.put(REQUEST_ID_KEY, requestId == null ? "" : requestId);
-        if (details != null) {
-            errorJson.set("details", objectMapper.valueToTree(details));
-        }
-        emitter.send(SseEmitter.event()
-                .name(ERROR_KEY)
-                .data(writeJson(errorJson)));
+            A2UiErrorResponse errorBody = a2UiOutboundMapper.toErrorResponse(
+                errorMessage,
+                errorCode,
+                details,
+                requestId == null ? "" : requestId);
+            emitter.send(SseEmitter.event()
+                .name(ERROR_EVENT)
+                .data(writeJson(errorBody)));
     }
 
     private String extractContextHints(TransformRequest request) {
@@ -143,7 +147,8 @@ public class TransformStreamProcessor {
     private void emitPartialResult(
             StringBuilder fullContent,
             SseEmitter emitter,
-            AtomicReference<GenerativeUIResponse> previousResponse
+            AtomicReference<GenerativeUIResponse> previousResponse,
+            AtomicBoolean renderStarted
     ) {
         var partial = responseParser.tryParsePartial(fullContent.toString());
         var reconciled = streamPatchReconciler.reconcile(previousResponse.get(), partial);
@@ -155,9 +160,11 @@ public class TransformStreamProcessor {
         previousResponse.set(normalized);
 
         try {
-            emitter.send(SseEmitter.event()
-                    .name("result")
-                    .data(writeJson(normalized)));
+            emitA2UiMessages(emitter, a2UiOutboundMapper.toMessages(
+                    normalized,
+                    A2UiOutboundMapper.DEFAULT_SURFACE_ID,
+                    !renderStarted.get()));
+            renderStarted.set(true);
         } catch (IOException ex) {
             LOGGER.error("Error sending partial result", ex);
         }
@@ -166,24 +173,29 @@ public class TransformStreamProcessor {
     private void handleStreamComplete(
             SseEmitter emitter,
             StringBuilder fullContent,
-            TransformRequest request,
-            long startTime,
-            String requestId
+            String requestId,
+            AtomicBoolean renderStarted
     ) {
         try {
-            sendStreamResult(emitter, fullContent.toString(), requestId);
-            sendStreamUsage(emitter, request, fullContent, startTime, requestId);
-            emitter.send(SseEmitter.event().name("done").data("[DONE]"));
+            sendStreamResult(emitter, fullContent.toString(), requestId, renderStarted);
             emitter.complete();
         } catch (Exception ex) {
             handleStreamError(ex, emitter, requestId);
         }
     }
 
-    private void sendStreamResult(SseEmitter emitter, String content, String requestId) throws IOException {
-        emitter.send(SseEmitter.event()
-                .name("result")
-                .data(writeJson(parseAndNormalizeFinalResponse(content, requestId))));
+    private void sendStreamResult(
+            SseEmitter emitter,
+            String content,
+            String requestId,
+            AtomicBoolean renderStarted
+    ) throws IOException {
+        emitA2UiMessages(
+                emitter,
+                a2UiOutboundMapper.toMessages(
+                        parseAndNormalizeFinalResponse(content, requestId),
+                        A2UiOutboundMapper.DEFAULT_SURFACE_ID,
+                        !renderStarted.get()));
     }
 
     private GenerativeUIResponse parseAndNormalizeFinalResponse(String content, String requestId) {
@@ -272,34 +284,20 @@ public class TransformStreamProcessor {
         return details;
     }
 
-    private void sendStreamUsage(
-            SseEmitter emitter,
-            TransformRequest request,
-            StringBuilder fullContent,
-            long startTime,
-            String requestId
-    ) throws IOException {
-        long processingTime = System.currentTimeMillis() - startTime;
-        int tokens = (estimateTokens(request.getContent()) + estimateTokens(fullContent.toString()));
-        var usageJson = objectMapper.createObjectNode();
-        usageJson.put("transformTokens", tokens);
-        usageJson.put("processingTimeMs", processingTime);
-        usageJson.put("model", transformRuntime.getActiveModelName());
-        usageJson.put(REQUEST_ID_KEY, requestId == null ? "" : requestId);
+    private void emitA2UiMessage(SseEmitter emitter, Object message) throws IOException {
         emitter.send(SseEmitter.event()
-                .name("usage")
-                .data(writeJson(usageJson)));
+                .name(MESSAGE_EVENT)
+                .data(writeJson(message)));
+    }
+
+    private void emitA2UiMessages(SseEmitter emitter, List<A2UiMessage> messages) throws IOException {
+        for (A2UiMessage message : messages) {
+            emitA2UiMessage(emitter, message);
+        }
     }
 
     private @NonNull String writeJson(Object value) throws IOException {
         return Objects.requireNonNull(objectMapper.writeValueAsString(value));
-    }
-
-    private int estimateTokens(String content) {
-        if (content == null || content.isBlank()) {
-            return 0;
-        }
-        return content.length() / TOKEN_ESTIMATE_DIVISOR;
     }
 
     private void handleStreamError(Throwable error, SseEmitter emitter, String requestId) {

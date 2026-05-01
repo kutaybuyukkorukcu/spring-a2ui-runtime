@@ -15,7 +15,7 @@ class RequestCorrelationServiceTest {
         String requestId = service.resolveRequestId(null);
 
         assertNotNull(requestId);
-        assertTrue(requestId.startsWith("fogui-"));
+        assertTrue(requestId.startsWith("a2ui-"));
     }
 
     @Test
@@ -23,5 +23,13 @@ class RequestCorrelationServiceTest {
         String requestId = service.resolveRequestId("req-abc");
 
         assertEquals("req-abc", requestId);
+    }
+
+    @Test
+    void shouldGenerateRequestIdWhenHeaderIsBlank() {
+        String requestId = service.resolveRequestId("   ");
+
+        assertNotNull(requestId);
+        assertTrue(requestId.startsWith("a2ui-"));
     }
 }

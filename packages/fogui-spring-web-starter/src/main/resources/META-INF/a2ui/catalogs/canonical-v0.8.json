@@ -1,0 +1,294 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "catalogId": "/a2ui/catalogs/canonical/v0.8",
+  "components": {
+    "Text": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "literalString": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "minProperties": 1
+        },
+        "usageHint": {
+          "type": "string",
+          "enum": ["h1", "h2", "h3", "h4", "h5", "caption", "body"]
+        }
+      },
+      "required": ["text"]
+    },
+    "Column": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "children": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "explicitList": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["explicitList"]
+        },
+        "distribution": {
+          "type": "string"
+        },
+        "alignment": {
+          "type": "string"
+        }
+      },
+      "required": ["children"]
+    },
+    "Row": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "children": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "explicitList": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["explicitList"]
+        },
+        "distribution": {
+          "type": "string"
+        },
+        "alignment": {
+          "type": "string"
+        }
+      },
+      "required": ["children"]
+    },
+    "Card": {
+      "type": "object",
+      "properties": {
+        "child": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    },
+    "List": {
+      "type": "object",
+      "properties": {
+        "children": {
+          "type": "object"
+        },
+        "items": {
+          "type": "array"
+        },
+        "direction": {
+          "type": "string"
+        },
+        "alignment": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "Tabs": {
+      "type": "object",
+      "properties": {
+        "tabItems": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": true
+    },
+    "Button": {
+      "type": "object",
+      "properties": {
+        "child": {
+          "type": "string"
+        },
+        "primary": {
+          "type": "boolean"
+        },
+        "action": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "context": {
+              "type": "array"
+            }
+          },
+          "required": ["name"],
+          "additionalProperties": true
+        }
+      },
+      "required": ["child"],
+      "additionalProperties": true
+    },
+    "TextField": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "object"
+        },
+        "text": {
+          "type": "object"
+        },
+        "textFieldType": {
+          "type": "string"
+        },
+        "validationRegexp": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "Image": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object"
+        },
+        "fit": {
+          "type": "string"
+        },
+        "usageHint": {
+          "type": "string"
+        }
+      },
+      "required": ["url"],
+      "additionalProperties": true
+    },
+    "Container": {
+      "type": "object",
+      "properties": {
+        "child": {
+          "type": "string"
+        },
+        "children": {
+          "type": "object"
+        },
+        "layout": {
+          "type": "string"
+        },
+        "columns": {
+          "type": "integer"
+        },
+        "gap": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "Table": {
+      "type": "object",
+      "properties": {
+        "columns": {
+          "type": "array"
+        },
+        "rows": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": true
+    },
+    "Chart": {
+      "type": "object",
+      "properties": {
+        "chartData": {
+          "type": "array"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "Form": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "array"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "Confirmation": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "confirmText": {
+          "type": "string"
+        },
+        "variant": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "Accordion": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": true
+    },
+    "Code": {
+      "type": "object",
+      "properties": {
+        "language": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "filename": {
+          "type": "string"
+        }
+      },
+      "required": ["code"],
+      "additionalProperties": true
+    }
+  },
+  "styles": {}
+}
