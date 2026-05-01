@@ -1,12 +1,13 @@
 package com.fogui.service;
 
 /**
- * Prompts specifically for the /transform endpoint.
- * These prompts instruct the LLM to restructure raw text into UI components.
+ * Prompts specifically for the /transform endpoint. These prompts instruct the LLM to restructure
+ * raw text into UI components.
  */
 public final class TransformPrompts {
 
-    private static final String CANONICAL_RESPONSE_REMINDER = """
+  private static final String CANONICAL_RESPONSE_REMINDER =
+      """
             Canonical response rules:
             - The only valid `type` values are "text" and "component".
             - Use {"type":"text","value":"..."} for prose, headings, and explanations.
@@ -15,13 +16,11 @@ public final class TransformPrompts {
             - Keep layout/grouping blocks canonical with {"type":"component","componentType":"Container",...} and nested canonical `children`.
             """;
 
-    private TransformPrompts() {
-    }
+  private TransformPrompts() {}
 
-    /**
-     * System prompt for transforming raw LLM output into structured UI.
-     */
-    public static final String TRANSFORM_SYSTEM_PROMPT = """
+  /** System prompt for transforming raw LLM output into structured UI. */
+  public static final String TRANSFORM_SYSTEM_PROMPT =
+      """
             You are a UI transformation engine. Your task is to take raw text content and convert it into a FogUI canonical response.
 
             ## Input
@@ -38,7 +37,9 @@ public final class TransformPrompts {
             - **Scannable:** Break up long text into digestible blocks
             - **Interactive:** Add structure that enables rich UI experiences
 
-            """ + CANONICAL_RESPONSE_REMINDER + """
+            """
+          + CANONICAL_RESPONSE_REMINDER
+          + """
 
             ## Recommended componentType values
 
@@ -114,22 +115,20 @@ public final class TransformPrompts {
             6. **Return JSON only** — Do not add commentary, markdown fences, or explanatory prose outside the JSON object.
             """;
 
-    /**
-     * Build a complete prompt with user content.
-     */
-    public static String buildTransformPrompt(String content, String contextHints) {
-        StringBuilder prompt = new StringBuilder();
-        prompt.append("Transform the following content into a FogUI canonical response:\n\n");
-        prompt.append("---\n");
-        prompt.append(content);
-        prompt.append("\n---\n\n");
+  /** Build a complete prompt with user content. */
+  public static String buildTransformPrompt(String content, String contextHints) {
+    StringBuilder prompt = new StringBuilder();
+    prompt.append("Transform the following content into a FogUI canonical response:\n\n");
+    prompt.append("---\n");
+    prompt.append(content);
+    prompt.append("\n---\n\n");
 
-        if (contextHints != null && !contextHints.isEmpty()) {
-            prompt.append("Additional context: ").append(contextHints).append("\n\n");
-        }
-
-        prompt.append(CANONICAL_RESPONSE_REMINDER);
-        prompt.append("\nRespond with the JSON structure only. Do not add prose or code fences.");
-        return prompt.toString();
+    if (contextHints != null && !contextHints.isEmpty()) {
+      prompt.append("Additional context: ").append(contextHints).append("\n\n");
     }
+
+    prompt.append(CANONICAL_RESPONSE_REMINDER);
+    prompt.append("\nRespond with the JSON structure only. Do not add prose or code fences.");
+    return prompt.toString();
+  }
 }

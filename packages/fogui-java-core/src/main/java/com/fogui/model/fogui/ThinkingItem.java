@@ -1,12 +1,11 @@
 package com.fogui.model.fogui;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.time.Instant;
 
 @Data
 @Builder
@@ -14,15 +13,15 @@ import java.time.Instant;
 @AllArgsConstructor
 public class ThinkingItem {
 
-    @JsonProperty("message")
-    @Builder.Default
-    private String message = "";
+  @JsonProperty("message")
+  @Builder.Default
+  private String message = "";
 
-    @JsonProperty("status")
-    @Builder.Default
-    private String status = "active";
+  @JsonProperty("status")
+  @Builder.Default
+  private String status = "active";
 
-    @JsonProperty("timestamp")
-    @Builder.Default
-    private String timestamp = Instant.now().toString();
+  @JsonProperty("timestamp")
+  @Builder.Default
+  private String timestamp = Instant.now().toString();
 }

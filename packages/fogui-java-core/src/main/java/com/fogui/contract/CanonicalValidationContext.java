@@ -5,17 +5,15 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Optional contextual inputs for canonical validation.
- */
+/** Optional contextual inputs for canonical validation. */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class CanonicalValidationContext {
-    private String expectedContractVersion;
+  private String expectedContractVersion;
 
-    public static CanonicalValidationContext empty() {
-        return CanonicalValidationContext.builder().build();
-    }
+  public static CanonicalValidationContext empty() {
+    return CanonicalValidationContext.builder().build();
+  }
 }

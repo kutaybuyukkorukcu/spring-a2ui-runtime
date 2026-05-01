@@ -15,6 +15,21 @@
     <name>FogUI Java Core</name>
     <description>Framework-agnostic canonical contracts, validation, and translation primitives for FogUI</description>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>2.43.0</version>
+                <configuration>
+                    <java>
+                        <googleJavaFormat />
+                    </java>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
     <dependencies>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

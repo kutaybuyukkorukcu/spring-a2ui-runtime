@@ -2,161 +2,145 @@ package com.fogui.starter.policy;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/**
- * Configuration properties for deterministic generation behavior.
- */
+/** Configuration properties for deterministic generation behavior. */
 @ConfigurationProperties(prefix = "fogui.deterministic")
 public class FogUiGenerationPolicyProperties {
 
-    /**
-     * Default deterministic temperature.
-     */
-    private Double temperature = 0.0;
+  /** Default deterministic temperature. */
+  private Double temperature = 0.0;
 
-    /**
-     * Default top-p value.
-     */
-    private Double topP = 1.0;
+  /** Default top-p value. */
+  private Double topP = 1.0;
 
-    /**
-     * Optional seed for providers that support seeded generation.
-     */
-    private Integer seed;
+  /** Optional seed for providers that support seeded generation. */
+  private Integer seed;
 
-    /**
-     * Structured response format mode for providers supporting server-side JSON
-     * shaping.
-     */
-    private ResponseFormatMode responseFormat = ResponseFormatMode.JSON_OBJECT;
+  /** Structured response format mode for providers supporting server-side JSON shaping. */
+  private ResponseFormatMode responseFormat = ResponseFormatMode.JSON_OBJECT;
 
-    /**
-     * Optional max output token limit for providers supporting max tokens.
-     */
-    private Integer maxTokens;
+  /** Optional max output token limit for providers supporting max tokens. */
+  private Integer maxTokens;
 
-    /**
-     * Optional max completion token limit for providers supporting max completion
-     * tokens.
-     */
-    private Integer maxCompletionTokens;
+  /** Optional max completion token limit for providers supporting max completion tokens. */
+  private Integer maxCompletionTokens;
 
-    private Capabilities capabilities = new Capabilities();
+  private Capabilities capabilities = new Capabilities();
 
-    public static class Capabilities {
-        private boolean temperature = true;
-        private boolean topP = true;
-        private boolean seed = true;
-        private boolean responseFormat = true;
-        private boolean maxTokens = true;
-        private boolean maxCompletionTokens = true;
+  public static class Capabilities {
+    private boolean temperature = true;
+    private boolean topP = true;
+    private boolean seed = true;
+    private boolean responseFormat = true;
+    private boolean maxTokens = true;
+    private boolean maxCompletionTokens = true;
 
-        public boolean isTemperature() {
-            return temperature;
-        }
-
-        public void setTemperature(boolean temperature) {
-            this.temperature = temperature;
-        }
-
-        public boolean isTopP() {
-            return topP;
-        }
-
-        public void setTopP(boolean topP) {
-            this.topP = topP;
-        }
-
-        public boolean isSeed() {
-            return seed;
-        }
-
-        public void setSeed(boolean seed) {
-            this.seed = seed;
-        }
-
-        public boolean isResponseFormat() {
-            return responseFormat;
-        }
-
-        public void setResponseFormat(boolean responseFormat) {
-            this.responseFormat = responseFormat;
-        }
-
-        public boolean isMaxTokens() {
-            return maxTokens;
-        }
-
-        public void setMaxTokens(boolean maxTokens) {
-            this.maxTokens = maxTokens;
-        }
-
-        public boolean isMaxCompletionTokens() {
-            return maxCompletionTokens;
-        }
-
-        public void setMaxCompletionTokens(boolean maxCompletionTokens) {
-            this.maxCompletionTokens = maxCompletionTokens;
-        }
+    public boolean isTemperature() {
+      return temperature;
     }
 
-    public enum ResponseFormatMode {
-        NONE,
-        JSON_OBJECT
+    public void setTemperature(boolean temperature) {
+      this.temperature = temperature;
     }
 
-    public Double getTemperature() {
-        return temperature;
+    public boolean isTopP() {
+      return topP;
     }
 
-    public void setTemperature(Double temperature) {
-        this.temperature = temperature;
+    public void setTopP(boolean topP) {
+      this.topP = topP;
     }
 
-    public Double getTopP() {
-        return topP;
+    public boolean isSeed() {
+      return seed;
     }
 
-    public void setTopP(Double topP) {
-        this.topP = topP;
+    public void setSeed(boolean seed) {
+      this.seed = seed;
     }
 
-    public Integer getSeed() {
-        return seed;
+    public boolean isResponseFormat() {
+      return responseFormat;
     }
 
-    public void setSeed(Integer seed) {
-        this.seed = seed;
+    public void setResponseFormat(boolean responseFormat) {
+      this.responseFormat = responseFormat;
     }
 
-    public ResponseFormatMode getResponseFormat() {
-        return responseFormat;
+    public boolean isMaxTokens() {
+      return maxTokens;
     }
 
-    public void setResponseFormat(ResponseFormatMode responseFormat) {
-        this.responseFormat = responseFormat;
+    public void setMaxTokens(boolean maxTokens) {
+      this.maxTokens = maxTokens;
     }
 
-    public Integer getMaxTokens() {
-        return maxTokens;
+    public boolean isMaxCompletionTokens() {
+      return maxCompletionTokens;
     }
 
-    public void setMaxTokens(Integer maxTokens) {
-        this.maxTokens = maxTokens;
+    public void setMaxCompletionTokens(boolean maxCompletionTokens) {
+      this.maxCompletionTokens = maxCompletionTokens;
     }
+  }
 
-    public Integer getMaxCompletionTokens() {
-        return maxCompletionTokens;
-    }
+  public enum ResponseFormatMode {
+    NONE,
+    JSON_OBJECT
+  }
 
-    public void setMaxCompletionTokens(Integer maxCompletionTokens) {
-        this.maxCompletionTokens = maxCompletionTokens;
-    }
+  public Double getTemperature() {
+    return temperature;
+  }
 
-    public Capabilities getCapabilities() {
-        return capabilities;
-    }
+  public void setTemperature(Double temperature) {
+    this.temperature = temperature;
+  }
 
-    public void setCapabilities(Capabilities capabilities) {
-        this.capabilities = capabilities;
-    }
+  public Double getTopP() {
+    return topP;
+  }
+
+  public void setTopP(Double topP) {
+    this.topP = topP;
+  }
+
+  public Integer getSeed() {
+    return seed;
+  }
+
+  public void setSeed(Integer seed) {
+    this.seed = seed;
+  }
+
+  public ResponseFormatMode getResponseFormat() {
+    return responseFormat;
+  }
+
+  public void setResponseFormat(ResponseFormatMode responseFormat) {
+    this.responseFormat = responseFormat;
+  }
+
+  public Integer getMaxTokens() {
+    return maxTokens;
+  }
+
+  public void setMaxTokens(Integer maxTokens) {
+    this.maxTokens = maxTokens;
+  }
+
+  public Integer getMaxCompletionTokens() {
+    return maxCompletionTokens;
+  }
+
+  public void setMaxCompletionTokens(Integer maxCompletionTokens) {
+    this.maxCompletionTokens = maxCompletionTokens;
+  }
+
+  public Capabilities getCapabilities() {
+    return capabilities;
+  }
+
+  public void setCapabilities(Capabilities capabilities) {
+    this.capabilities = capabilities;
+  }
 }

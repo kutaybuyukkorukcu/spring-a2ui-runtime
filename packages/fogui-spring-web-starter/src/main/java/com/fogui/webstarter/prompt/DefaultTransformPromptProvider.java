@@ -7,10 +7,10 @@ import org.springframework.ai.chat.prompt.Prompt;
 
 public class DefaultTransformPromptProvider implements TransformPromptProvider {
 
-    @Override
-    public Prompt createPrompt(String content, String contextHints) {
-        return new Prompt(
-                new SystemMessage(TransformPrompts.TRANSFORM_SYSTEM_PROMPT),
-                new UserMessage(TransformPrompts.buildTransformPrompt(content, contextHints)));
-    }
+  @Override
+  public Prompt createPrompt(String content, String contextHints) {
+    return new Prompt(
+        new SystemMessage(TransformPrompts.TRANSFORM_SYSTEM_PROMPT),
+        new UserMessage(TransformPrompts.buildTransformPrompt(content, contextHints)));
+  }
 }
