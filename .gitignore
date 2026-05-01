@@ -1,0 +1,10 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# Maven build artifacts and generated files
+.flattened-pom.xml
+packages/fogui-java-core/.flattened-pom.xml
+packages/fogui-java-core/target/
+packages/fogui-spring-boot-starter/.flattened-pom.xml
+packages/fogui-spring-boot-starter/target/
+packages/fogui-spring-web-starter/.flattened-pom.xml
+packages/fogui-spring-web-starter/target/
