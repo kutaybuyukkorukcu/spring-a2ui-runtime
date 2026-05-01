@@ -1,79 +1,71 @@
-# FogUI
+# Spring A2UI Runtime
 
-FogUI is an OSS-first deterministic runtime and rendering contract for agent/LLM-generated UI.
+Spring A2UI Runtime is a Java and Spring Boot runtime for serving, validating, streaming, and operating A2UI in production systems.
 
-Backend runtime that makes outputs predictable, validated, and safe before rendering.
+This repository was extracted from the previous FogUI monorepo and now contains only the backend/runtime modules. The product direction for this repository is A2UI-first: A2UI is the intended public contract, while the existing `fogui-*` module names and `com.fogui.*` packages remain temporary naming debt inherited from the extracted codebase.
 
-## What FogUI Is
+## Current Status
 
-FogUI turns probabilistic model output into predictable, design-system-safe UI payloads before rendering.
+- First-class public contract target: A2UI v0.8.
+- Current implementation state: existing runtime, validation, and transport layers are being repositioned from a FogUI-first public story toward A2UI-first public APIs.
+- Public route surface now includes `POST /a2ui/transform`, `POST /a2ui/transform/stream`, `GET /a2ui/catalogs/canonical/v0.8`, `POST /a2ui/actions`, and `POST /a2ui/compat/inbound`.
+- Current sample host: `apps/be-transform-showcase` remains the reference Spring Boot server for end-to-end runtime behavior.
 
-FogUI makes runtime guarantees about the response contract, diagnostics, and stream lifecycle.
+## What This Repository Is
 
-Core OSS responsibilities:
+- A Java and Spring Boot runtime for A2UI.
+- A starter and library set for validation, transport, streaming, diagnostics, and request correlation.
+- A backend-focused integration surface for teams adding A2UI to Spring applications.
+- A reference server that demonstrates how the reusable runtime modules fit together.
 
-- Canonical UI contract and validation.
-- A2UI inbound compatibility translation.
-- Deterministic stream patch reconciliation.
-- React adapter-based rendering into product design systems.
+## What This Repository Is Not
 
-## A2UI Supported Subset
+- A new generative UI protocol.
+- A replacement for the A2UI specification or renderer ecosystem.
+- A frontend renderer or design-system repository.
+- A hosted dashboard or chat product.
+- A replacement for AG-UI, A2A, or MCP.
 
-FogUI intentionally supports a conservative A2UI inbound subset in v1.
+## Repository Modules
 
-| A2UI shape | v1 behavior |
-| --- | --- |
-| `thinking[]` object items | Translated into canonical `thinking` entries; `status` defaults to `complete`, `timestamp` stays optional. |
-| `content[]` text blocks with `type: text` and `value` or `text` | Translated into canonical text blocks. |
-| `content[]` component blocks with `componentType` or `name` | Translated into canonical component blocks with recursive `children` support. |
-| `content[]` nodes with `type: component` but no `componentType` or `name` | Translated deterministically as component type `unknown`. |
-| Unsupported object nodes or non-object blocks | Translated into `A2UiUnsupportedNode` fallback blocks with deterministic compatibility errors. |
-| Malformed `thinking` or `content` container shapes | Invalid sections are omitted and deterministic compatibility errors are returned; downstream canonical validation may still fail. |
+- `packages/fogui-java-core`: current protocol and validation core. This module houses the existing normalized/internal model and the evolving A2UI-first protocol support.
+- `packages/fogui-spring-boot-starter`: Spring Boot auto-configuration, provider/runtime policy, and Spring AI integration wiring.
+- `packages/fogui-spring-web-starter`: reusable HTTP and streaming runtime layer, request correlation, transport error mapping, and route enablement.
+- `apps/be-transform-showcase`: thin Spring Boot sample host that consumes the reusable runtime modules.
 
-Detailed matrix and fixture-backed examples: `docs/adr/A2UI_COMPATIBILITY.md`
+The extracted repository does not include the old frontend showcase or React renderer packages from the previous monorepo.
 
-## 2026 Direction
+## Public Surface Transition
 
-FogUI is positioned as infrastructure, not a hosted dashboard product:
+Today the sample server exposes the A2UI-named public routes:
 
-- Backend trust runtime (`packages/fogui-java-core` + `packages/fogui-spring-boot-starter` + `packages/fogui-spring-web-starter`) is the center.
-- Protocol interoperability (A2UI today) is required, but FogUI is not a protocol-spec competitor.
-- `apps/be-transform-showcase` stays as a showcase host application, not the primary product surface.
-- `packages/react` remains core because trust only matters if canonical outputs render safely.
+- `POST /a2ui/transform`
+- `POST /a2ui/transform/stream`
+- `GET /a2ui/catalogs/canonical/v0.8`
+- `POST /a2ui/actions`
+- `POST /a2ui/compat/inbound`
 
-Deterministic behavior is not concentrated in `apps/be-transform-showcase`. The publishable Java OSS value lives primarily in the shared modules:
+The remaining public-surface transition work is now about broader protocol validation, richer sample-host wiring, and naming debt in artifacts and packages, not keeping old route aliases alive. The current A2UI surface has two important runtime contracts beyond transform and stream:
 
-- `packages/fogui-java-core` owns canonical contract validation, compatibility translation, and deterministic stream reconciliation.
-- `packages/fogui-spring-boot-starter` owns Spring Boot auto-configuration, advisor wiring, and runtime policy integration.
-- `packages/fogui-spring-web-starter` owns reusable HTTP/runtime orchestration for transform, stream, compatibility, prompt SPI, and request correlation.
-- `apps/be-transform-showcase` consumes those modules to expose a thin showcase host for validating transform, stream, and compatibility behavior.
+- Transform responses declare a repo-owned catalog served from `GET /a2ui/catalogs/canonical/v0.8`.
+- Stateful client round-trips use `POST /a2ui/actions`, where `userAction` events are routed by `surfaceId:name` and renderer `error` payloads are accepted as deterministic acknowledgements.
 
-Current execution backlog: `docs/BACKLOG.md`
+The transition order remains:
 
-## Monorepo Modules
+1. Reposition the docs and repository narrative around A2UI.
+2. Introduce A2UI-first public APIs and streaming surfaces.
+3. Move A2UI-first routes from inherited transport details toward stable A2UI response semantics.
+4. Rename artifacts and package namespaces once the A2UI-first surface is stable.
 
-### Core OSS modules
+## Quick Start
 
-- `packages/fogui-java-core`: framework-agnostic canonical contracts, validation, translation primitives, deterministic utilities.
-- `packages/fogui-spring-boot-starter`: Spring Boot integration glue for auto-config, middleware hooks, and observability wiring.
-- `packages/fogui-spring-web-starter`: reusable Spring web/runtime layer for transform, stream, compatibility routes, prompt SPI, and request correlation.
-- `packages/react`: `@fogui/react` SDK (`FogUIProvider`, `useFogUI`, `FogUIRenderer`, adapters).
-
-### Reference implementations
-
-- `apps/be-transform-showcase`: showcase host and integration harness.
-  - Core reference APIs: `POST /fogui/transform`, `POST /fogui/transform/stream`, `POST /fogui/compat/a2ui/inbound`.
-- `apps/fe-transform-showcase`: transform-focused demo UI for local renderer validation against canonical backend responses.
-
-## Quick Start (OSS)
-
-### 1) Build Java modules
+Build all Java modules:
 
 ```bash
 ./apps/be-transform-showcase/mvnw -f pom.xml -q -DskipTests package
 ```
 
-### 2) Run showcase backend
+Run the sample server locally:
 
 ```bash
 cd apps/be-transform-showcase
@@ -82,82 +74,40 @@ cd apps/be-transform-showcase
 
 Default backend URL: `http://localhost:5001`
 
-### 3) Build React SDK
+Run the showcase tests:
 
 ```bash
-cd packages/react
-npm install
-npm run test
-npm run build
+./apps/be-transform-showcase/mvnw -f pom.xml -pl apps/be-transform-showcase test
 ```
 
-### 4) Run transform showcase (optional)
+## Current Coordinates and Naming Debt
 
-```bash
-cd apps/fe-transform-showcase
-npm install
-npm run dev
-```
-
-## Publish Java Modules (GitHub Packages)
-
-FogUI Java modules can be published to GitHub Packages using the workflow:
-
-- `.github/workflows/java-publish.yml`
-
-How to publish:
-
-1. Go to Actions -> Java Publish and run the workflow manually with an explicit version such as `1.0.0`.
-2. Or push a tag that matches `java-v*.*.*`; the tag suffix becomes the published Maven version.
-
-Published artifacts:
+Published and in-repo artifacts still use inherited FogUI naming:
 
 - `com.fogui:fogui-java-core`
 - `com.fogui:fogui-spring-starter`
 - `com.fogui:fogui-spring-web-starter`
 
-Registry URL pattern:
+That naming is temporary implementation debt, not the desired long-term product identity.
 
-- `https://maven.pkg.github.com/<owner>/<repo>`
+## Near-Term Direction
 
-For local backend development inside this monorepo, use Maven reactor mode so sibling modules are built together:
+The immediate repository plan is:
 
-```bash
-./apps/be-transform-showcase/mvnw -f pom.xml -pl apps/be-transform-showcase -am test
-```
-
-What this means:
-
-- `-am` builds required sibling modules from local source in the same monorepo build.
-- Without reactor mode, `apps/be-transform-showcase` resolves those dependencies from repositories (GitHub Packages is configured in `apps/be-transform-showcase/pom.xml`).
-
-For standalone `cd apps/be-transform-showcase && ./mvnw test`, configure Maven credentials in `~/.m2/settings.xml`:
-
-```xml
-<settings>
-  <servers>
-    <server>
-      <id>github</id>
-      <username>YOUR_GITHUB_USERNAME</username>
-      <password>YOUR_GITHUB_TOKEN</password>
-    </server>
-  </servers>
-</settings>
-```
+1. Complete the thesis reset across the public docs.
+2. Expand A2UI v0.8 validation, version diagnostics, and protocol fixtures in the core module.
+3. Stabilize the new A2UI route surface around the published catalog contract and the `userAction` round-trip SPI.
+4. Remove inherited FogUI naming over time without adding new backward-compatibility layers.
 
 ## Docs
 
-- OSS execution backlog: `docs/BACKLOG.md`
-- Architecture and module boundaries: `docs/adr/ARCHITECTURE.md`
-- A2UI compatibility: `docs/adr/A2UI_COMPATIBILITY.md`
+- Repositioning plan: `docs/A2UI_RUNTIME_REPOSITIONING_PLAN.md`
+- Architecture boundaries: `docs/adr/ARCHITECTURE.md`
+- Backlog and roadmap: `docs/BACKLOG.md`
+- A2UI compatibility notes: `docs/adr/A2UI_COMPATIBILITY.md`
+- Spring AI runtime policy: `docs/adr/SPRING_AI_DETERMINISM.md`
 - Advisors runtime pipeline: `docs/adr/ADVISORS_RUNTIME.md`
-- Spring AI deterministic runtime guide: `docs/adr/SPRING_AI_DETERMINISM.md`
-- Spring AI provider options matrix: `docs/adr/SPRING_AI_PROVIDER_OPTIONS.md`
-- Adapter guide: `docs/adr/ADAPTER_GUIDE.md`
-- Java artifact publishing plan: `docs/adr/JAVA_PUBLISHING_PLAN.md`
-- Archived benchmark result: `docs/benchmark-results/determinism-evaluation-2026-04-17.md`
-- Agent conventions: `AGENTS.md`
 
 ## License
 
-FogUI is licensed under the MIT License. See `LICENSE`.
+This repository is licensed under the MIT License.

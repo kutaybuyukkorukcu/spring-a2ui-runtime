@@ -1,110 +1,106 @@
-# FogUI OSS Backlog (Execution Board)
+# Spring A2UI Runtime Backlog
 
-**Last Updated:** April 21, 2026
+**Last Updated:** May 2, 2026
 
-This file is the primary OSS execution board for FogUI.
+This file is the primary execution board for the Spring A2UI Runtime repositioning and implementation work.
 
-It tracks the work needed to keep FogUI MVP-scoped as a canonical UI runtime/library for Spring AI teams.
-The benchmark harness has been removed from the repository; the archived benchmark result remains only as publication support.
+It tracks the work required to turn the extracted backend repository into a production-oriented Java and Spring runtime for A2UI, while treating the remaining FogUI-named artifacts and packages as rename debt.
 
 ## Current Focus Window
 
-Primary target window: **publishable Java runtime support, article-ready claim framing, and implementation hardening**  
-(The immediate goal is to make FogUI easy to explain, safe to adopt, and narrow enough to ship as a credible OSS MVP.)
+Primary target window: **Phase 1 A2UI v0.8 stabilization around protocol validation, catalog publication, and action round-trips**
+
+The immediate goal is to make the repository easy to understand as an A2UI runtime, then add the protocol and transport primitives needed for an A2UI-first public surface.
 
 ## Core Outcome Question
 
-FogUI's current outcome target is straightforward:
+The current outcome target is straightforward:
 
-1. Constrain model-generated UI into a canonical contract that is safe to validate and render.
-2. Make runtime failures diagnosable and interoperability boundaries explicit.
-3. Publish narrow, defensible article claims backed by archived benchmark evidence rather than semantic determinism claims.
+1. Make A2UI the clear public contract of this repository.
+2. Keep the Java and Spring runtime story narrow, credible, and production-oriented.
+3. Reuse the existing validation, diagnostics, and transport machinery while migrating away from the old FogUI-first public identity.
+4. Avoid adding new legacy-compatibility layers for inherited FogUI naming.
 
 ## Foundations Already in Place
 
-- [x] Canonical response model (`GenerativeUIResponse`, blocks, thinking, metadata).
-- [x] Canonical validator baseline.
+- [x] Backend-only repository extraction containing `fogui-java-core`, `fogui-spring-starter`, `fogui-spring-web-starter`, and `apps/be-transform-showcase`.
+- [x] Baseline response validation and deterministic diagnostics.
 - [x] A2UI inbound translation endpoint and translator.
 - [x] Stream parsing and reconciliation baseline.
-- [x] React SDK core primitives (`FogUIProvider`, `useFogUI`, `FogUIRenderer`, adapters).
-- [x] Reference APIs in `apps/be-transform-showcase` (`/fogui/transform`, `/fogui/transform/stream`, `/fogui/compat/a2ui/inbound`).
 - [x] Deterministic Spring AI advisor/runtime policy stack.
-- [x] Interim Java artifact publishing workflow via GitHub Packages.
-- [x] Module-level JaCoCo XML coverage generation for active Java OSS modules.
+- [x] Request correlation and stable transport-level error handling.
+- [x] Repo-owned A2UI catalog publication and reusable `userAction` routing SPI.
+- [x] GitHub Packages publication workflow for the current Java artifacts.
+- [x] Module-level JaCoCo XML coverage generation for the active Java modules.
 
-## Priority Queue (Now)
+## Priority Queue
 
-### P0: Publishable Java Runtime Support (`packages/fogui-java-core`, `packages/fogui-spring-boot-starter`, `packages/fogui-spring-web-starter`, `apps/be-transform-showcase`, `docs`)
+### P0: Repository Thesis Reset (`docs`, `README.md`, `apps/be-transform-showcase`)
 
-- [x] Define the publishable Java runtime/library boundary clearly: `fogui-java-core` owns canonical contract logic, `fogui-spring-boot-starter` owns Spring AI policy/advisor integration, and `fogui-spring-web-starter` owns reusable transform/stream/compat runtime orchestration without copying `apps/be-transform-showcase` internals.
-- [x] Extract and formalize the reusable runtime layer into `packages/fogui-spring-web-starter` (transform orchestration, stream orchestration, request correlation, stable error envelope, prompt SPI, and SSE lifecycle handling).
-- [x] Ship that reusable runtime layer as a publishable module (`com.fogui:fogui-spring-web-starter`) instead of keeping it reference-server-only.
-- [ ] Publish a Spring Boot integration guide that shows how developers use the released Java artifacts to build deterministic transform/stream services without cloning the monorepo.
+- [x] Add the A2UI runtime repositioning plan.
+- [x] Rewrite the public docs so the repository is described as a Java and Spring runtime for A2UI.
+- [x] Add explicit documentation for inherited naming debt: `fogui-*` modules and `com.fogui.*` packages.
+- [x] Publish a simple end-to-end sample flow from a Spring Boot route to runtime output in A2UI-oriented terms.
+- [x] Land the first A2UI-first HTTP and streaming route names (`/a2ui/transform`, `/a2ui/transform/stream`).
 
-### P0: Article Support and Claim Framing (`docs`, `apps/fe-transform-showcase`)
+### P1: A2UI v0.8 Core Protocol Foundation (`packages/fogui-java-core`, `docs`)
 
-- [x] Archive one live benchmark result in `docs/benchmark-results/determinism-evaluation-2026-04-17.md`.
-- [ ] Write down FogUI runtime guarantees explicitly: stable canonical response shape, stable validation and error diagnostics, request correlation, stable stream lifecycle, and render-safe canonical output. Make clear that semantic determinism for similar user intent is out of scope.
-- [ ] Add paired "with FogUI / without FogUI" examples for representative intents using the archived benchmark publication candidates.
-- [ ] Define publication claim boundaries clearly: what FogUI guarantees deterministically, what remains model-variant, and how A2UI compatibility should be described.
-- [ ] Distill the archived benchmark result into an article-ready findings summary, conclusion, and screenshots.
+- [x] Add or elevate A2UI v0.8 message models in the core module.
+- [ ] Implement supported message validation and required-field checks.
+- [ ] Add protocol version handling and version-aware diagnostics.
+- [x] Add utilities for complete responses and incremental message sequences.
+- [ ] Expand fixtures and tests around supported protocol behavior.
+- [x] Publish and validate the catalog definition used by the current outbound message contract.
 
-### P0: A2UI Compatibility Hardening (`packages/fogui-java-core`, `apps/be-transform-showcase`, `docs`)
+### P1: A2UI-First Spring Web Surface (`packages/fogui-spring-web-starter`, `apps/be-transform-showcase`, `docs`)
 
-- [x] Publish an explicit supported-subset matrix for A2UI inbound payloads.
-- [x] Expand deterministic diagnostics docs for unsupported nodes, fallback emission, and validation interplay.
-- [x] Add fixture-driven examples for supported, fallback, and rejected A2UI payload shapes.
+- [x] Introduce an A2UI-first non-stream route.
+- [x] Introduce an A2UI-first streaming route using SSE or JSONL-compatible sequencing.
+- [x] Carry request correlation and stable transport-level error mapping across both paths.
+- [x] Replace placeholder outbound wrappers with actual A2UI v0.8 message envelopes.
+- [x] Define the action submission or callback handling model for stateful round trips.
+- [x] Replace inherited public `/fogui/*` routes with A2UI-first paths.
 
-### P1: Reference Surface Discipline (`packages/react`, `apps/fe-transform-showcase`, `docs`)
+### P2: Generation Runtime Integration (`packages/fogui-spring-boot-starter`, `packages/fogui-spring-web-starter`, `packages/fogui-java-core`)
 
-- [x] Keep `apps/fe-transform-showcase` focused as a minimal deterministic transform showcase.
-- [x] Clarify in docs that `@fogui/react` remains a narrow reference renderer and demo surface while backend determinism stays the primary OSS investment area.
-- [ ] Decide whether showcase validation remains a local/reference check or grows into a required CI gate.
+- [ ] Add an A2UI-oriented prompt and provider SPI.
+- [ ] Produce validated A2UI-first output from the runtime path.
+- [ ] Validate generated output before sending it to clients.
+- [ ] Preserve capability-aware provider options behind stable runtime abstractions.
 
-### Backlog: OSS Packaging and Developer Onboarding (`packages/fogui-java-core`, `packages/fogui-spring-boot-starter`, `packages/fogui-spring-web-starter`, `docs`)
+### P2: Reference Server Cleanup (`apps/be-transform-showcase`, `docs`)
 
-- [x] Implement interim Java artifact publishing pipeline (`fogui-java-core`, `fogui-spring-starter`, `fogui-spring-web-starter`) via GitHub Packages.
-- [ ] Publish Spring Boot consumption guide for published artifacts.
-- [ ] Define Maven Central publication path (group ownership, signing, staging, release metadata, automation). GitHub Packages remains the interim release lane.
-- [ ] Write release policy and compatibility notes per Java release.
+- [ ] Reduce the sample host to minimal A2UI serving and action flows.
+- [x] Document request and response flows that show the reusable runtime boundary clearly.
+- [ ] Keep app-specific concerns out of the reusable runtime story.
 
-### Backlog: Benchmark Tooling (Deferred Unless Needed Again)
+### Later: Ecosystem Adapters and Expansion
 
-- [ ] Reintroduce a repeatability harness only if future article or product work requires rerunnable benchmark evidence inside the repository.
-- [ ] Reintroduce machine-readable report generation only if it becomes a maintained product surface rather than one-off evaluation tooling.
+- [ ] Evaluate A2A integration after the A2UI-first runtime surface is stable.
+- [ ] Evaluate AG-UI bridge examples after the A2UI-first runtime surface is stable.
+- [ ] Evaluate MCP resource integration examples after the A2UI-first runtime surface is stable.
+- [ ] Plan A2UI v0.9 support only after the v0.8 architecture and public surface are stable.
 
-### Completed Earlier Phases
+## Completed Assets Worth Preserving
 
-- [x] Canonical contract version negotiation model.
 - [x] Deterministic validation error catalog with stable machine-readable codes.
-- [x] Golden fixture tests for valid/invalid canonical payloads.
-- [x] Compatibility checks for canonical version mismatches.
-- [x] Formalized reconciliation invariants (partial, duplicate, out-of-order fragments).
-- [x] Deterministic stream replay tests (`same stream input -> same final snapshot`).
-- [x] Integration tests covering SSE lifecycle events (`result`, `usage`, `error`, `done`).
-- [x] Generation policy abstraction (deterministic defaults and provider capability flags).
-- [x] Structured output failure taxonomy and stable API error envelope.
+- [x] Golden fixture tests for valid and invalid runtime payloads.
+- [x] Compatibility checks for version mismatches in the current internal model.
+- [x] Stream lifecycle and replay tests for reconciliation behavior.
+- [x] Structured output failure taxonomy and stable error envelope behavior.
 - [x] Request correlation IDs across transform and stream paths.
-- [x] Spring AI best-practice defaults for deterministic transform workloads.
-- [x] Add adapter conformance checks for missing mappings and prop transformation errors.
-- [x] Expand adapter tests for canonical component coverage.
-- [x] Add deterministic action lifecycle test cases (`onActionStart -> onAction -> onActionComplete|onActionError`).
-- [x] Finish breaking `@fogui/react` surface cleanup across README, demo, and migration notes.
 
-Protocol note: no active backlog item exists to expand protocol support beyond A2UI unless scope changes.
-
-## Definition of Done for This Backlog Window
+## Definition of Done for the Current Window
 
 All of the following must be true:
 
-1. External Spring Boot teams can understand which FogUI Java artifacts to adopt and can integrate the reusable runtime surface without copying `apps/be-transform-showcase` internals.
-2. Archived benchmark evidence and article-ready examples support narrow product claims about canonical runtime safety, render trust, diagnostics, and interoperability.
-3. FogUI claims are framed as runtime guarantees, not semantic determinism.
-4. A2UI supported subset and deterministic diagnostics are explicit enough that unsupported payloads are easy to reason about.
-5. Spring AI transform/runtime behavior remains trustworthy within runtime constraints: canonical responses, request correlation, stable error envelopes, and stream lifecycle behavior are enforced even though semantic UI generation remains model-variant.
-6. Core vs reference boundaries remain obvious in docs, including React as a reference renderer rather than the protocol owner.
+1. A new contributor can read the public docs and understand that A2UI is the repository's public contract.
+2. The repository no longer reads like a competing UI protocol or frontend renderer project.
+3. The path from Spring Boot route to validated runtime output is documented clearly enough to adopt without copying showcase internals.
+4. A2UI v0.8 protocol work is broken into concrete, testable implementation slices.
+5. Remaining FogUI naming is documented as artifact/package rename debt rather than presented as the long-term product identity.
 
-## Stretch Items (Only if P0/P1 Complete)
+## Deferred Until Needed
 
-- [ ] Compatibility report tooling for A2UI inbound payload diagnostics.
-- [ ] CLI scaffolding for adapter starter templates.
+- [ ] Reintroduce benchmarking tooling only if future publication or product work requires rerunnable evidence inside the repository.
+- [ ] Revisit artifact and package renames only after the A2UI-first public surface is stable.

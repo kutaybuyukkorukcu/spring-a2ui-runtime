@@ -1,7 +1,7 @@
 # A2UI Compatibility (v1)
-FogUI v1 supports **A2UI inbound translation** into FogUI canonical output.
+Spring A2UI Runtime supports **A2UI inbound translation** into the runtime's current canonical output.
 
-Positioning note: FogUI interoperates with A2UI payloads; it does not attempt to replace A2UI as a protocol.
+Positioning note: the runtime interoperates with A2UI payloads; it does not attempt to replace A2UI as a protocol.
 
 ## Supported contract version
 
@@ -9,7 +9,7 @@ Positioning note: FogUI interoperates with A2UI payloads; it does not attempt to
 
 ## Endpoint
 
-`POST /fogui/compat/a2ui/inbound`
+`POST /a2ui/compat/inbound`
 
 ## Behavior
 
@@ -18,7 +18,7 @@ Positioning note: FogUI interoperates with A2UI payloads; it does not attempt to
 - Returns deterministic translation errors for unsupported shapes.
 - Emits fallback component blocks (`A2UiUnsupportedNode`) for unknown nodes.
 - Runs canonical validation and returns validation error details.
-- Supports request correlation with `X-FogUI-Request-Id` request/response header.
+- Supports request correlation with `X-A2UI-Request-Id`.
 
 ## Success Semantics
 

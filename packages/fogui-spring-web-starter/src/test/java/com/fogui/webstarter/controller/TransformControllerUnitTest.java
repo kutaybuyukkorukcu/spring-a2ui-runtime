@@ -1,5 +1,10 @@
 package com.fogui.webstarter.controller;
 
+import com.fogui.contract.a2ui.A2UiErrorResponse;
+import com.fogui.contract.a2ui.A2UiMessage;
+import com.fogui.contract.a2ui.A2UiOutboundMapper;
+import com.fogui.model.fogui.ContentBlock;
+import com.fogui.model.fogui.GenerativeUIResponse;
 import com.fogui.model.transform.TransformRequest;
 import com.fogui.model.transform.TransformResponse;
 import com.fogui.service.RequestCorrelationService;
@@ -21,7 +26,9 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -53,6 +60,37 @@ class TransformControllerUnitTest {
     }
 
     @Test
+    @DisplayName("transform should return A2UI-shaped body on success")
+    void transformShouldReturnA2UiShapedBodyOnSuccess() {
+        TransformResponse transformResponse = TransformResponse.success(
+                GenerativeUIResponse.builder()
+                        .thinking(List.of())
+                        .content(List.of(ContentBlock.text("hello from a2ui")))
+                        .build(),
+                null,
+                "req-unit-1");
+        when(transformService.transform(any(), eq("req-unit-1"))).thenReturn(transformResponse);
+
+        TransformRequest request = new TransformRequest();
+        request.setContent("hello");
+
+        ResponseEntity<?> response = controller.transform(null, request);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals("req-unit-1", response.getHeaders().getFirst(RequestCorrelationService.REQUEST_ID_HEADER));
+        List<?> body = assertInstanceOf(List.class, response.getBody());
+        assertEquals(2, body.size());
+
+        A2UiMessage surfaceUpdate = assertInstanceOf(A2UiMessage.class, body.get(0));
+        A2UiMessage beginRendering = assertInstanceOf(A2UiMessage.class, body.get(1));
+        assertNotNull(surfaceUpdate.getSurfaceUpdate());
+        assertNotNull(beginRendering.getBeginRendering());
+        assertEquals(A2UiOutboundMapper.DEFAULT_ROOT_COMPONENT_ID, beginRendering.getBeginRendering().getRoot());
+        assertEquals(A2UiOutboundMapper.DEFAULT_CATALOG_ID, beginRendering.getBeginRendering().getCatalogId());
+        assertTrue(surfaceUpdate.getSurfaceUpdate().getComponents().stream().anyMatch(component -> "content-0".equals(component.getId())));
+    }
+
+    @Test
     @DisplayName("transform should return 500 when parse fails")
     void transformShouldReturn500WhenParseFails() {
         when(transformService.transform(any(), eq("req-unit-1"))).thenThrow(new TransformExecutionException(
@@ -66,11 +104,13 @@ class TransformControllerUnitTest {
         ResponseEntity<?> response = controller.transform(null, request);
 
         assertEquals(500, response.getStatusCode().value());
+        A2UiErrorResponse body = assertInstanceOf(A2UiErrorResponse.class, response.getBody());
+        assertEquals("TRANSFORM_PARSE_FAILED", body.getCode());
     }
 
     @Test
-    @DisplayName("transform should return deterministic envelope on advisor failure")
-    void transformShouldReturnDeterministicEnvelopeOnAdvisorFailure() {
+    @DisplayName("transform should return deterministic A2UI error body on advisor failure")
+    void transformShouldReturnDeterministicA2UiErrorBodyOnAdvisorFailure() {
         when(transformService.transform(any(), eq("req-unit-1"))).thenThrow(new FogUiAdvisorException(
                 "Canonical validation failed",
                 "CANONICAL_VALIDATION_FAILED",
@@ -82,9 +122,10 @@ class TransformControllerUnitTest {
         ResponseEntity<?> response = controller.transform(null, request);
 
         assertEquals(422, response.getStatusCode().value());
-        TransformResponse body = (TransformResponse) response.getBody();
+        assertEquals("req-unit-1", response.getHeaders().getFirst(RequestCorrelationService.REQUEST_ID_HEADER));
+        A2UiErrorResponse body = assertInstanceOf(A2UiErrorResponse.class, response.getBody());
         assertNotNull(body);
-        assertEquals("CANONICAL_VALIDATION_FAILED", body.getErrorCode());
+        assertEquals("CANONICAL_VALIDATION_FAILED", body.getCode());
         assertEquals("req-unit-1", body.getRequestId());
     }
 
@@ -102,6 +143,8 @@ class TransformControllerUnitTest {
         ResponseEntity<?> response = controller.transform(null, request);
 
         assertEquals(400, response.getStatusCode().value());
+        A2UiErrorResponse body = assertInstanceOf(A2UiErrorResponse.class, response.getBody());
+        assertEquals("CONTENT_REQUIRED", body.getCode());
     }
 
     @Test
@@ -112,6 +155,7 @@ class TransformControllerUnitTest {
         ResponseEntity<SseEmitter> response = controller.transformStream(null, request);
 
         assertEquals(200, response.getStatusCode().value());
+        assertEquals("req-unit-1", response.getHeaders().getFirst(RequestCorrelationService.REQUEST_ID_HEADER));
         assertNotNull(response.getBody());
 
         ArgumentCaptor<SseEmitter> emitterCaptor = ArgumentCaptor.forClass(SseEmitter.class);

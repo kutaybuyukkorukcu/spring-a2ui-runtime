@@ -131,13 +131,14 @@ class TransformStreamProcessorTest {
                 .stream()
                 .map(TransformStreamProcessorTest::flattenEventPayload)
                 .collect(Collectors.joining("\n"));
-        assertTrue(payload.contains("event:result"));
-        assertTrue(payload.contains("\"contractVersion\":\"fogui/1.0\""));
-        assertTrue(payload.contains("event:usage"));
-        assertTrue(payload.contains("event:done"));
-        assertEquals("done", eventNames.getLast());
-        assertEquals(1L, eventNames.stream().filter("done"::equals).count());
-        assertEquals(0L, eventNames.stream().filter("error"::equals).count());
+        assertTrue(payload.contains("event:message"));
+        assertTrue(payload.contains("\"surfaceUpdate\":"));
+        assertTrue(payload.contains("\"beginRendering\":"));
+        assertTrue(payload.contains("\"surfaceId\":\"main\""));
+        assertTrue(payload.contains("\"root\":\"root\""));
+        assertTrue(payload.contains("\"literalString\":\"Hello\""));
+        assertEquals("message", eventNames.getLast());
+        assertEquals(0L, payload.lines().filter(line -> line.contains("event:error")).count());
     }
 
     @Test
@@ -168,8 +169,7 @@ class TransformStreamProcessorTest {
         assertTrue(payload.contains("event:error"));
         assertTrue(payload.contains("\"code\":\"STREAM_FAILED\""));
         assertTrue(payload.contains("\"requestId\":\"req-unit-1\""));
-        assertEquals(1L, eventNames.stream().filter("error"::equals).count());
-        assertEquals(0L, eventNames.stream().filter("done"::equals).count());
+        assertEquals(0L, payload.lines().filter(line -> line.contains("event:message")).count());
     }
 
     @Test
@@ -236,9 +236,7 @@ class TransformStreamProcessorTest {
         assertTrue(payload.contains("\"code\":\"CANONICAL_VALIDATION_FAILED\""));
         assertTrue(payload.contains("\"requestId\":\"req-invalid-final\""));
         assertTrue(payload.contains("UNSUPPORTED_TYPE"));
-        assertEquals(1L, eventNames.stream().filter("error"::equals).count());
-        assertEquals(0L, eventNames.stream().filter("done"::equals).count());
-        assertEquals(0L, eventNames.stream().filter("usage"::equals).count());
+        assertEquals(0L, payload.lines().filter(line -> line.contains("event:message")).count());
     }
 
     @Test
@@ -269,8 +267,7 @@ class TransformStreamProcessorTest {
         assertTrue(payload.contains("event:error"));
         assertTrue(payload.contains("\"code\":\"STREAM_FAILED\""));
         assertTrue(payload.contains("\"requestId\":\"req-unit-1\""));
-        assertEquals(1L, eventNames.stream().filter("error"::equals).count());
-        assertEquals(0L, eventNames.stream().filter("done"::equals).count());
+        assertEquals(0L, payload.lines().filter(line -> line.contains("event:message")).count());
     }
 
     private void mockStreamingChatClient(Flux<String> flux) {

@@ -7,6 +7,8 @@ import com.fogui.service.RequestCorrelationService;
 import com.fogui.service.StreamPatchReconciler;
 import com.fogui.service.TransformStreamProcessor;
 import com.fogui.service.UIResponseParser;
+import com.fogui.webstarter.controller.A2UiActionController;
+import com.fogui.webstarter.controller.A2UiCatalogController;
 import com.fogui.webstarter.controller.A2UiCompatibilityController;
 import com.fogui.webstarter.controller.TransformController;
 import com.fogui.webstarter.prompt.DefaultTransformPromptProvider;
@@ -14,8 +16,12 @@ import com.fogui.webstarter.prompt.TransformPromptProvider;
 import com.fogui.webstarter.properties.FogUiWebProperties;
 import com.fogui.webstarter.runtime.FogUiTransformRuntime;
 import com.fogui.webstarter.runtime.SpringAiTransformRuntime;
+import com.fogui.webstarter.service.A2UiActionHandler;
+import com.fogui.webstarter.service.A2UiActionService;
+import com.fogui.webstarter.service.A2UiCatalogService;
 import com.fogui.webstarter.service.A2UiCompatibilityService;
 import com.fogui.webstarter.service.TransformService;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -98,6 +104,18 @@ public class FogUiWebAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public A2UiCatalogService a2UiCatalogService(ObjectMapper objectMapper) {
+        return new A2UiCatalogService(objectMapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public A2UiActionService a2UiActionService(ObjectProvider<List<A2UiActionHandler>> actionHandlersProvider) {
+        return new A2UiActionService(actionHandlersProvider.getIfAvailable(List::of));
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     @ConditionalOnProperty(prefix = "fogui.web.transform", name = "enabled", havingValue = "true", matchIfMissing = true)
     public TransformController transformController(
             TransformService transformService,
@@ -120,5 +138,22 @@ public class FogUiWebAutoConfiguration {
             RequestCorrelationService requestCorrelationService
     ) {
         return new A2UiCompatibilityController(compatibilityService, requestCorrelationService);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "fogui.web.catalog", name = "enabled", havingValue = "true", matchIfMissing = true)
+    public A2UiCatalogController a2UiCatalogController(A2UiCatalogService catalogService) {
+        return new A2UiCatalogController(catalogService);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "fogui.web.actions", name = "enabled", havingValue = "true", matchIfMissing = true)
+    public A2UiActionController a2UiActionController(
+            A2UiActionService actionService,
+            RequestCorrelationService requestCorrelationService
+    ) {
+        return new A2UiActionController(actionService, requestCorrelationService);
     }
 }

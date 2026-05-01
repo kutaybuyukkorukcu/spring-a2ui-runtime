@@ -1,15 +1,22 @@
-# FogUI Showcase Host (Spring Boot)
+# Spring A2UI Runtime Showcase Host
 
-`apps/be-transform-showcase` is the **showcase host application** for FogUI integration.
+`apps/be-transform-showcase` is the sample Spring Boot host for the Spring A2UI Runtime.
 
-It demonstrates how to expose deterministic transform/stream/compatibility APIs so the frontend showcase can validate canonical UI responses against a running Spring Boot app.
+Its job is to prove the reusable runtime modules work together in a real Spring application. It is a reference server, not the primary product surface.
+
+## What This App Demonstrates
+
+- Spring Boot wiring around the reusable runtime modules.
+- Current HTTP and streaming runtime behavior.
+- Request correlation and transport-level error behavior.
+- The current A2UI compatibility path alongside the A2UI public routes.
 
 ## Tech Stack
 
 - Java 21
 - Spring Boot 3.4.x
 - Spring AI (`spring-ai-starter-model-openai`)
-- Minimal Spring Boot host wiring around the reusable FogUI starters
+- Thin host wiring around the reusable runtime starters
 
 ## Run Locally
 
@@ -38,30 +45,40 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build backen
 
 Backend URL: `http://localhost:5001`
 
-## Core OSS Reference APIs
+## Current Sample Routes
 
-- `POST /fogui/transform`
-- `POST /fogui/transform/stream` (SSE)
-- `POST /fogui/compat/a2ui/inbound` (A2UI -> FogUI canonical translation)
+The app currently exposes the following runtime routes:
 
-These are public endpoints and do not require API keys or JWTs.
+- `POST /a2ui/transform`
+- `POST /a2ui/transform/stream` (SSE)
+- `GET /a2ui/catalogs/canonical/v0.8`
+- `POST /a2ui/actions`
+- `POST /a2ui/compat/inbound`
 
-## Deterministic Runtime Defaults
+The sample host no longer exposes FogUI-named public route aliases. Remaining rename debt is limited to code coordinates and package names.
 
-`apps/be-transform-showcase` applies deterministic generation policy via `fogui-spring-starter`:
-
-- `fogui.deterministic.temperature` (default `0.0`)
-- `fogui.deterministic.top-p` (default `1.0`)
-- Optional seed/max token options can be enabled by provider capability flags.
-
-Every canonical output includes `metadata.contractVersion = "fogui/1.0"`.
-
-## Showcase Host APIs
-
-These are the app-specific convenience endpoints kept around the core FogUI routes:
+## App-Specific Convenience Routes
 
 - `GET /health`
 - `GET /`
+
+## Runtime Behavior
+
+`apps/be-transform-showcase` delegates reusable behavior to the runtime modules:
+
+- `fogui-java-core` for current protocol validation and compatibility services.
+- `fogui-spring-starter` for Spring Boot auto-configuration and provider/runtime policy.
+- `fogui-spring-web-starter` for HTTP routes, streaming, request correlation, and transport error mapping.
+
+The host app should stay thin. Product concerns such as auth, persistence, billing, and tenant management are outside the intended scope of this sample.
+
+## Deterministic Runtime Defaults
+
+The sample host applies the current deterministic generation policy via `fogui-spring-starter`:
+
+- `fogui.deterministic.temperature` (default `0.0`)
+- `fogui.deterministic.top-p` (default `1.0`)
+- Optional seed and max-token options when supported by the configured provider
 
 ## LLM Configuration
 
@@ -73,27 +90,22 @@ Important env vars:
 - `OPENAI_BASE_URL` (default: `https://api.openai.com`)
 - `OPENAI_MODEL` (default: `gpt-4.1-nano`)
 
-The backend currently supports OpenAI-compatible providers only.
+The sample app currently supports OpenAI-compatible providers only.
 
-## Correlation and Error Envelope
+## Correlation and Error Handling
 
-- Incoming request header: `X-FogUI-Request-Id` (optional).
-- Response header: `X-FogUI-Request-Id` is always returned.
-- `POST /fogui/transform` response includes additive fields:
-  - `requestId`
-  - `errorCode`
-  - `errorDetails` (optional)
-- Stream `error` events include:
-  - `error`
-  - `code`
-  - `requestId`
-  - `details` (optional)
+- Primary request header: `X-A2UI-Request-Id` (optional)
+- Primary response header: `X-A2UI-Request-Id` is always returned
+- Non-stream success responses return a JSON array of A2UI v0.8 server-to-client messages
+- Non-stream error responses return `error`, `code`, `requestId`, and optional `details`
+- Stream success responses emit SSE `message` events carrying A2UI v0.8 messages such as `surfaceUpdate` and `beginRendering`
+- Stream failures emit SSE `error` events with transport-level error bodies
+- The published repo-owned catalog is served at `GET /a2ui/catalogs/canonical/v0.8`
+- `POST /a2ui/actions` accepts exactly one of `userAction` or renderer `error`
+- `userAction` events are routed by the effective key `surfaceId:name`; unhandled actions return a deterministic `422` error body
+- Renderer `error` payloads are accepted with `202 Accepted` so the backend can observe client-side rendering failures without inventing another stream format
 
-## Runtime Notes
-
-- This host app is intentionally thin and delegates reusable transform/stream/compatibility behavior to the FogUI starters.
-- Product-style concerns such as auth, profile management, JWT, and database-backed writes are not part of the showcase surface.
-- Chat-model integration and SSE streaming remain part of the showcase surface for validating live transform behavior.
+Generated request IDs use the `a2ui-` prefix.
 
 ## Testing
 
@@ -104,7 +116,8 @@ cd apps/be-transform-showcase
 
 ## Notes
 
-- Non-stream transform uses structured output mapping to `GenerativeUIResponse`.
-- Stream path emits SSE events (`result`, `usage`, `error`, `done`).
+- The non-stream path currently returns `[surfaceUpdate, beginRendering]` for a single surface.
+- The stream path emits actual A2UI v0.8 message envelopes over SSE `message` events.
+- The outbound mapper currently declares the repo-owned catalog route `/a2ui/catalogs/canonical/v0.8` in `surfaceUpdate` messages.
+- The action round-trip SPI is implemented in the web starter through `A2UiActionHandler`; host apps provide handlers for the `surfaceId:name` routes they own.
 - Stream partial snapshots are reconciled through `StreamPatchReconciler`.
-- Core canonical + translation services are provided by `fogui-java-core` and wired through `fogui-spring-starter`.

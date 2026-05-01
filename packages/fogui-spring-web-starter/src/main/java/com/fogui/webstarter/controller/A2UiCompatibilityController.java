@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 @RestController
-@RequestMapping("${fogui.web.base-path:/fogui}/compat")
+@RequestMapping("/a2ui/compat")
 public class A2UiCompatibilityController {
 
     private final A2UiCompatibilityService compatibilityService;
@@ -26,7 +26,7 @@ public class A2UiCompatibilityController {
         this.requestCorrelationService = requestCorrelationService;
     }
 
-    @PostMapping("/a2ui/inbound")
+    @PostMapping("/inbound")
     public ResponseEntity<Map<String, Object>> translateInboundA2Ui(
             @RequestHeader(value = RequestCorrelationService.REQUEST_ID_HEADER, required = false) String requestIdHeader,
             @RequestBody Map<String, Object> payload

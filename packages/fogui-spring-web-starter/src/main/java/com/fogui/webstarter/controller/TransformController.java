@@ -1,5 +1,6 @@
 package com.fogui.webstarter.controller;
 
+import com.fogui.contract.a2ui.A2UiOutboundMapper;
 import com.fogui.model.transform.TransformRequest;
 import com.fogui.model.transform.TransformResponse;
 import com.fogui.service.RequestCorrelationService;
@@ -16,7 +17,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -24,13 +24,16 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("${fogui.web.base-path:/fogui}")
 public class TransformController {
+
+        private static final String A2UI_TRANSFORM_PATH = "/a2ui/transform";
+        private static final String A2UI_TRANSFORM_STREAM_PATH = "/a2ui/transform/stream";
 
     private final TransformService transformService;
     private final RequestCorrelationService requestCorrelationService;
     private final TransformStreamProcessor transformStreamProcessor;
     private final FogUiWebProperties webProperties;
+        private final A2UiOutboundMapper a2UiOutboundMapper = new A2UiOutboundMapper();
 
         public TransformController(
                         TransformService transformService,
@@ -44,8 +47,8 @@ public class TransformController {
                 this.webProperties = webProperties;
         }
 
-    @PostMapping("/transform")
-    public ResponseEntity<TransformResponse> transform(
+        @PostMapping(A2UI_TRANSFORM_PATH)
+        public ResponseEntity<?> transform(
             @RequestHeader(value = RequestCorrelationService.REQUEST_ID_HEADER, required = false) String requestIdHeader,
             @RequestBody TransformRequest request
     ) {
@@ -53,26 +56,22 @@ public class TransformController {
 
         try {
             TransformResponse response = transformService.transform(request, requestId);
-            return ResponseEntity.ok()
-                    .header(RequestCorrelationService.REQUEST_ID_HEADER, requestId)
-                    .body(response);
+            return withRequestIdHeaders(ResponseEntity.ok(), requestId)
+                .body(a2UiOutboundMapper.toMessages(response.getResult()));
         } catch (TransformExecutionException ex) {
             HttpStatus status = TransformErrorCodes.CONTENT_REQUIRED.equals(ex.getErrorCode())
                     ? HttpStatus.BAD_REQUEST
                     : HttpStatus.INTERNAL_SERVER_ERROR;
-            return ResponseEntity.status(status)
-                    .header(RequestCorrelationService.REQUEST_ID_HEADER, requestId)
-                    .body(TransformResponse.error(ex.getMessage(), ex.getErrorCode(), ex.getDetails(), requestId));
+            return withRequestIdHeaders(ResponseEntity.status(status), requestId)
+                .body(a2UiOutboundMapper.toErrorResponse(ex.getMessage(), ex.getErrorCode(), ex.getDetails(), requestId));
         } catch (FogUiAdvisorException ex) {
             log.warn("Transform deterministic advisor failure", ex);
-            return ResponseEntity.unprocessableEntity()
-                    .header(RequestCorrelationService.REQUEST_ID_HEADER, requestId)
-                    .body(TransformResponse.error(ex.getMessage(), ex.getErrorCode(), ex.getDetails(), requestId));
+            return withRequestIdHeaders(ResponseEntity.unprocessableEntity(), requestId)
+                    .body(a2UiOutboundMapper.toErrorResponse(ex.getMessage(), ex.getErrorCode(), ex.getDetails(), requestId));
         } catch (Exception ex) {
             log.error("Transform error", ex);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .header(RequestCorrelationService.REQUEST_ID_HEADER, requestId)
-                    .body(TransformResponse.error(
+            return withRequestIdHeaders(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR), requestId)
+                    .body(a2UiOutboundMapper.toErrorResponse(
                             "Transformation failed: " + ex.getMessage(),
                             TransformErrorCodes.TRANSFORM_FAILED,
                             Map.of("exceptionType", ex.getClass().getSimpleName()),
@@ -80,7 +79,7 @@ public class TransformController {
         }
     }
 
-    @PostMapping(value = "/transform/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = A2UI_TRANSFORM_STREAM_PATH, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public ResponseEntity<SseEmitter> transformStream(
             @RequestHeader(value = RequestCorrelationService.REQUEST_ID_HEADER, required = false) String requestIdHeader,
             @RequestBody TransformRequest request
@@ -88,9 +87,13 @@ public class TransformController {
         String requestId = requestCorrelationService.resolveRequestId(requestIdHeader);
         SseEmitter emitter = new SseEmitter(webProperties.getTransform().getStreamTimeoutMs());
         transformStreamProcessor.processStreamRequest(request, emitter, requestId);
-        return ResponseEntity.ok()
-                .header(RequestCorrelationService.REQUEST_ID_HEADER, requestId)
+        return withRequestIdHeaders(ResponseEntity.ok(), requestId)
                 .contentType(MediaType.TEXT_EVENT_STREAM)
                 .body(emitter);
+    }
+
+    private static ResponseEntity.BodyBuilder withRequestIdHeaders(ResponseEntity.BodyBuilder response, String requestId) {
+        return response
+                                .header(RequestCorrelationService.REQUEST_ID_HEADER, requestId);
     }
 }

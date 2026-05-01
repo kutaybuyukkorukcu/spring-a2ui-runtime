@@ -7,11 +7,13 @@ import java.util.UUID;
  */
 public class RequestCorrelationService {
 
-    public static final String REQUEST_ID_HEADER = "X-FogUI-Request-Id";
+    public static final String REQUEST_ID_HEADER = "X-A2UI-Request-Id";
+
+    private static final String REQUEST_ID_PREFIX = "a2ui-";
 
     public String resolveRequestId(String incomingRequestId) {
         if (incomingRequestId == null || incomingRequestId.isBlank()) {
-            return "fogui-" + UUID.randomUUID();
+            return REQUEST_ID_PREFIX + UUID.randomUUID();
         }
         return incomingRequestId.trim();
     }

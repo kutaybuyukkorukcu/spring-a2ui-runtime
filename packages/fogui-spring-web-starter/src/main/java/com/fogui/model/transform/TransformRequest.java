@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * Request body for the /fogui/transform endpoint.
+ * Request body for the /a2ui/transform endpoint.
  * Accepts raw LLM output and optional context hints.
  */
 @Data

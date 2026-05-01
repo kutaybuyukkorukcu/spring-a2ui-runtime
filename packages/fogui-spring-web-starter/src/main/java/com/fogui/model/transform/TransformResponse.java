@@ -6,7 +6,7 @@ import com.fogui.model.fogui.GenerativeUIResponse;
 import java.math.BigDecimal;
 
 /**
- * Response body for the /fogui/transform endpoint.
+ * Internal transform response envelope used inside the web runtime.
  */
 public class TransformResponse {
 

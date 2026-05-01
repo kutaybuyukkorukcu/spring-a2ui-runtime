@@ -1,12 +1,12 @@
-# FogUI Advisors Runtime
-This document describes the Spring AI Advisors pipeline used by FogUI deterministic runtime v1.
+# Spring A2UI Runtime Advisors
+This document describes the Spring AI advisors pipeline used by the Spring A2UI Runtime deterministic generation path.
 
 ## Scope
 
-FogUI uses a hybrid split:
+The runtime uses a hybrid split:
 
 1. Reusable deterministic advisors in `packages/fogui-spring-boot-starter`.
-2. HTTP/runtime mapping in `apps/be-transform-showcase`.
+2. HTTP/runtime mapping in `packages/fogui-spring-web-starter`.
 
 Defaults:
 
@@ -50,26 +50,35 @@ Controllers pass these via `requestSpec.advisors(spec -> spec.param(...))`.
 
 ## Backend Mapping of Advisor Exceptions
 
-### `/fogui/transform`
+### `/a2ui/transform`
 
-- Returns deterministic envelope with:
-  - `error`
-  - `errorCode`
-  - `requestId`
-  - optional `errorDetails`
-
-### `/fogui/transform/stream`
-
-- Emits terminal `error` SSE event with:
+- Returns deterministic error body with:
   - `error`
   - `code`
   - `requestId`
   - optional `details`
 
+### `/a2ui/transform/stream`
+
+- Emits SSE `message` events carrying A2UI v0.8 server-to-client messages such as:
+  - `surfaceUpdate`
+  - `beginRendering`
+- Emits SSE `error` events with the deterministic transport error body when processing fails
+
 Lifecycle remains:
 
-1. `result* -> usage? -> done`
-2. or terminal `error`
+1. `surfaceUpdate+ -> beginRendering -> surfaceUpdate*`
+2. or terminal SSE `error`
+
+## Action Route Boundary
+
+`POST /a2ui/actions` does not participate in the Spring AI advisor chain.
+
+That route handles client-originated A2UI events after rendering:
+
+1. `userAction` events are normalized by the web starter and routed by `surfaceId:name`
+2. renderer `error` payloads are accepted as deterministic acknowledgements
+3. transport-level status selection (`200`, `202`, `4xx`, `5xx`) stays in the web layer rather than the advisor stack
 
 ## Configuration
 
@@ -91,7 +100,7 @@ Lifecycle remains:
 If outputs are rejected unexpectedly:
 
 1. Check `errorCode` and diagnostics in `errorDetails.details`.
-2. Verify incoming/returned `X-FogUI-Request-Id`.
+2. Verify incoming/returned `X-A2UI-Request-Id`.
 3. Confirm advisor toggles and `fail-fast` in runtime config.
 4. Re-run conformance and replay tests:
 
