@@ -4,7 +4,7 @@ import org.springframework.ai.chat.client.ChatClient;
 
 public interface FogUiTransformRuntime {
 
-    ChatClient createClient();
+  ChatClient createClient();
 
-    String getActiveModelName();
+  String getActiveModelName();
 }
