@@ -12,6 +12,10 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fogui.contract.FogUiCanonicalValidator;
+import com.fogui.contract.a2ui.A2UiMessage;
+import com.fogui.contract.a2ui.A2UiMessageValidationException;
+import com.fogui.contract.a2ui.A2UiOutboundMapper;
+import com.fogui.contract.a2ui.A2UiValidationError;
 import com.fogui.model.fogui.ContentBlock;
 import com.fogui.model.fogui.GenerativeUIResponse;
 import com.fogui.model.transform.TransformRequest;
@@ -161,11 +165,6 @@ class TransformStreamProcessorTest {
     verify(emitter, atLeastOnce()).send(eventCaptor.capture());
     verify(emitter).complete();
 
-    List<String> eventNames =
-        eventCaptor.getAllValues().stream()
-            .map(TransformStreamProcessorTest::extractEventName)
-            .toList();
-
     String payload =
         eventCaptor.getAllValues().stream()
             .map(TransformStreamProcessorTest::flattenEventPayload)
@@ -232,11 +231,6 @@ class TransformStreamProcessorTest {
     verify(emitter, atLeastOnce()).send(eventCaptor.capture());
     verify(emitter).complete();
 
-    List<String> eventNames =
-        eventCaptor.getAllValues().stream()
-            .map(TransformStreamProcessorTest::extractEventName)
-            .toList();
-
     String payload =
         eventCaptor.getAllValues().stream()
             .map(TransformStreamProcessorTest::flattenEventPayload)
@@ -266,11 +260,6 @@ class TransformStreamProcessorTest {
     verify(emitter, atLeastOnce()).send(eventCaptor.capture());
     verify(emitter).complete();
 
-    List<String> eventNames =
-        eventCaptor.getAllValues().stream()
-            .map(TransformStreamProcessorTest::extractEventName)
-            .toList();
-
     String payload =
         eventCaptor.getAllValues().stream()
             .map(TransformStreamProcessorTest::flattenEventPayload)
@@ -279,6 +268,58 @@ class TransformStreamProcessorTest {
     assertTrue(payload.contains("\"code\":\"STREAM_FAILED\""));
     assertTrue(payload.contains("\"requestId\":\"req-unit-1\""));
     assertEquals(0L, payload.lines().filter(line -> line.contains("event:message")).count());
+  }
+
+  @Test
+  @DisplayName("processStreamRequest should surface outbound A2UI validation failures deterministically")
+  void processStreamRequestShouldSurfaceOutboundA2UiValidationFailures() throws IOException {
+        A2UiOutboundMapper mapper =
+                new A2UiOutboundMapper() {
+                    @Override
+                    public List<A2UiMessage> toMessages(
+                            GenerativeUIResponse response, String surfaceId, boolean includeBeginRendering) {
+                        throw new A2UiMessageValidationException(
+                                "Generated A2UI messages failed validation",
+                                List.of(
+                                        A2UiValidationError.builder()
+                                                .code("MISSING_ROOT")
+                                                .message("root is required")
+                                                .build()));
+                    }
+                };
+    TransformStreamProcessor validationProcessor =
+        new TransformStreamProcessor(
+            transformRuntime,
+            transformPromptProvider,
+            responseParser,
+            streamPatchReconciler,
+            new FogUiCanonicalValidator(),
+            new ObjectMapper(),
+            mapper);
+
+    mockStreamingChatClient(
+        Flux.just("{\"thinking\":[],\"content\":[{\"type\":\"text\",\"value\":\"Hello\"}]}"));
+    when(responseParser.tryParsePartial(any(String.class))).thenReturn(null);
+
+    TransformRequest request = new TransformRequest();
+    request.setContent("hello");
+
+    SseEmitter emitter = Mockito.mock(SseEmitter.class);
+    validationProcessor.processStreamRequest(request, emitter, "req-unit-1");
+
+    ArgumentCaptor<SseEmitter.SseEventBuilder> eventCaptor =
+        ArgumentCaptor.forClass(SseEmitter.SseEventBuilder.class);
+    verify(emitter, atLeastOnce()).send(eventCaptor.capture());
+    verify(emitter).complete();
+
+    String payload =
+        eventCaptor.getAllValues().stream()
+            .map(TransformStreamProcessorTest::flattenEventPayload)
+            .collect(Collectors.joining("\n"));
+    assertTrue(payload.contains("event:error"));
+    assertTrue(payload.contains("\"code\":\"A2UI_VALIDATION_FAILED\""));
+    assertTrue(payload.contains("\"requestId\":\"req-unit-1\""));
+    assertTrue(payload.contains("diagnostics"));
   }
 
   private void mockStreamingChatClient(Flux<String> flux) {

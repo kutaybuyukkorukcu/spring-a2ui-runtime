@@ -1,0 +1,25 @@
+{
+  "name": "data entries must contain exactly one typed value",
+  "requestedVersion": "0.8",
+  "messages": [
+    {
+      "dataModelUpdate": {
+        "surfaceId": "main",
+        "contents": [
+          {
+            "key": "count",
+            "valueString": "4",
+            "valueNumber": 4
+          }
+        ]
+      }
+    }
+  ],
+  "expectedErrors": [
+    {
+      "path": "$[0].dataModelUpdate.contents[0]",
+      "code": "INVALID_DATA_ENTRY",
+      "category": "VALIDATION"
+    }
+  ]
+}

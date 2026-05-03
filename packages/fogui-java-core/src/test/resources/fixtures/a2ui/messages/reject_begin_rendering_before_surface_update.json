@@ -1,0 +1,20 @@
+{
+  "name": "beginRendering must follow a prior surfaceUpdate for the same surface",
+  "requestedVersion": "0.8",
+  "messages": [
+    {
+      "beginRendering": {
+        "surfaceId": "main",
+        "root": "root",
+        "catalogId": "/a2ui/catalogs/canonical/v0.8"
+      }
+    }
+  ],
+  "expectedErrors": [
+    {
+      "path": "$[0].beginRendering",
+      "code": "INVALID_MESSAGE_SEQUENCE",
+      "category": "VALIDATION"
+    }
+  ]
+}

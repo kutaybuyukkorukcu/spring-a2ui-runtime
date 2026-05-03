@@ -46,10 +46,14 @@ public class A2UiActionController {
           .header(RequestCorrelationService.REQUEST_ID_HEADER, requestId)
           .body(response);
     } catch (A2UiActionException ex) {
-      HttpStatus status =
-          A2UiActionErrorCodes.ACTION_NOT_HANDLED.equals(ex.getErrorCode())
-              ? HttpStatus.UNPROCESSABLE_ENTITY
-              : HttpStatus.BAD_REQUEST;
+      HttpStatus status;
+      if (A2UiActionErrorCodes.ACTION_NOT_HANDLED.equals(ex.getErrorCode())) {
+        status = HttpStatus.UNPROCESSABLE_ENTITY;
+      } else if (A2UiActionErrorCodes.INVALID_ACTION_RESPONSE.equals(ex.getErrorCode())) {
+        status = HttpStatus.INTERNAL_SERVER_ERROR;
+      } else {
+        status = HttpStatus.BAD_REQUEST;
+      }
       return ResponseEntity.status(status)
           .header(RequestCorrelationService.REQUEST_ID_HEADER, requestId)
           .body(

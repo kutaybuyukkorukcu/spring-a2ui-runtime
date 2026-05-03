@@ -4,7 +4,11 @@ import com.fogui.contract.a2ui.A2UiActionResponse;
 import com.fogui.contract.a2ui.A2UiClientError;
 import com.fogui.contract.a2ui.A2UiClientEvent;
 import com.fogui.contract.a2ui.A2UiMessage;
+import com.fogui.contract.a2ui.A2UiMessageValidator;
+import com.fogui.contract.a2ui.A2UiProtocol;
 import com.fogui.contract.a2ui.A2UiUserAction;
+import com.fogui.contract.a2ui.A2UiValidationContext;
+import com.fogui.contract.a2ui.A2UiValidationError;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +21,7 @@ public class A2UiActionService {
   private static final Logger LOGGER = LoggerFactory.getLogger(A2UiActionService.class);
 
   private final List<A2UiActionHandler> actionHandlers;
+  private final A2UiMessageValidator messageValidator = new A2UiMessageValidator();
 
   public A2UiActionService(List<A2UiActionHandler> actionHandlers) {
     this.actionHandlers = actionHandlers == null ? List.of() : List.copyOf(actionHandlers);
@@ -47,6 +52,15 @@ public class A2UiActionService {
 
     List<A2UiMessage> messages =
         Objects.requireNonNullElse(handler.handle(userAction, requestId), List.of());
+    List<A2UiValidationError> diagnostics =
+      messageValidator.validate(messages, A2UiValidationContext.forVersion(A2UiProtocol.SUPPORTED_VERSION));
+    if (!diagnostics.isEmpty()) {
+      throw new A2UiActionException(
+        "Action handler produced invalid A2UI messages",
+        A2UiActionErrorCodes.INVALID_ACTION_RESPONSE,
+        Map.of("routeKey", routeKey, "diagnostics", diagnostics));
+    }
+
     return A2UiActionResponse.builder()
         .accepted(true)
         .eventType("userAction")

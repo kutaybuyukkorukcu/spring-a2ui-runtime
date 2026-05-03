@@ -1,5 +1,6 @@
 package com.fogui.webstarter.controller;
 
+import com.fogui.contract.a2ui.A2UiMessageValidationException;
 import com.fogui.contract.a2ui.A2UiOutboundMapper;
 import com.fogui.model.transform.TransformRequest;
 import com.fogui.model.transform.TransformResponse;
@@ -32,17 +33,32 @@ public class TransformController {
   private final RequestCorrelationService requestCorrelationService;
   private final TransformStreamProcessor transformStreamProcessor;
   private final FogUiWebProperties webProperties;
-  private final A2UiOutboundMapper a2UiOutboundMapper = new A2UiOutboundMapper();
+  private final A2UiOutboundMapper a2UiOutboundMapper;
 
   public TransformController(
       TransformService transformService,
       RequestCorrelationService requestCorrelationService,
       TransformStreamProcessor transformStreamProcessor,
       FogUiWebProperties webProperties) {
+    this(
+        transformService,
+        requestCorrelationService,
+        transformStreamProcessor,
+        webProperties,
+        new A2UiOutboundMapper());
+  }
+
+  TransformController(
+      TransformService transformService,
+      RequestCorrelationService requestCorrelationService,
+      TransformStreamProcessor transformStreamProcessor,
+      FogUiWebProperties webProperties,
+      A2UiOutboundMapper a2UiOutboundMapper) {
     this.transformService = transformService;
     this.requestCorrelationService = requestCorrelationService;
     this.transformStreamProcessor = transformStreamProcessor;
     this.webProperties = webProperties;
+    this.a2UiOutboundMapper = a2UiOutboundMapper;
   }
 
   @PostMapping(A2UI_TRANSFORM_PATH)
@@ -71,6 +87,16 @@ public class TransformController {
           .body(
               a2UiOutboundMapper.toErrorResponse(
                   ex.getMessage(), ex.getErrorCode(), ex.getDetails(), requestId));
+    } catch (A2UiMessageValidationException ex) {
+      log.error("Transform outbound A2UI validation failure", ex);
+      return withRequestIdHeaders(
+          ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR), requestId)
+        .body(
+          a2UiOutboundMapper.toErrorResponse(
+            ex.getMessage(),
+            TransformErrorCodes.A2UI_VALIDATION_FAILED,
+            Map.of("diagnostics", ex.getDiagnostics()),
+            requestId));
     } catch (Exception ex) {
       log.error("Transform error", ex);
       return withRequestIdHeaders(

@@ -18,7 +18,7 @@ import java.util.Map;
  */
 public class A2UiInboundTranslator {
 
-    public static final String SUPPORTED_A2UI_VERSION = "0.8";
+    public static final String SUPPORTED_A2UI_VERSION = A2UiProtocol.SUPPORTED_VERSION;
     private static final String FALLBACK_COMPONENT_TYPE = "A2UiUnsupportedNode";
 
     public A2UiTranslationResult translate(Map<String, Object> a2uiPayload) {

@@ -8,7 +8,7 @@ It tracks the work required to turn the extracted backend repository into a prod
 
 ## Current Focus Window
 
-Primary target window: **Phase 1 A2UI v0.8 stabilization around protocol validation, catalog publication, and action round-trips**
+Primary target window: **Phase 1 and Phase 2 hardening around protocol validation, fixture coverage, and stable A2UI-first transport behavior**
 
 The immediate goal is to make the repository easy to understand as an A2UI runtime, then add the protocol and transport primitives needed for an A2UI-first public surface.
 
@@ -35,7 +35,7 @@ The current outcome target is straightforward:
 
 ## Priority Queue
 
-### P0: Repository Thesis Reset (`docs`, `README.md`, `apps/be-transform-showcase`)
+### Phase 0: Repository Thesis Reset (`docs`, `README.md`, `apps/be-transform-showcase`)
 
 - [x] Add the A2UI runtime repositioning plan.
 - [x] Rewrite the public docs so the repository is described as a Java and Spring runtime for A2UI.
@@ -43,16 +43,17 @@ The current outcome target is straightforward:
 - [x] Publish a simple end-to-end sample flow from a Spring Boot route to runtime output in A2UI-oriented terms.
 - [x] Land the first A2UI-first HTTP and streaming route names (`/a2ui/transform`, `/a2ui/transform/stream`).
 
-### P1: A2UI v0.8 Core Protocol Foundation (`packages/fogui-java-core`, `docs`)
+### Phase 1: A2UI v0.8 Core Protocol Foundation (`packages/fogui-java-core`, `docs`)
 
 - [x] Add or elevate A2UI v0.8 message models in the core module.
-- [ ] Implement supported message validation and required-field checks.
-- [ ] Add protocol version handling and version-aware diagnostics.
+- [x] Implement supported message validation and required-field checks.
+- [x] Add protocol version handling and version-aware diagnostics.
 - [x] Add utilities for complete responses and incremental message sequences.
-- [ ] Expand fixtures and tests around supported protocol behavior.
+- [x] Expand fixtures and tests around supported protocol behavior.
 - [x] Publish and validate the catalog definition used by the current outbound message contract.
+- [x] Validate outbound catalog IDs and component types against the published catalog contract.
 
-### P1: A2UI-First Spring Web Surface (`packages/fogui-spring-web-starter`, `apps/be-transform-showcase`, `docs`)
+### Phase 2: A2UI-First Spring Web Surface (`packages/fogui-spring-web-starter`, `apps/be-transform-showcase`, `docs`)
 
 - [x] Introduce an A2UI-first non-stream route.
 - [x] Introduce an A2UI-first streaming route using SSE or JSONL-compatible sequencing.
@@ -60,21 +61,22 @@ The current outcome target is straightforward:
 - [x] Replace placeholder outbound wrappers with actual A2UI v0.8 message envelopes.
 - [x] Define the action submission or callback handling model for stateful round trips.
 - [x] Replace inherited public `/fogui/*` routes with A2UI-first paths.
+- [x] Surface deterministic outbound A2UI validation diagnostics at HTTP, SSE, and action boundaries.
 
-### P2: Generation Runtime Integration (`packages/fogui-spring-boot-starter`, `packages/fogui-spring-web-starter`, `packages/fogui-java-core`)
+### Phase 3: Generation Runtime Integration (`packages/fogui-spring-boot-starter`, `packages/fogui-spring-web-starter`, `packages/fogui-java-core`)
 
 - [ ] Add an A2UI-oriented prompt and provider SPI.
-- [ ] Produce validated A2UI-first output from the runtime path.
-- [ ] Validate generated output before sending it to clients.
+- [x] Produce validated A2UI-first output from the runtime path.
+- [x] Validate generated output before sending it to clients.
 - [ ] Preserve capability-aware provider options behind stable runtime abstractions.
 
-### P2: Reference Server Cleanup (`apps/be-transform-showcase`, `docs`)
+### Phase 4: Reference Server Cleanup (`apps/be-transform-showcase`, `docs`)
 
 - [ ] Reduce the sample host to minimal A2UI serving and action flows.
 - [x] Document request and response flows that show the reusable runtime boundary clearly.
 - [ ] Keep app-specific concerns out of the reusable runtime story.
 
-### Later: Ecosystem Adapters and Expansion
+### Phase 5: Ecosystem Adapters and Expansion
 
 - [ ] Evaluate A2A integration after the A2UI-first runtime surface is stable.
 - [ ] Evaluate AG-UI bridge examples after the A2UI-first runtime surface is stable.

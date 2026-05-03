@@ -20,6 +20,8 @@ public class A2UiOutboundMapper {
 
     private static final Set<String> EXPLICIT_CHILD_COMPONENTS = Set.of("Column", "Container", "List", "Row", "Tabs");
 
+    private final A2UiMessageValidator messageValidator = new A2UiMessageValidator();
+
     public List<A2UiMessage> toMessages(GenerativeUIResponse response) {
         return toMessages(response, DEFAULT_SURFACE_ID, true);
     }
@@ -59,7 +61,16 @@ public class A2UiOutboundMapper {
                     .build());
         }
 
-        return messages;
+                List<A2UiValidationError> diagnostics = messageValidator.validate(
+                    messages,
+                    A2UiValidationContext.forVersion(A2UiProtocol.SUPPORTED_VERSION));
+                if (!diagnostics.isEmpty()) {
+                    throw new A2UiMessageValidationException(
+                        "Generated A2UI messages failed validation",
+                        diagnostics);
+                }
+
+                return messages;
     }
 
     public A2UiErrorResponse toErrorResponse(String message, String code, Object details, String requestId) {
@@ -140,7 +151,6 @@ public class A2UiOutboundMapper {
                 .build();
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, Object> copyObjectMap(Object value) {
         if (!(value instanceof Map<?, ?> map)) {
             return new LinkedHashMap<>();
@@ -153,7 +163,6 @@ public class A2UiOutboundMapper {
         return copy;
     }
 
-    @SuppressWarnings("unchecked")
     private Object copyValue(Object value) {
         if (value instanceof Map<?, ?> map) {
             LinkedHashMap<String, Object> copy = new LinkedHashMap<>();

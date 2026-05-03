@@ -1,0 +1,24 @@
+{
+  "name": "message envelope must contain exactly one payload",
+  "requestedVersion": "0.8",
+  "messages": [
+    {
+      "surfaceUpdate": {
+        "surfaceId": "main",
+        "components": []
+      },
+      "beginRendering": {
+        "surfaceId": "main",
+        "root": "root",
+        "catalogId": "/a2ui/catalogs/canonical/v0.8"
+      }
+    }
+  ],
+  "expectedErrors": [
+    {
+      "path": "$[0]",
+      "code": "INVALID_MESSAGE_ENVELOPE",
+      "category": "VALIDATION"
+    }
+  ]
+}

@@ -7,6 +7,7 @@ import com.fogui.contract.FogUiCanonicalContract;
 import com.fogui.contract.FogUiCanonicalValidator;
 import com.fogui.contract.a2ui.A2UiErrorResponse;
 import com.fogui.contract.a2ui.A2UiMessage;
+import com.fogui.contract.a2ui.A2UiMessageValidationException;
 import com.fogui.contract.a2ui.A2UiOutboundMapper;
 import com.fogui.model.fogui.GenerativeUIResponse;
 import com.fogui.model.transform.TransformRequest;
@@ -43,7 +44,7 @@ public class TransformStreamProcessor {
   private final StreamPatchReconciler streamPatchReconciler;
   private final FogUiCanonicalValidator canonicalValidator;
   private final ObjectMapper objectMapper;
-  private final A2UiOutboundMapper a2UiOutboundMapper = new A2UiOutboundMapper();
+  private final A2UiOutboundMapper a2UiOutboundMapper;
 
   public TransformStreamProcessor(
       FogUiTransformRuntime transformRuntime,
@@ -52,12 +53,31 @@ public class TransformStreamProcessor {
       StreamPatchReconciler streamPatchReconciler,
       FogUiCanonicalValidator canonicalValidator,
       ObjectMapper objectMapper) {
+    this(
+        transformRuntime,
+        transformPromptProvider,
+        responseParser,
+        streamPatchReconciler,
+        canonicalValidator,
+        objectMapper,
+        new A2UiOutboundMapper());
+  }
+
+  TransformStreamProcessor(
+      FogUiTransformRuntime transformRuntime,
+      TransformPromptProvider transformPromptProvider,
+      UIResponseParser responseParser,
+      StreamPatchReconciler streamPatchReconciler,
+      FogUiCanonicalValidator canonicalValidator,
+      ObjectMapper objectMapper,
+      A2UiOutboundMapper a2UiOutboundMapper) {
     this.transformRuntime = transformRuntime;
     this.transformPromptProvider = transformPromptProvider;
     this.responseParser = responseParser;
     this.streamPatchReconciler = streamPatchReconciler;
     this.canonicalValidator = canonicalValidator;
     this.objectMapper = objectMapper;
+    this.a2UiOutboundMapper = a2UiOutboundMapper;
   }
 
   public void processStreamRequest(TransformRequest request, SseEmitter emitter, String requestId) {
@@ -65,7 +85,6 @@ public class TransformStreamProcessor {
       return;
     }
 
-    long startTime = System.currentTimeMillis();
     try {
       var chatClient = transformRuntime.createClient();
       var prompt =
@@ -282,19 +301,12 @@ public class TransformStreamProcessor {
   private void handleStreamError(Throwable error, SseEmitter emitter, String requestId) {
     LOGGER.error("Stream error", error);
     try {
-      String errorCode = TransformErrorCodes.STREAM_FAILED;
-      Object details = Map.of(EXCEPTION_TYPE_KEY, error.getClass().getSimpleName());
-      if (error instanceof FogUiAdvisorException advisorException) {
-        errorCode = advisorException.getErrorCode();
-        details = advisorException.getDetails();
-      }
-
       sendStreamErrorEvent(
           emitter,
           error.getMessage() != null ? error.getMessage() : "Stream processing failed",
-          errorCode,
+          resolveErrorCode(error),
           requestId,
-          details);
+          resolveErrorDetails(error));
       emitter.complete();
     } catch (IOException ioException) {
       emitter.completeWithError(ioException);
@@ -303,12 +315,26 @@ public class TransformStreamProcessor {
 
   private void handleProcessError(Exception ex, SseEmitter emitter, String requestId) {
     LOGGER.error("Transform stream error", ex);
-    String errorCode = TransformErrorCodes.STREAM_FAILED;
-    Object details = Map.of(EXCEPTION_TYPE_KEY, ex.getClass().getSimpleName());
-    if (ex instanceof FogUiAdvisorException advisorException) {
-      errorCode = advisorException.getErrorCode();
-      details = advisorException.getDetails();
+    sendErrorAndComplete(emitter, ex.getMessage(), resolveErrorCode(ex), requestId, resolveErrorDetails(ex));
+  }
+
+  private String resolveErrorCode(Throwable error) {
+    if (error instanceof FogUiAdvisorException advisorException) {
+      return advisorException.getErrorCode();
     }
-    sendErrorAndComplete(emitter, ex.getMessage(), errorCode, requestId, details);
+    if (error instanceof A2UiMessageValidationException) {
+      return TransformErrorCodes.A2UI_VALIDATION_FAILED;
+    }
+    return TransformErrorCodes.STREAM_FAILED;
+  }
+
+  private Object resolveErrorDetails(Throwable error) {
+    if (error instanceof FogUiAdvisorException advisorException) {
+      return advisorException.getDetails();
+    }
+    if (error instanceof A2UiMessageValidationException validationException) {
+      return Map.of("diagnostics", validationException.getDiagnostics());
+    }
+    return Map.of(EXCEPTION_TYPE_KEY, error.getClass().getSimpleName());
   }
 }

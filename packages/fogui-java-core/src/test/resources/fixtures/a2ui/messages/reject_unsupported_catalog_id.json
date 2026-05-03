@@ -1,0 +1,37 @@
+{
+  "name": "beginRendering rejects unsupported catalog identifiers",
+  "requestedVersion": "0.8",
+  "messages": [
+    {
+      "surfaceUpdate": {
+        "surfaceId": "main",
+        "components": [
+          {
+            "id": "root",
+            "component": {
+              "Text": {
+                "text": {
+                  "literalString": "Hello"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "beginRendering": {
+        "surfaceId": "main",
+        "root": "root",
+        "catalogId": "/a2ui/catalogs/unsupported/v0.8"
+      }
+    }
+  ],
+  "expectedErrors": [
+    {
+      "path": "$[1].beginRendering.catalogId",
+      "code": "UNSUPPORTED_CATALOG_ID",
+      "category": "VALIDATION"
+    }
+  ]
+}
