@@ -19,7 +19,9 @@ import com.fogui.contract.a2ui.A2UiValidationError;
 import com.fogui.model.fogui.ContentBlock;
 import com.fogui.model.fogui.GenerativeUIResponse;
 import com.fogui.model.transform.TransformRequest;
+import com.fogui.service.TransformErrorCodes;
 import com.fogui.starter.advisor.FogUiAdvisorException;
+import com.fogui.webstarter.prompt.TransformPromptContext;
 import com.fogui.webstarter.prompt.TransformPromptProvider;
 import com.fogui.webstarter.runtime.FogUiTransformRuntime;
 import java.io.IOException;
@@ -55,7 +57,7 @@ class TransformStreamProcessorTest {
     responseParser = Mockito.mock(UIResponseParser.class);
     streamPatchReconciler = Mockito.mock(StreamPatchReconciler.class);
 
-    when(transformPromptProvider.createPrompt(anyString(), any()))
+    when(transformPromptProvider.createPrompt(any(TransformPromptContext.class)))
         .thenReturn(new Prompt(new SystemMessage("system"), new UserMessage("user")));
     when(streamPatchReconciler.reconcile(any(), any()))
         .thenAnswer(invocation -> invocation.getArgument(1));
@@ -106,6 +108,34 @@ class TransformStreamProcessorTest {
     verify(emitter).completeWithError(any(IOException.class));
   }
 
+    @Test
+    @DisplayName("processStreamRequest should emit catalog negotiation error when client catalogs are incompatible")
+    void processStreamRequestShouldEmitCatalogNegotiationErrorWhenClientCatalogsAreIncompatible()
+            throws IOException {
+        TransformRequest request = new TransformRequest();
+        request.setContent("hello");
+        request.setA2UiClientCapabilities(
+                new TransformRequest.A2UiClientCapabilities(
+                        List.of("/a2ui/catalogs/unsupported/v0.8")));
+        SseEmitter emitter = Mockito.mock(SseEmitter.class);
+
+        processor.processStreamRequest(request, emitter, "req-unit-1");
+
+        ArgumentCaptor<SseEmitter.SseEventBuilder> eventCaptor =
+                ArgumentCaptor.forClass(SseEmitter.SseEventBuilder.class);
+        verify(emitter, atLeastOnce()).send(eventCaptor.capture());
+        verify(emitter).complete();
+
+        String payload =
+                eventCaptor.getAllValues().stream()
+                        .map(TransformStreamProcessorTest::flattenEventPayload)
+                        .collect(Collectors.joining("\n"));
+        assertTrue(payload.contains("event:error"));
+        assertTrue(payload.contains("\"code\":\"" + TransformErrorCodes.NO_COMPATIBLE_CATALOG + "\""));
+        assertTrue(payload.contains("clientSupportedCatalogIds"));
+        assertTrue(payload.contains("runtimeSupportedCatalogIds"));
+    }
+
   @Test
   @DisplayName("processStreamRequest should handle stream completion path")
   void processStreamRequestShouldHandleStreamCompletionPath() throws IOException {
@@ -146,6 +176,46 @@ class TransformStreamProcessorTest {
     assertTrue(payload.contains("\"literalString\":\"Hello\""));
     assertEquals("message", eventNames.getLast());
     assertEquals(0L, payload.lines().filter(line -> line.contains("event:error")).count());
+  }
+
+  @Test
+  @DisplayName("processStreamRequest should pass negotiated catalog and context hints to the prompt provider")
+  void processStreamRequestShouldPassNegotiatedCatalogAndContextHintsToThePromptProvider()
+      throws IOException {
+    mockStreamingChatClient(
+        Flux.just("{\"thinking\":[],\"content\":[{\"type\":\"text\",\"value\":\"Hello\"}]}"));
+    when(responseParser.tryParsePartial(any(String.class)))
+        .thenReturn(GenerativeUIResponse.builder().content(List.of(ContentBlock.text("Hello"))).build());
+
+    TransformRequest request = new TransformRequest();
+    request.setContent("hello");
+    request.setA2UiClientCapabilities(
+        new TransformRequest.A2UiClientCapabilities(
+            List.of(A2UiOutboundMapper.DEFAULT_CATALOG_ID)));
+    TransformRequest.TransformContext context = new TransformRequest.TransformContext();
+    context.setIntent("dashboard");
+    context.setPreferredComponents(List.of("chart", "table"));
+    context.setInstructions("Lead with a short summary.");
+    request.setContext(context);
+
+    SseEmitter emitter = Mockito.mock(SseEmitter.class);
+
+    processor.processStreamRequest(request, emitter, "req-unit-1");
+
+    ArgumentCaptor<TransformPromptContext> promptContextCaptor =
+        ArgumentCaptor.forClass(TransformPromptContext.class);
+    verify(transformPromptProvider).createPrompt(promptContextCaptor.capture());
+    TransformPromptContext promptContext = promptContextCaptor.getValue();
+
+    assertEquals(A2UiOutboundMapper.DEFAULT_CATALOG_ID, promptContext.selectedCatalogId());
+    assertEquals(List.of(A2UiOutboundMapper.DEFAULT_CATALOG_ID), promptContext.clientSupportedCatalogIds());
+    assertTrue(promptContext.contextHints().contains("Intent: dashboard."));
+    assertTrue(
+        promptContext
+            .contextHints()
+            .contains(
+                "Preferred UI component families (map these to componentType, not the top-level type): chart, table."));
+    assertTrue(promptContext.contextHints().contains("Lead with a short summary."));
   }
 
   @Test
@@ -277,7 +347,10 @@ class TransformStreamProcessorTest {
                 new A2UiOutboundMapper() {
                     @Override
                     public List<A2UiMessage> toMessages(
-                            GenerativeUIResponse response, String surfaceId, boolean includeBeginRendering) {
+                GenerativeUIResponse response,
+                String surfaceId,
+                boolean includeBeginRendering,
+                String catalogId) {
                         throw new A2UiMessageValidationException(
                                 "Generated A2UI messages failed validation",
                                 List.of(

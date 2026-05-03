@@ -8,7 +8,7 @@ It tracks the work required to turn the extracted backend repository into a prod
 
 ## Current Focus Window
 
-Primary target window: **Phase 1 and Phase 2 hardening around protocol validation, fixture coverage, and stable A2UI-first transport behavior**
+Primary target window: **Phase 4 cleanup around the reference server after completing the Phase 3 A2UI-oriented prompt/provider slice**
 
 The immediate goal is to make the repository easy to understand as an A2UI runtime, then add the protocol and transport primitives needed for an A2UI-first public surface.
 
@@ -58,6 +58,7 @@ The current outcome target is straightforward:
 - [x] Introduce an A2UI-first non-stream route.
 - [x] Introduce an A2UI-first streaming route using SSE or JSONL-compatible sequencing.
 - [x] Carry request correlation and stable transport-level error mapping across both paths.
+- [x] Accept client-advertised `supportedCatalogIds` and reject requests with no compatible catalog before generation.
 - [x] Replace placeholder outbound wrappers with actual A2UI v0.8 message envelopes.
 - [x] Define the action submission or callback handling model for stateful round trips.
 - [x] Replace inherited public `/fogui/*` routes with A2UI-first paths.
@@ -65,10 +66,10 @@ The current outcome target is straightforward:
 
 ### Phase 3: Generation Runtime Integration (`packages/fogui-spring-boot-starter`, `packages/fogui-spring-web-starter`, `packages/fogui-java-core`)
 
-- [ ] Add an A2UI-oriented prompt and provider SPI.
+- [x] Add an A2UI-oriented prompt and provider SPI.
 - [x] Produce validated A2UI-first output from the runtime path.
 - [x] Validate generated output before sending it to clients.
-- [ ] Preserve capability-aware provider options behind stable runtime abstractions.
+- [x] Preserve capability-aware provider options behind stable runtime abstractions.
 
 ### Phase 4: Reference Server Cleanup (`apps/be-transform-showcase`, `docs`)
 

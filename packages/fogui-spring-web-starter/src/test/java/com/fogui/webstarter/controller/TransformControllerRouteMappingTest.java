@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fogui.contract.a2ui.A2UiOutboundMapper;
 import com.fogui.model.transform.TransformResponse;
 import com.fogui.service.RequestCorrelationService;
 import com.fogui.service.TransformStreamProcessor;
@@ -53,7 +54,8 @@ class TransformControllerRouteMappingTest {
     response.setRequestId("req-route-1");
 
     when(requestCorrelationService.resolveRequestId(any())).thenReturn("req-route-1");
-    when(transformService.transform(any(), eq("req-route-1"))).thenReturn(response);
+    when(transformService.transform(any(), eq("req-route-1"), eq(A2UiOutboundMapper.DEFAULT_CATALOG_ID)))
+      .thenReturn(response);
   }
 
   @Test
@@ -69,7 +71,7 @@ class TransformControllerRouteMappingTest {
         .andExpect(status().isOk())
         .andExpect(header().string(RequestCorrelationService.REQUEST_ID_HEADER, "req-route-1"));
 
-    verify(transformService).transform(any(), eq("req-route-1"));
+    verify(transformService).transform(any(), eq("req-route-1"), eq(A2UiOutboundMapper.DEFAULT_CATALOG_ID));
   }
 
   @Test
@@ -147,10 +149,27 @@ class TransformControllerRouteMappingTest {
     FogUiWebProperties fogUiWebProperties() {
       return new FogUiWebProperties();
     }
+
+    @Bean
+    TransformController transformController(
+        TransformService transformService,
+        RequestCorrelationService requestCorrelationService,
+        TransformStreamProcessor transformStreamProcessor,
+        FogUiWebProperties fogUiWebProperties) {
+      return new TransformController(
+          transformService,
+          requestCorrelationService,
+          transformStreamProcessor,
+          fogUiWebProperties);
+    }
   }
 
   @SpringBootConfiguration
-  @EnableAutoConfiguration
-  @Import({TransformController.class, TestConfig.class})
+  @EnableAutoConfiguration(
+      excludeName = {
+        "com.fogui.starter.FogUiCoreAutoConfiguration",
+        "com.fogui.webstarter.autoconfigure.FogUiWebAutoConfiguration"
+      })
+  @Import(TestConfig.class)
   static class TestApplication {}
 }

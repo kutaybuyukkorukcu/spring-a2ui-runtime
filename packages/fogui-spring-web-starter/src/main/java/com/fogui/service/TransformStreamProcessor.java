@@ -14,8 +14,11 @@ import com.fogui.model.transform.TransformRequest;
 import com.fogui.starter.advisor.FogUiAdvisorContextKeys;
 import com.fogui.starter.advisor.FogUiAdvisorErrorCodes;
 import com.fogui.starter.advisor.FogUiAdvisorException;
+import com.fogui.webstarter.prompt.TransformPromptContext;
 import com.fogui.webstarter.prompt.TransformPromptProvider;
+import com.fogui.webstarter.service.A2UiRequestCatalogNegotiator;
 import com.fogui.webstarter.runtime.FogUiTransformRuntime;
+import com.fogui.webstarter.service.TransformExecutionException;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -81,14 +84,14 @@ public class TransformStreamProcessor {
   }
 
   public void processStreamRequest(TransformRequest request, SseEmitter emitter, String requestId) {
-    if (!validateRequest(request, emitter, requestId)) {
+    String catalogId = validateRequest(request, emitter, requestId);
+    if (catalogId == null) {
       return;
     }
 
     try {
       var chatClient = transformRuntime.createClient();
-      var prompt =
-          transformPromptProvider.createPrompt(request.getContent(), extractContextHints(request));
+      var prompt = transformPromptProvider.createPrompt(buildPromptContext(request, catalogId));
       var fullContent = new StringBuilder();
       var previousResponse = new AtomicReference<GenerativeUIResponse>(null);
       var renderStarted = new AtomicBoolean(false);
@@ -106,9 +109,10 @@ public class TransformStreamProcessor {
           .doOnNext(
               chunk -> {
                 fullContent.append(chunk);
-                emitPartialResult(fullContent, emitter, previousResponse, renderStarted);
+                emitPartialResult(fullContent, emitter, previousResponse, renderStarted, catalogId);
               })
-          .doOnComplete(() -> handleStreamComplete(emitter, fullContent, requestId, renderStarted))
+          .doOnComplete(
+              () -> handleStreamComplete(emitter, fullContent, requestId, renderStarted, catalogId))
           .doOnError(error -> handleStreamError(error, emitter, requestId))
           .onErrorResume(error -> Flux.empty())
           .subscribe();
@@ -118,13 +122,18 @@ public class TransformStreamProcessor {
     }
   }
 
-  private boolean validateRequest(TransformRequest request, SseEmitter emitter, String requestId) {
+  private String validateRequest(TransformRequest request, SseEmitter emitter, String requestId) {
     if (request == null || request.getContent() == null || request.getContent().isBlank()) {
       sendErrorAndComplete(
           emitter, "Content is required", TransformErrorCodes.CONTENT_REQUIRED, requestId, null);
-      return false;
+      return null;
     }
-    return true;
+    try {
+      return A2UiRequestCatalogNegotiator.negotiateCatalogId(request);
+    } catch (TransformExecutionException ex) {
+      sendErrorAndComplete(emitter, ex.getMessage(), ex.getErrorCode(), requestId, ex.getDetails());
+      return null;
+    }
   }
 
   private void sendErrorAndComplete(
@@ -147,17 +156,53 @@ public class TransformStreamProcessor {
   }
 
   private String extractContextHints(TransformRequest request) {
-    if (request.getContext() != null && request.getContext().getInstructions() != null) {
-      return request.getContext().getInstructions();
+    if (request.getContext() == null) {
+      return null;
     }
-    return null;
+
+    var context = request.getContext();
+    StringBuilder hints = new StringBuilder();
+
+    if (context.getIntent() != null) {
+      hints.append("Intent: ").append(context.getIntent()).append(". ");
+    }
+    if (context.getPreferredComponents() != null && !context.getPreferredComponents().isEmpty()) {
+      hints
+          .append(
+              "Preferred UI component families (map these to componentType, not the top-level type): ")
+          .append(String.join(", ", context.getPreferredComponents()))
+          .append(". ");
+    }
+    if (context.getInstructions() != null) {
+      hints.append(context.getInstructions());
+    }
+
+    String value = hints.toString().trim();
+    return value.isEmpty() ? null : value;
+  }
+
+  private TransformPromptContext buildPromptContext(TransformRequest request, String catalogId) {
+    return new TransformPromptContext(
+        request.getContent(),
+        extractContextHints(request),
+        catalogId,
+        extractSupportedCatalogIds(request));
+  }
+
+  private List<String> extractSupportedCatalogIds(TransformRequest request) {
+    if (request.getA2UiClientCapabilities() == null) {
+      return List.of();
+    }
+    List<String> supportedCatalogIds = request.getA2UiClientCapabilities().getSupportedCatalogIds();
+    return supportedCatalogIds == null ? List.of() : supportedCatalogIds;
   }
 
   private void emitPartialResult(
       StringBuilder fullContent,
       SseEmitter emitter,
       AtomicReference<GenerativeUIResponse> previousResponse,
-      AtomicBoolean renderStarted) {
+      AtomicBoolean renderStarted,
+      String catalogId) {
     var partial = responseParser.tryParsePartial(fullContent.toString());
     var reconciled = streamPatchReconciler.reconcile(previousResponse.get(), partial);
     var normalized = normalizeCanonicalResponse(reconciled, false, null);
@@ -171,7 +216,10 @@ public class TransformStreamProcessor {
       emitA2UiMessages(
           emitter,
           a2UiOutboundMapper.toMessages(
-              normalized, A2UiOutboundMapper.DEFAULT_SURFACE_ID, !renderStarted.get()));
+              normalized,
+              A2UiOutboundMapper.DEFAULT_SURFACE_ID,
+              !renderStarted.get(),
+              catalogId));
       renderStarted.set(true);
     } catch (IOException ex) {
       LOGGER.error("Error sending partial result", ex);
@@ -182,9 +230,10 @@ public class TransformStreamProcessor {
       SseEmitter emitter,
       StringBuilder fullContent,
       String requestId,
-      AtomicBoolean renderStarted) {
+      AtomicBoolean renderStarted,
+      String catalogId) {
     try {
-      sendStreamResult(emitter, fullContent.toString(), requestId, renderStarted);
+      sendStreamResult(emitter, fullContent.toString(), requestId, renderStarted, catalogId);
       emitter.complete();
     } catch (Exception ex) {
       handleStreamError(ex, emitter, requestId);
@@ -192,14 +241,19 @@ public class TransformStreamProcessor {
   }
 
   private void sendStreamResult(
-      SseEmitter emitter, String content, String requestId, AtomicBoolean renderStarted)
+      SseEmitter emitter,
+      String content,
+      String requestId,
+      AtomicBoolean renderStarted,
+      String catalogId)
       throws IOException {
     emitA2UiMessages(
         emitter,
         a2UiOutboundMapper.toMessages(
             parseAndNormalizeFinalResponse(content, requestId),
             A2UiOutboundMapper.DEFAULT_SURFACE_ID,
-            !renderStarted.get()));
+            !renderStarted.get(),
+            catalogId));
   }
 
   private GenerativeUIResponse parseAndNormalizeFinalResponse(String content, String requestId) {
@@ -319,6 +373,9 @@ public class TransformStreamProcessor {
   }
 
   private String resolveErrorCode(Throwable error) {
+    if (error instanceof TransformExecutionException executionException) {
+      return executionException.getErrorCode();
+    }
     if (error instanceof FogUiAdvisorException advisorException) {
       return advisorException.getErrorCode();
     }
@@ -329,6 +386,9 @@ public class TransformStreamProcessor {
   }
 
   private Object resolveErrorDetails(Throwable error) {
+    if (error instanceof TransformExecutionException executionException) {
+      return executionException.getDetails();
+    }
     if (error instanceof FogUiAdvisorException advisorException) {
       return advisorException.getDetails();
     }

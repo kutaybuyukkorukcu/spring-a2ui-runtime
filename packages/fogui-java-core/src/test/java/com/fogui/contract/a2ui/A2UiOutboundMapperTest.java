@@ -71,4 +71,15 @@ class A2UiOutboundMapperTest {
         assertEquals("content-0-child-0", cardProps.get("child"));
         assertEquals("Summary", cardProps.get("title"));
     }
+
+        @Test
+        void shouldUseCallerSelectedCatalogIdWhenProvided() {
+                GenerativeUIResponse response = GenerativeUIResponse.builder()
+                                .content(List.of(ContentBlock.text("hello from a2ui")))
+                                .build();
+
+                List<A2UiMessage> messages = mapper.toMessages(response, A2UiCatalogIds.CANONICAL_V0_8);
+
+                assertEquals(A2UiCatalogIds.CANONICAL_V0_8, messages.get(1).getBeginRendering().getCatalogId());
+        }
 }

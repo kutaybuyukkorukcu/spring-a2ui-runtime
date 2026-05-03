@@ -9,6 +9,7 @@ import com.fogui.service.TransformErrorCodes;
 import com.fogui.service.TransformStreamProcessor;
 import com.fogui.starter.advisor.FogUiAdvisorException;
 import com.fogui.webstarter.properties.FogUiWebProperties;
+import com.fogui.webstarter.service.A2UiRequestCatalogNegotiator;
 import com.fogui.webstarter.service.TransformExecutionException;
 import com.fogui.webstarter.service.TransformService;
 import java.util.Map;
@@ -69,14 +70,19 @@ public class TransformController {
     String requestId = requestCorrelationService.resolveRequestId(requestIdHeader);
 
     try {
-      TransformResponse response = transformService.transform(request, requestId);
+      String catalogId = A2UiRequestCatalogNegotiator.negotiateCatalogId(request);
+      TransformResponse response = transformService.transform(request, requestId, catalogId);
       return withRequestIdHeaders(ResponseEntity.ok(), requestId)
-          .body(a2UiOutboundMapper.toMessages(response.getResult()));
+        .body(a2UiOutboundMapper.toMessages(response.getResult(), catalogId));
     } catch (TransformExecutionException ex) {
-      HttpStatus status =
-          TransformErrorCodes.CONTENT_REQUIRED.equals(ex.getErrorCode())
-              ? HttpStatus.BAD_REQUEST
-              : HttpStatus.INTERNAL_SERVER_ERROR;
+      HttpStatus status;
+      if (TransformErrorCodes.CONTENT_REQUIRED.equals(ex.getErrorCode())) {
+        status = HttpStatus.BAD_REQUEST;
+      } else if (TransformErrorCodes.NO_COMPATIBLE_CATALOG.equals(ex.getErrorCode())) {
+        status = HttpStatus.UNPROCESSABLE_ENTITY;
+      } else {
+        status = HttpStatus.INTERNAL_SERVER_ERROR;
+      }
       return withRequestIdHeaders(ResponseEntity.status(status), requestId)
           .body(
               a2UiOutboundMapper.toErrorResponse(

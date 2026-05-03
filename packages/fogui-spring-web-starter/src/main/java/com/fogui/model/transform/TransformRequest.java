@@ -19,6 +19,9 @@ public class TransformRequest {
   /** Optional context to help guide the transformation. */
   private TransformContext context;
 
+  /** Optional A2UI client capability metadata for catalog negotiation. */
+  private A2UiClientCapabilities a2UiClientCapabilities;
+
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
@@ -31,5 +34,14 @@ public class TransformRequest {
 
     /** Custom instructions for the transformation. */
     private String instructions;
+  }
+
+  @Data
+  @NoArgsConstructor
+  @AllArgsConstructor
+  public static class A2UiClientCapabilities {
+
+    /** Catalog identifiers the client can render, ordered by preference. */
+    private List<String> supportedCatalogIds;
   }
 }

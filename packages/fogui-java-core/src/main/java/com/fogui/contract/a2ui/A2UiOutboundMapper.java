@@ -23,7 +23,11 @@ public class A2UiOutboundMapper {
     private final A2UiMessageValidator messageValidator = new A2UiMessageValidator();
 
     public List<A2UiMessage> toMessages(GenerativeUIResponse response) {
-        return toMessages(response, DEFAULT_SURFACE_ID, true);
+        return toMessages(response, DEFAULT_SURFACE_ID, true, DEFAULT_CATALOG_ID);
+    }
+
+    public List<A2UiMessage> toMessages(GenerativeUIResponse response, String catalogId) {
+        return toMessages(response, DEFAULT_SURFACE_ID, true, catalogId);
     }
 
     public List<A2UiMessage> toMessages(
@@ -31,11 +35,22 @@ public class A2UiOutboundMapper {
             String surfaceId,
             boolean includeBeginRendering
     ) {
+        return toMessages(response, surfaceId, includeBeginRendering, DEFAULT_CATALOG_ID);
+    }
+
+    public List<A2UiMessage> toMessages(
+            GenerativeUIResponse response,
+            String surfaceId,
+            boolean includeBeginRendering,
+            String catalogId
+    ) {
         List<A2UiMessage.ComponentDefinition> components = new ArrayList<>();
         List<String> childIds = new ArrayList<>();
         List<ContentBlock> content = response == null || response.getContent() == null
                 ? List.of()
                 : response.getContent();
+        String selectedCatalogId =
+                catalogId == null || catalogId.isBlank() ? DEFAULT_CATALOG_ID : catalogId;
 
         for (int index = 0; index < content.size(); index++) {
             childIds.add(flattenBlock(content.get(index), "content-" + index, components));
@@ -56,7 +71,7 @@ public class A2UiOutboundMapper {
                     .beginRendering(A2UiMessage.BeginRendering.builder()
                             .surfaceId(surfaceId)
                             .root(DEFAULT_ROOT_COMPONENT_ID)
-                            .catalogId(DEFAULT_CATALOG_ID)
+                    .catalogId(selectedCatalogId)
                             .build())
                     .build());
         }
