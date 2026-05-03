@@ -1,0 +1,25 @@
+{
+  "name": "dataModelUpdate rejects blank path when path is present",
+  "requestedVersion": "0.8",
+  "messages": [
+    {
+      "dataModelUpdate": {
+        "surfaceId": "main",
+        "path": "   ",
+        "contents": [
+          {
+            "key": "email",
+            "valueString": "alice@example.com"
+          }
+        ]
+      }
+    }
+  ],
+  "expectedErrors": [
+    {
+      "path": "$[0].dataModelUpdate.path",
+      "code": "INVALID_DATA_UPDATE",
+      "category": "VALIDATION"
+    }
+  ]
+}

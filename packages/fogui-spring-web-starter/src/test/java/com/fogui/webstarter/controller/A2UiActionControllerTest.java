@@ -132,4 +132,32 @@ class A2UiActionControllerTest {
     A2UiErrorResponse body = assertInstanceOf(A2UiErrorResponse.class, response.getBody());
     assertEquals(A2UiActionErrorCodes.ACTION_NOT_HANDLED, body.getCode());
   }
+
+    @Test
+    void shouldReturnInternalServerErrorForInvalidActionResponses() {
+        when(actionService.handleClientEvent(any(), eq("req-action-1")))
+                .thenThrow(
+                        new A2UiActionException(
+                                "Action handler produced invalid A2UI messages",
+                                A2UiActionErrorCodes.INVALID_ACTION_RESPONSE,
+                                Map.of("diagnostics", List.of(Map.of("code", "MISSING_SURFACE_ID")))));
+
+        ResponseEntity<?> response =
+                controller.handleClientEvent(
+                        null,
+                        A2UiClientEvent.builder()
+                                .userAction(
+                                        A2UiUserAction.builder()
+                                                .name("confirm")
+                                                .surfaceId("booking")
+                                                .sourceComponentId("submit-btn")
+                                                .timestamp("2026-05-01T19:00:00Z")
+                                                .context(Map.of())
+                                                .build())
+                                .build());
+
+        assertEquals(500, response.getStatusCode().value());
+        A2UiErrorResponse body = assertInstanceOf(A2UiErrorResponse.class, response.getBody());
+        assertEquals(A2UiActionErrorCodes.INVALID_ACTION_RESPONSE, body.getCode());
+    }
 }

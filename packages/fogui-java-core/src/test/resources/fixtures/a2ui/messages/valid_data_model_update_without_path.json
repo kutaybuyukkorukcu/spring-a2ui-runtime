@@ -1,0 +1,23 @@
+{
+  "name": "dataModelUpdate allows omitted path for root updates",
+  "requestedVersion": "0.8",
+  "messages": [
+    {
+      "dataModelUpdate": {
+        "surfaceId": "main",
+        "contents": [
+          {
+            "key": "user",
+            "valueMap": [
+              {
+                "key": "name",
+                "valueString": "Alice"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "expectedErrors": []
+}

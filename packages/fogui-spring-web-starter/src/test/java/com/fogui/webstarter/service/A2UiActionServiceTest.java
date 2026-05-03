@@ -104,4 +104,43 @@ class A2UiActionServiceTest {
 
     assertEquals(A2UiActionErrorCodes.ACTION_NOT_HANDLED, exception.getErrorCode());
   }
+
+  @Test
+  void shouldRejectInvalidActionHandlerMessages() {
+    A2UiActionService service =
+        new A2UiActionService(
+            List.of(
+                new A2UiActionHandler() {
+                  @Override
+                  public boolean supports(A2UiUserAction userAction) {
+                    return true;
+                  }
+
+                  @Override
+                  public List<A2UiMessage> handle(A2UiUserAction userAction, String requestId) {
+                    return List.of(
+                        A2UiMessage.builder()
+                            .deleteSurface(A2UiMessage.DeleteSurface.builder().build())
+                            .build());
+                  }
+                }));
+
+    A2UiClientEvent event =
+        A2UiClientEvent.builder()
+            .userAction(
+                A2UiUserAction.builder()
+                    .name("confirm")
+                    .surfaceId("booking")
+                    .sourceComponentId("submit-btn")
+                    .timestamp("2026-05-01T19:00:00Z")
+                    .context(Map.of())
+                    .build())
+            .build();
+
+    A2UiActionException exception =
+        assertThrows(
+            A2UiActionException.class, () -> service.handleClientEvent(event, "req-action-4"));
+
+    assertEquals(A2UiActionErrorCodes.INVALID_ACTION_RESPONSE, exception.getErrorCode());
+  }
 }

@@ -3,15 +3,13 @@ package com.fogui.webstarter.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fogui.contract.a2ui.A2UiCatalogIds;
+import com.fogui.contract.a2ui.A2UiCatalogRegistry;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import org.springframework.core.io.ClassPathResource;
 
 public class A2UiCatalogService {
-
-  private static final String CANONICAL_CATALOG_RESOURCE =
-      "META-INF/a2ui/catalogs/canonical-v0.8.json";
 
   private final ObjectMapper objectMapper;
 
@@ -20,7 +18,7 @@ public class A2UiCatalogService {
   }
 
   public Map<String, Object> getCanonicalCatalog() {
-    ClassPathResource resource = new ClassPathResource(CANONICAL_CATALOG_RESOURCE);
+    ClassPathResource resource = new ClassPathResource(A2UiCatalogRegistry.CANONICAL_CATALOG_RESOURCE);
     try (InputStream inputStream = resource.getInputStream()) {
       Map<String, Object> catalog = objectMapper.readValue(inputStream, new TypeReference<>() {});
       Object catalogId = catalog.get("catalogId");

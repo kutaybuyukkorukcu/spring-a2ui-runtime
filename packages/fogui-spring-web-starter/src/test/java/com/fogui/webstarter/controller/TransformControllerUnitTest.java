@@ -13,7 +13,9 @@ import static org.mockito.Mockito.when;
 
 import com.fogui.contract.a2ui.A2UiErrorResponse;
 import com.fogui.contract.a2ui.A2UiMessage;
+import com.fogui.contract.a2ui.A2UiMessageValidationException;
 import com.fogui.contract.a2ui.A2UiOutboundMapper;
+import com.fogui.contract.a2ui.A2UiValidationError;
 import com.fogui.model.fogui.ContentBlock;
 import com.fogui.model.fogui.GenerativeUIResponse;
 import com.fogui.model.transform.TransformRequest;
@@ -70,10 +72,14 @@ class TransformControllerUnitTest {
                 .build(),
             null,
             "req-unit-1");
-    when(transformService.transform(any(), eq("req-unit-1"))).thenReturn(transformResponse);
+    when(transformService.transform(any(), eq("req-unit-1"), eq(A2UiOutboundMapper.DEFAULT_CATALOG_ID)))
+        .thenReturn(transformResponse);
 
     TransformRequest request = new TransformRequest();
     request.setContent("hello");
+    request.setA2UiClientCapabilities(
+        new TransformRequest.A2UiClientCapabilities(
+            List.of(A2UiOutboundMapper.DEFAULT_CATALOG_ID)));
 
     ResponseEntity<?> response = controller.transform(null, request);
 
@@ -99,7 +105,7 @@ class TransformControllerUnitTest {
   @Test
   @DisplayName("transform should return 500 when parse fails")
   void transformShouldReturn500WhenParseFails() {
-    when(transformService.transform(any(), eq("req-unit-1")))
+        when(transformService.transform(any(), eq("req-unit-1"), eq(A2UiOutboundMapper.DEFAULT_CATALOG_ID)))
         .thenThrow(
             new TransformExecutionException(
                 "Failed to parse transformation result",
@@ -119,7 +125,7 @@ class TransformControllerUnitTest {
   @Test
   @DisplayName("transform should return deterministic A2UI error body on advisor failure")
   void transformShouldReturnDeterministicA2UiErrorBodyOnAdvisorFailure() {
-    when(transformService.transform(any(), eq("req-unit-1")))
+        when(transformService.transform(any(), eq("req-unit-1"), eq(A2UiOutboundMapper.DEFAULT_CATALOG_ID)))
         .thenThrow(
             new FogUiAdvisorException(
                 "Canonical validation failed",
@@ -143,7 +149,7 @@ class TransformControllerUnitTest {
   @Test
   @DisplayName("transform should return 400 for blank content")
   void transformShouldReturn400ForBlankContent() {
-    when(transformService.transform(any(), eq("req-unit-1")))
+        when(transformService.transform(any(), eq("req-unit-1"), eq(A2UiOutboundMapper.DEFAULT_CATALOG_ID)))
         .thenThrow(
             new TransformExecutionException(
                 "Content is required", TransformErrorCodes.CONTENT_REQUIRED, null));
@@ -156,6 +162,73 @@ class TransformControllerUnitTest {
     assertEquals(400, response.getStatusCode().value());
     A2UiErrorResponse body = assertInstanceOf(A2UiErrorResponse.class, response.getBody());
     assertEquals("CONTENT_REQUIRED", body.getCode());
+  }
+
+    @Test
+    @DisplayName("transform should return 422 when the client supports no compatible catalog")
+    void transformShouldReturn422WhenClientSupportsNoCompatibleCatalog() {
+        TransformRequest request = new TransformRequest();
+        request.setContent("hello");
+        request.setA2UiClientCapabilities(
+                new TransformRequest.A2UiClientCapabilities(
+                        List.of("/a2ui/catalogs/unsupported/v0.8")));
+
+        ResponseEntity<?> response = controller.transform(null, request);
+
+        assertEquals(422, response.getStatusCode().value());
+        A2UiErrorResponse body = assertInstanceOf(A2UiErrorResponse.class, response.getBody());
+        assertEquals(TransformErrorCodes.NO_COMPATIBLE_CATALOG, body.getCode());
+        Map<?, ?> details = assertInstanceOf(Map.class, body.getDetails());
+        assertTrue(details.containsKey("clientSupportedCatalogIds"));
+        assertTrue(details.containsKey("runtimeSupportedCatalogIds"));
+    }
+
+  @Test
+  @DisplayName("transform should return deterministic A2UI validation error body on outbound validation failure")
+  void transformShouldReturnDeterministicA2UiValidationErrorBody() {
+    A2UiOutboundMapper mapper =
+        new A2UiOutboundMapper() {
+          @Override
+          public List<A2UiMessage> toMessages(GenerativeUIResponse response, String catalogId) {
+            throw new A2UiMessageValidationException(
+                "Generated A2UI messages failed validation",
+                List.of(
+                    A2UiValidationError.builder()
+                        .code("MISSING_SURFACE_ID")
+                        .message("surfaceId is required")
+                        .build()));
+          }
+        };
+    TransformController validationController =
+        new TransformController(
+            transformService,
+            requestCorrelationService,
+            transformStreamProcessor,
+            new FogUiWebProperties(),
+            mapper);
+
+    TransformResponse transformResponse =
+        TransformResponse.success(
+            GenerativeUIResponse.builder()
+                .thinking(List.of())
+                .content(List.of(ContentBlock.text("hello from a2ui")))
+                .build(),
+            null,
+            "req-unit-1");
+    when(transformService.transform(any(), eq("req-unit-1"), eq(A2UiOutboundMapper.DEFAULT_CATALOG_ID)))
+        .thenReturn(transformResponse);
+
+    TransformRequest request = new TransformRequest();
+    request.setContent("hello");
+
+    ResponseEntity<?> response = validationController.transform(null, request);
+
+    assertEquals(500, response.getStatusCode().value());
+    A2UiErrorResponse body = assertInstanceOf(A2UiErrorResponse.class, response.getBody());
+    assertEquals(TransformErrorCodes.A2UI_VALIDATION_FAILED, body.getCode());
+    assertEquals("req-unit-1", body.getRequestId());
+    Map<?, ?> details = assertInstanceOf(Map.class, body.getDetails());
+    assertTrue(details.containsKey("diagnostics"));
   }
 
   @Test

@@ -4,14 +4,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fogui.contract.a2ui.A2UiOutboundMapper;
 import com.fogui.model.fogui.ContentBlock;
 import com.fogui.model.fogui.GenerativeUIResponse;
 import com.fogui.model.transform.TransformRequest;
 import com.fogui.service.TransformErrorCodes;
+import com.fogui.webstarter.prompt.TransformPromptContext;
 import com.fogui.webstarter.prompt.TransformPromptProvider;
 import com.fogui.webstarter.runtime.FogUiTransformRuntime;
 import java.util.List;
@@ -38,7 +39,7 @@ class TransformServiceTest {
     transformPromptProvider = Mockito.mock(TransformPromptProvider.class);
     transformService = new TransformService(transformRuntime, transformPromptProvider);
 
-    when(transformPromptProvider.createPrompt(anyString(), any()))
+    when(transformPromptProvider.createPrompt(any(TransformPromptContext.class)))
         .thenReturn(new Prompt(new SystemMessage("system"), new UserMessage("user")));
   }
 
@@ -61,6 +62,9 @@ class TransformServiceTest {
 
     TransformRequest request = new TransformRequest();
     request.setContent("Compare regional sales");
+    request.setA2UiClientCapabilities(
+      new TransformRequest.A2UiClientCapabilities(
+        List.of(A2UiOutboundMapper.DEFAULT_CATALOG_ID)));
 
     TransformRequest.TransformContext context = new TransformRequest.TransformContext();
     context.setIntent("dashboard");
@@ -70,15 +74,19 @@ class TransformServiceTest {
 
     transformService.transform(request, "req-service-1");
 
-    ArgumentCaptor<String> contextHintsCaptor = ArgumentCaptor.forClass(String.class);
-    verify(transformPromptProvider).createPrompt(anyString(), contextHintsCaptor.capture());
-    String contextHints = contextHintsCaptor.getValue();
+    ArgumentCaptor<TransformPromptContext> promptContextCaptor =
+      ArgumentCaptor.forClass(TransformPromptContext.class);
+    verify(transformPromptProvider).createPrompt(promptContextCaptor.capture());
+    TransformPromptContext promptContext = promptContextCaptor.getValue();
+    String contextHints = promptContext.contextHints();
 
     assertTrue(contextHints.contains("Intent: dashboard."));
     assertTrue(
         contextHints.contains(
             "Preferred UI component families (map these to componentType, not the top-level type): chart, table."));
     assertTrue(contextHints.contains("Lead with a short summary."));
+    assertEquals(A2UiOutboundMapper.DEFAULT_CATALOG_ID, promptContext.selectedCatalogId());
+    assertEquals(List.of(A2UiOutboundMapper.DEFAULT_CATALOG_ID), promptContext.clientSupportedCatalogIds());
   }
 
   @Test

@@ -258,6 +258,9 @@
         "confirmText": {
           "type": "string"
         },
+        "cancelText": {
+          "type": "string"
+        },
         "variant": {
           "type": "string"
         }

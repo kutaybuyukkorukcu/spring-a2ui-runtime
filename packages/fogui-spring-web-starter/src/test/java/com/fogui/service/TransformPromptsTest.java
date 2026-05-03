@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.fogui.webstarter.prompt.TransformPromptContext;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -48,7 +50,7 @@ class TransformPromptsTest {
 
       int contentIndex = prompt.indexOf("---\n" + content + "\n---");
       int contextIndex = prompt.indexOf("Additional context: " + contextHints);
-      int reminderIndex = prompt.indexOf("Canonical response rules:");
+        int reminderIndex = prompt.indexOf("Runtime canonical response rules for A2UI v0.8:");
       int instructionIndex =
           prompt.indexOf("Respond with the JSON structure only. Do not add prose or code fences.");
 
@@ -98,7 +100,27 @@ class TransformPromptsTest {
       String prompt = TransformPrompts.buildTransformPrompt(content, null);
 
       assertTrue(
-          prompt.startsWith("Transform the following content into a FogUI canonical response:"));
+        prompt.startsWith(
+          "Transform the following content into the runtime's canonical JSON for A2UI v0.8:"));
+    }
+
+    @Test
+    @DisplayName("should include selected catalog context when provided")
+    void shouldIncludeSelectedCatalogContextWhenProvided() {
+      String prompt =
+        TransformPrompts.buildTransformPrompt(
+          new TransformPromptContext(
+            "User content",
+            "This is for a dashboard",
+            "/a2ui/catalogs/canonical/v0.8",
+            List.of("/a2ui/catalogs/canonical/v0.8")));
+
+      assertTrue(
+        prompt.contains(
+          "Selected A2UI catalog: /a2ui/catalogs/canonical/v0.8. Use only componentType values supported by this catalog."));
+      assertTrue(
+        prompt.contains(
+          "Client-supported A2UI catalogs: /a2ui/catalogs/canonical/v0.8"));
     }
 
     @Test
@@ -154,6 +176,7 @@ class TransformPromptsTest {
     void shouldContainCanonicalComponentGuidance() {
       String prompt = TransformPrompts.TRANSFORM_SYSTEM_PROMPT;
 
+      assertTrue(prompt.contains("Spring A2UI runtime"));
       assertTrue(prompt.contains("Card"));
       assertTrue(prompt.contains("List"));
       assertTrue(prompt.contains("Table"));
@@ -174,6 +197,9 @@ class TransformPromptsTest {
     void shouldIncludeDeterministicContractRequirements() {
       String prompt = TransformPrompts.TRANSFORM_SYSTEM_PROMPT;
 
+      assertTrue(
+          prompt.contains(
+              "the runtime's canonical JSON response, which will be validated and mapped to A2UI v0.8 messages"));
       assertTrue(prompt.contains("The only valid `type` values are \"text\" and \"component\"."));
       assertTrue(prompt.contains("\"type\": \"component\""));
       assertTrue(prompt.contains("\"componentType\": \"Card\""));

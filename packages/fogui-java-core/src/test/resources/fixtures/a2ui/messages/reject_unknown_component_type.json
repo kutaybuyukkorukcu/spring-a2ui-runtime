@@ -1,0 +1,28 @@
+{
+  "name": "surfaceUpdate rejects component types outside the published catalog",
+  "requestedVersion": "0.8",
+  "messages": [
+    {
+      "surfaceUpdate": {
+        "surfaceId": "main",
+        "components": [
+          {
+            "id": "root",
+            "component": {
+              "UnsupportedCard": {
+                "title": "Hello"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "expectedErrors": [
+    {
+      "path": "$[0].surfaceUpdate.components[0].component.UnsupportedCard",
+      "code": "UNKNOWN_COMPONENT_TYPE",
+      "category": "VALIDATION"
+    }
+  ]
+}

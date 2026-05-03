@@ -20,8 +20,14 @@ public class A2UiOutboundMapper {
 
     private static final Set<String> EXPLICIT_CHILD_COMPONENTS = Set.of("Column", "Container", "List", "Row", "Tabs");
 
+    private final A2UiMessageValidator messageValidator = new A2UiMessageValidator();
+
     public List<A2UiMessage> toMessages(GenerativeUIResponse response) {
-        return toMessages(response, DEFAULT_SURFACE_ID, true);
+        return toMessages(response, DEFAULT_SURFACE_ID, true, DEFAULT_CATALOG_ID);
+    }
+
+    public List<A2UiMessage> toMessages(GenerativeUIResponse response, String catalogId) {
+        return toMessages(response, DEFAULT_SURFACE_ID, true, catalogId);
     }
 
     public List<A2UiMessage> toMessages(
@@ -29,11 +35,22 @@ public class A2UiOutboundMapper {
             String surfaceId,
             boolean includeBeginRendering
     ) {
+        return toMessages(response, surfaceId, includeBeginRendering, DEFAULT_CATALOG_ID);
+    }
+
+    public List<A2UiMessage> toMessages(
+            GenerativeUIResponse response,
+            String surfaceId,
+            boolean includeBeginRendering,
+            String catalogId
+    ) {
         List<A2UiMessage.ComponentDefinition> components = new ArrayList<>();
         List<String> childIds = new ArrayList<>();
         List<ContentBlock> content = response == null || response.getContent() == null
                 ? List.of()
                 : response.getContent();
+        String selectedCatalogId =
+                catalogId == null || catalogId.isBlank() ? DEFAULT_CATALOG_ID : catalogId;
 
         for (int index = 0; index < content.size(); index++) {
             childIds.add(flattenBlock(content.get(index), "content-" + index, components));
@@ -54,12 +71,21 @@ public class A2UiOutboundMapper {
                     .beginRendering(A2UiMessage.BeginRendering.builder()
                             .surfaceId(surfaceId)
                             .root(DEFAULT_ROOT_COMPONENT_ID)
-                            .catalogId(DEFAULT_CATALOG_ID)
+                    .catalogId(selectedCatalogId)
                             .build())
                     .build());
         }
 
-        return messages;
+                List<A2UiValidationError> diagnostics = messageValidator.validate(
+                    messages,
+                    A2UiValidationContext.forVersion(A2UiProtocol.SUPPORTED_VERSION));
+                if (!diagnostics.isEmpty()) {
+                    throw new A2UiMessageValidationException(
+                        "Generated A2UI messages failed validation",
+                        diagnostics);
+                }
+
+                return messages;
     }
 
     public A2UiErrorResponse toErrorResponse(String message, String code, Object details, String requestId) {
@@ -140,7 +166,6 @@ public class A2UiOutboundMapper {
                 .build();
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, Object> copyObjectMap(Object value) {
         if (!(value instanceof Map<?, ?> map)) {
             return new LinkedHashMap<>();
@@ -153,7 +178,6 @@ public class A2UiOutboundMapper {
         return copy;
     }
 
-    @SuppressWarnings("unchecked")
     private Object copyValue(Object value) {
         if (value instanceof Map<?, ?> map) {
             LinkedHashMap<String, Object> copy = new LinkedHashMap<>();
