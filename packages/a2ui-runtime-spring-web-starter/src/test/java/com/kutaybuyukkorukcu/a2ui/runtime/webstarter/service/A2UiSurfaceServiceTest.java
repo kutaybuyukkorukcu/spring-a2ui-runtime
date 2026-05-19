@@ -102,4 +102,17 @@ class A2UiSurfaceServiceTest {
         when(runtime.getActiveModelName()).thenReturn("gpt-4o");
         assertThat(service.getActiveModelName()).isEqualTo("gpt-4o");
     }
+
+    @Test
+    void shouldStreamAndValidateEachMessage() {
+        A2UiSurfaceRequest request = new A2UiSurfaceRequest("show a button", null, null);
+        A2UiMessage msg = new A2UiMessage.SurfaceUpdate("main", List.of());
+        when(runtime.stream(any(), anyString(), anyString())).thenReturn(Flux.just(msg));
+        when(validator.validateSingle(any())).thenReturn(List.of());
+
+        Flux<A2UiMessage> result = service.stream(request, "req-1", A2UiCatalogIds.STANDARD_V0_8);
+        List<A2UiMessage> collected = result.collectList().block();
+        assertThat(collected).hasSize(1);
+        verify(validator).validateSingle(msg);
+    }
 }

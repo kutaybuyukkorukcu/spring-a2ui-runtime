@@ -19,6 +19,12 @@ public record A2UiSurfaceRequest(
     ) {}
 
     public record ClientCapabilities(
-            @JsonProperty("supportedCatalogIds") List<String> supportedCatalogIds
-    ) {}
+            @JsonProperty("supportedCatalogIds") List<String> supportedCatalogIds,
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @JsonProperty("inlineCatalogs") List<Map<String, Object>> inlineCatalogs
+    ) {
+        public ClientCapabilities(List<String> supportedCatalogIds) {
+            this(supportedCatalogIds, null);
+        }
+    }
 }

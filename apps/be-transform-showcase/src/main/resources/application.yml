@@ -1,0 +1,58 @@
+server:
+  port: 5001
+
+spring:
+  application:
+    name: a2ui-showcase-host
+
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:${GROQ_API_KEY:}}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      chat:
+        options:
+          model: ${OPENAI_MODEL:gpt-4.1-nano}
+          temperature: 0.0
+
+a2ui:
+  runtime:
+    deterministic:
+      temperature: ${A2UI_RUNTIME_TEMPERATURE:0.0}
+      top-p: ${A2UI_RUNTIME_TOP_P:1.0}
+      capabilities:
+        temperature: ${A2UI_RUNTIME_CAP_TEMPERATURE:true}
+        top-p: ${A2UI_RUNTIME_CAP_TOP_P:true}
+        seed: ${A2UI_RUNTIME_CAP_SEED:true}
+        max-tokens: ${A2UI_RUNTIME_CAP_MAX_TOKENS:true}
+        max-completion-tokens: ${A2UI_RUNTIME_CAP_MAX_COMPLETION_TOKENS:true}
+    advisors:
+      enabled: ${A2UI_RUNTIME_ADVISORS_ENABLED:true}
+      fail-fast: ${A2UI_RUNTIME_ADVISORS_FAIL_FAST:true}
+      deterministic-options:
+        enabled: ${A2UI_RUNTIME_ADVISORS_DETERMINISTIC_OPTIONS_ENABLED:true}
+      runtime-validation:
+        enabled: ${A2UI_RUNTIME_ADVISORS_RUNTIME_VALIDATION_ENABLED:true}
+
+management:
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+logging:
+  level:
+    "[com.kutaybuyukkorukcu.a2ui]": DEBUG
+    "[org.springframework.ai]": DEBUG

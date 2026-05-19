@@ -4,133 +4,636 @@
   "description": "A2UI Standard Catalog v0.8",
   "components": {
     "Text": {
-      "type": "leaf",
+      "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "text": { "type": "BoundValue", "required": true },
-        "usageHint": { "type": "enum", "values": ["heading", "subheading", "body", "caption", "code"], "required": false }
-      }
+        "text": {
+          "type": "object",
+          "description": "The text content to display. This can be a literal string or a reference to a value in the data model ('path', e.g., '/doc/title'). While simple Markdown formatting is supported (i.e. without HTML, images, or links), utilizing dedicated UI components is generally preferred for a richer and more structured presentation.",
+          "additionalProperties": false,
+          "properties": {
+            "literalString": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        },
+        "usageHint": {
+          "type": "string",
+          "description": "A hint for the base text style. One of: h1, h2, h3, h4, h5, caption, body.",
+          "enum": ["h1", "h2", "h3", "h4", "h5", "caption", "body"]
+        }
+      },
+      "required": ["text"]
     },
     "Image": {
-      "type": "leaf",
+      "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "url": { "type": "BoundValue", "required": true },
-        "altText": { "type": "BoundValue", "required": false },
-        "fit": { "type": "enum", "values": ["fill", "contain", "cover", "fitWidth", "fitHeight", "none"], "required": false },
-        "usageHint": { "type": "enum", "values": ["hero", "thumbnail", "inline", "background"], "required": false }
-      }
+        "url": {
+          "type": "object",
+          "description": "The URL of the image to display. This can be a literal string ('literal') or a reference to a value in the data model ('path', e.g. '/thumbnail/url').",
+          "additionalProperties": false,
+          "properties": {
+            "literalString": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        },
+        "altText": {
+          "type": "object",
+          "description": "The alt text for the image. This can be a literal string ('literal') or a reference to a value in the data model ('path', e.g. '/thumbnail/altText').",
+          "additionalProperties": false,
+          "properties": {
+            "literalString": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        },
+        "fit": {
+          "type": "string",
+          "description": "Specifies how the image should be resized to fit its container. This corresponds to the CSS 'object-fit' property.",
+          "enum": ["contain", "cover", "fill", "none", "scale-down"]
+        },
+        "usageHint": {
+          "type": "string",
+          "description": "A hint for the image size and style. One of: icon, avatar, smallFeature, mediumFeature, largeFeature, header.",
+          "enum": ["icon", "avatar", "smallFeature", "mediumFeature", "largeFeature", "header"]
+        }
+      },
+      "required": ["url"]
     },
     "Icon": {
-      "type": "leaf",
+      "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "name": { "type": "BoundValue", "required": true }
-      }
+        "name": {
+          "type": "object",
+          "description": "The name of the icon to display. This can be a literal string or a reference to a value in the data model ('path', e.g. '/form/submit').",
+          "additionalProperties": false,
+          "properties": {
+            "literalString": {
+              "type": "string",
+              "enum": [
+                "accountCircle", "add", "arrowBack", "arrowForward", "attachFile",
+                "calendarToday", "call", "camera", "check", "close", "delete",
+                "download", "edit", "event", "error", "favorite", "favoriteOff",
+                "folder", "help", "home", "info", "locationOn", "lock", "lockOpen",
+                "mail", "menu", "moreVert", "moreHoriz", "notificationsOff",
+                "notifications", "payment", "person", "phone", "photo", "print",
+                "refresh", "search", "send", "settings", "share", "shoppingCart",
+                "star", "starHalf", "starOff", "upload", "visibility", "visibilityOff",
+                "warning"
+              ]
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": ["name"]
     },
     "Video": {
-      "type": "leaf",
+      "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "url": { "type": "BoundValue", "required": true }
-      }
+        "url": {
+          "type": "object",
+          "description": "The URL of the video to display. This can be a literal string or a reference to a value in the data model ('path', e.g. '/video/url').",
+          "additionalProperties": false,
+          "properties": {
+            "literalString": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": ["url"]
     },
     "AudioPlayer": {
-      "type": "leaf",
+      "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "url": { "type": "BoundValue", "required": true },
-        "description": { "type": "BoundValue", "required": false }
-      }
+        "url": {
+          "type": "object",
+          "description": "The URL of the audio to be played. This can be a literal string ('literal') or a reference to a value in the data model ('path', e.g. '/song/url').",
+          "additionalProperties": false,
+          "properties": {
+            "literalString": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        },
+        "description": {
+          "type": "object",
+          "description": "A description of the audio, such as a title or summary. This can be a literal string or a reference to a value in the data model ('path', e.g. '/song/title').",
+          "additionalProperties": false,
+          "properties": {
+            "literalString": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": ["url"]
     },
     "Row": {
-      "type": "container",
-      "children": "list",
+      "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "distribution": { "type": "enum", "values": ["equal", "proportionalToWeight", "fillEqually"], "required": false },
-        "alignment": { "type": "enum", "values": ["leading", "center", "trailing"], "required": false }
-      }
+        "children": {
+          "type": "object",
+          "description": "Defines the children. Use 'explicitList' for a fixed set of children, or 'template' to generate children from a data list.",
+          "additionalProperties": false,
+          "properties": {
+            "explicitList": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "template": {
+              "type": "object",
+              "description": "A template for generating a dynamic list of children from a data model list.",
+              "additionalProperties": false,
+              "properties": {
+                "componentId": {
+                  "type": "string"
+                },
+                "dataBinding": {
+                  "type": "string"
+                }
+              },
+              "required": ["componentId", "dataBinding"]
+            }
+          }
+        },
+        "distribution": {
+          "type": "string",
+          "description": "Defines the arrangement of children along the main axis (horizontally). This corresponds to the CSS 'justify-content' property.",
+          "enum": ["center", "end", "spaceAround", "spaceBetween", "spaceEvenly", "start"]
+        },
+        "alignment": {
+          "type": "string",
+          "description": "Defines the alignment of children along the cross axis (vertically). This corresponds to the CSS 'align-items' property.",
+          "enum": ["start", "center", "end", "stretch"]
+        }
+      },
+      "required": ["children"]
     },
     "Column": {
-      "type": "container",
-      "children": "list",
+      "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "distribution": { "type": "enum", "values": ["equal", "proportionalToWeight", "fillEqually"], "required": false },
-        "alignment": { "type": "enum", "values": ["leading", "center", "trailing"], "required": false }
-      }
+        "children": {
+          "type": "object",
+          "description": "Defines the children. Use 'explicitList' for a fixed set of children, or 'template' to generate children from a data list.",
+          "additionalProperties": false,
+          "properties": {
+            "explicitList": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "template": {
+              "type": "object",
+              "description": "A template for generating a dynamic list of children from a data model list.",
+              "additionalProperties": false,
+              "properties": {
+                "componentId": {
+                  "type": "string"
+                },
+                "dataBinding": {
+                  "type": "string"
+                }
+              },
+              "required": ["componentId", "dataBinding"]
+            }
+          }
+        },
+        "distribution": {
+          "type": "string",
+          "description": "Defines the arrangement of children along the main axis (vertically). This corresponds to the CSS 'justify-content' property.",
+          "enum": ["start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly"]
+        },
+        "alignment": {
+          "type": "string",
+          "description": "Defines the alignment of children along the cross axis (horizontally). This corresponds to the CSS 'align-items' property.",
+          "enum": ["center", "end", "start", "stretch"]
+        }
+      },
+      "required": ["children"]
     },
     "List": {
-      "type": "container",
-      "children": "list",
+      "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "direction": { "type": "enum", "values": ["vertical", "horizontal"], "required": false },
-        "alignment": { "type": "enum", "values": ["leading", "center", "trailing"], "required": false }
-      }
+        "children": {
+          "type": "object",
+          "description": "Defines the children. Use 'explicitList' for a fixed set of children, or 'template' to generate children from a data list.",
+          "additionalProperties": false,
+          "properties": {
+            "explicitList": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "template": {
+              "type": "object",
+              "description": "A template for generating a dynamic list of children from a data model list.",
+              "additionalProperties": false,
+              "properties": {
+                "componentId": {
+                  "type": "string"
+                },
+                "dataBinding": {
+                  "type": "string"
+                }
+              },
+              "required": ["componentId", "dataBinding"]
+            }
+          }
+        },
+        "direction": {
+          "type": "string",
+          "description": "The direction in which the list items are laid out.",
+          "enum": ["vertical", "horizontal"]
+        },
+        "alignment": {
+          "type": "string",
+          "description": "Defines the alignment of children along the cross axis.",
+          "enum": ["start", "center", "end", "stretch"]
+        }
+      },
+      "required": ["children"]
     },
     "Card": {
-      "type": "container",
-      "children": "single",
-      "properties": {}
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "child": {
+          "type": "string",
+          "description": "The ID of the component to be rendered inside the card."
+        }
+      },
+      "required": ["child"]
     },
     "Tabs": {
-      "type": "container",
-      "children": "tabItems",
-      "properties": {}
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tabItems": {
+          "type": "array",
+          "description": "An array of objects, where each object defines a tab with a title and a child component.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "title": {
+                "type": "object",
+                "description": "The tab title. Defines the value as either a literal value or a path to data model value.",
+                "additionalProperties": false,
+                "properties": {
+                  "literalString": {
+                    "type": "string"
+                  },
+                  "path": {
+                    "type": "string"
+                  }
+                }
+              },
+              "child": {
+                "type": "string"
+              }
+            },
+            "required": ["title", "child"]
+          }
+        }
+      },
+      "required": ["tabItems"]
     },
     "Divider": {
-      "type": "leaf",
+      "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "axis": { "type": "enum", "values": ["horizontal", "vertical"], "required": false }
+        "axis": {
+          "type": "string",
+          "description": "The orientation of the divider.",
+          "enum": ["horizontal", "vertical"]
+        }
       }
     },
     "Modal": {
-      "type": "container",
-      "children": "dual",
-      "properties": {}
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entryPointChild": {
+          "type": "string",
+          "description": "The ID of the component that opens the modal when interacted with (e.g., a button)."
+        },
+        "contentChild": {
+          "type": "string",
+          "description": "The ID of the component to be displayed inside the modal."
+        }
+      },
+      "required": ["entryPointChild", "contentChild"]
     },
     "Button": {
-      "type": "container",
-      "children": "single",
+      "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "primary": { "type": "boolean", "required": false },
-        "action": { "type": "action", "required": false }
-      }
+        "child": {
+          "type": "string",
+          "description": "The ID of the component to display in the button, typically a Text component."
+        },
+        "primary": {
+          "type": "boolean",
+          "description": "Indicates if this button should be styled as the primary action."
+        },
+        "action": {
+          "type": "object",
+          "description": "The client-side action to be dispatched when the button is clicked.",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "context": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "object",
+                    "description": "Defines the value to be included in the context.",
+                    "additionalProperties": false,
+                    "properties": {
+                      "path": {
+                        "type": "string"
+                      },
+                      "literalString": {
+                        "type": "string"
+                      },
+                      "literalNumber": {
+                        "type": "number"
+                      },
+                      "literalBoolean": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                },
+                "required": ["key", "value"]
+              }
+            }
+          },
+          "required": ["name"]
+        }
+      },
+      "required": ["child", "action"]
     },
     "CheckBox": {
-      "type": "leaf",
+      "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "label": { "type": "BoundValue", "required": true },
-        "value": { "type": "BoundValue", "required": true }
-      }
+        "label": {
+          "type": "object",
+          "description": "The text to display next to the checkbox.",
+          "additionalProperties": false,
+          "properties": {
+            "literalString": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        },
+        "value": {
+          "type": "object",
+          "description": "The current state of the checkbox (true for checked, false for unchecked).",
+          "additionalProperties": false,
+          "properties": {
+            "literalBoolean": {
+              "type": "boolean"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": ["label", "value"]
     },
     "TextField": {
-      "type": "leaf",
+      "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "label": { "type": "BoundValue", "required": true },
-        "text": { "type": "BoundValue", "required": false },
-        "textFieldType": { "type": "enum", "values": ["singleLine", "multiLine", "password", "email"], "required": false },
-        "validationRegexp": { "type": "string", "required": false }
-      }
+        "label": {
+          "type": "object",
+          "description": "The text label for the input field.",
+          "additionalProperties": false,
+          "properties": {
+            "literalString": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        },
+        "text": {
+          "type": "object",
+          "description": "The value of the text field.",
+          "additionalProperties": false,
+          "properties": {
+            "literalString": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        },
+        "textFieldType": {
+          "type": "string",
+          "description": "The type of input field to display.",
+          "enum": ["date", "longText", "number", "shortText", "obscured"]
+        },
+        "validationRegexp": {
+          "type": "string",
+          "description": "A regular expression used for client-side validation of the input."
+        }
+      },
+      "required": ["label"]
     },
     "DateTimeInput": {
-      "type": "leaf",
+      "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "value": { "type": "BoundValue", "required": true },
-        "enableDate": { "type": "boolean", "required": false },
-        "enableTime": { "type": "boolean", "required": false }
-      }
+        "value": {
+          "type": "object",
+          "description": "The selected date and/or time value in ISO 8601 format.",
+          "additionalProperties": false,
+          "properties": {
+            "literalString": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        },
+        "enableDate": {
+          "type": "boolean",
+          "description": "If true, allows the user to select a date."
+        },
+        "enableTime": {
+          "type": "boolean",
+          "description": "If true, allows the user to select a time."
+        }
+      },
+      "required": ["value"]
     },
     "MultipleChoice": {
-      "type": "leaf",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["selections", "options"],
       "properties": {
-        "selections": { "type": "BoundValue", "required": true },
-        "options": { "type": "array", "required": true },
-        "maxAllowedSelections": { "type": "integer", "required": false }
+        "selections": {
+          "type": "object",
+          "description": "The currently selected values for the component.",
+          "additionalProperties": false,
+          "properties": {
+            "literalArray": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        },
+        "options": {
+          "type": "array",
+          "description": "An array of available options for the user to choose from.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "label": {
+                "type": "object",
+                "description": "The text to display for this option.",
+                "additionalProperties": false,
+                "properties": {
+                  "literalString": {
+                    "type": "string"
+                  },
+                  "path": {
+                    "type": "string"
+                  }
+                }
+              },
+              "value": {
+                "type": "string",
+                "description": "The value to be associated with this option when selected."
+              }
+            },
+            "required": ["label", "value"]
+          }
+        },
+        "maxAllowedSelections": {
+          "type": "integer",
+          "description": "The maximum number of options that the user is allowed to select."
+        },
+        "variant": {
+          "type": "string",
+          "description": "The display style of the component.",
+          "enum": ["checkbox", "chips"]
+        },
+        "filterable": {
+          "type": "boolean",
+          "description": "If true, displays a search input to filter the options."
+        }
       }
     },
     "Slider": {
-      "type": "leaf",
+      "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "value": { "type": "BoundValue", "required": true },
-        "label": { "type": "BoundValue", "required": false },
-        "minValue": { "type": "number", "required": false },
-        "maxValue": { "type": "number", "required": false }
-      }
+        "label": {
+          "type": "object",
+          "description": "The label for the slider.",
+          "additionalProperties": false,
+          "properties": {
+            "literalString": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        },
+        "value": {
+          "type": "object",
+          "description": "The current value of the slider.",
+          "additionalProperties": false,
+          "properties": {
+            "literalNumber": {
+              "type": "number"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        },
+        "minValue": {
+          "type": "number",
+          "description": "The minimum value of the slider."
+        },
+        "maxValue": {
+          "type": "number",
+          "description": "The maximum value of the slider."
+        }
+      },
+      "required": ["value"]
+    }
+  },
+  "styles": {
+    "font": {
+      "type": "string",
+      "description": "The primary font for the UI."
+    },
+    "primaryColor": {
+      "type": "string",
+      "description": "The primary UI color as a hexadecimal code (e.g., '#00BFFF').",
+      "pattern": "^#[0-9a-fA-F]{6}$"
     }
   }
 }

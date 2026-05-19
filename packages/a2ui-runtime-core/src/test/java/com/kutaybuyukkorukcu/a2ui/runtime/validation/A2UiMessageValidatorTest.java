@@ -178,4 +178,26 @@ class A2UiMessageValidatorTest {
         List<A2UiDiagnostic> diagnostics = validator.validate(List.of(dmu));
         assertThat(diagnostics).isEmpty();
     }
+
+    @Test
+    void shouldValidateSingleMessageValidSurfaceUpdate() {
+        ComponentDefinition text = new ComponentDefinition("txt-1", Map.of("Text", Map.of("text", Map.of("literalString", "Hello"))));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(text));
+        List<A2UiDiagnostic> diagnostics = validator.validateSingle(su);
+        assertThat(diagnostics).isEmpty();
+    }
+
+    @Test
+    void shouldValidateSingleMessageMissingSurfaceId() {
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate(null, List.of());
+        List<A2UiDiagnostic> diagnostics = validator.validateSingle(su);
+        assertThat(diagnostics).anyMatch(d -> d.code().equals(A2UiErrorCode.MISSING_SURFACE_ID.code()));
+    }
+
+    @Test
+    void shouldValidateSingleMessageBeginRenderingWithValidCatalog() {
+        A2UiMessage.BeginRendering br = new A2UiMessage.BeginRendering("main", "root", A2UiCatalogIds.STANDARD_V0_8, null);
+        List<A2UiDiagnostic> diagnostics = validator.validateSingle(br);
+        assertThat(diagnostics).noneMatch(d -> d.code().equals(A2UiErrorCode.UNSUPPORTED_CATALOG_ID.code()));
+    }
 }

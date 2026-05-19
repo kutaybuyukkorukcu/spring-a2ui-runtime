@@ -3,6 +3,7 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 
+import java.util.Set;
 import java.util.StringJoiner;
 
 public class DefaultA2UiPromptProvider implements A2UiPromptProvider {
@@ -48,8 +49,12 @@ public class DefaultA2UiPromptProvider implements A2UiPromptProvider {
     @Override
     public String createSystemPrompt(A2UiPromptContext context) {
         String catalogId = context.catalogId() != null ? context.catalogId() : A2UiCatalogIds.STANDARD_V0_8;
-        String componentTypes = String.join(", ", CATALOG_REGISTRY.supportedComponentTypes());
-        return String.format(SYSTEM_PROMPT_TEMPLATE, catalogId, componentTypes);
+        Set<String> componentTypes = CATALOG_REGISTRY.componentTypesForCatalog(catalogId);
+        if (componentTypes.isEmpty()) {
+            componentTypes = CATALOG_REGISTRY.supportedComponentTypes();
+        }
+        String componentTypesStr = String.join(", ", componentTypes);
+        return String.format(SYSTEM_PROMPT_TEMPLATE, catalogId, componentTypesStr);
     }
 
     @Override

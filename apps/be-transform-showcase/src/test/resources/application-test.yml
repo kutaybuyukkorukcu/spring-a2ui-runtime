@@ -1,0 +1,12 @@
+spring:
+  ai:
+    openai:
+      api-key: test-openai-api-key
+      base-url: https://api.groq.com/openai
+      chat:
+        options:
+          model: llama-3.3-70b-versatile
+
+logging:
+  level:
+    com.kutaybuyukkorukcu.a2ui: DEBUG

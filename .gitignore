@@ -17,3 +17,9 @@ target/
 
 # Logs
 *.log
+
+# Node.js
+node_modules/
+dist/
+*.local
+.env

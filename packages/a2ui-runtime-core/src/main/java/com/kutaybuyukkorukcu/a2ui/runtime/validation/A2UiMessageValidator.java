@@ -57,6 +57,17 @@ public class A2UiMessageValidator {
         return validate(messages).isEmpty();
     }
 
+    public List<A2UiDiagnostic> validateSingle(A2UiMessage message) {
+        return validateSingle(message, A2UiValidationContext.empty());
+    }
+
+    public List<A2UiDiagnostic> validateSingle(A2UiMessage message, A2UiValidationContext context) {
+        List<A2UiDiagnostic> diagnostics = new ArrayList<>();
+        validateVersion(context, diagnostics);
+        validateMessage(message, "$[0]", diagnostics);
+        return diagnostics;
+    }
+
     private void validateVersion(A2UiValidationContext context, List<A2UiDiagnostic> diagnostics) {
         if (context == null || context.requestedVersion() == null || context.requestedVersion().isBlank()) {
             return;
