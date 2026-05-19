@@ -1,0 +1,19 @@
+# Build output
+target/
+*.class
+
+# Maven
+.flattened-pom.xml
+.mvn/timing.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.code-workspace
+
+# macOS
+.DS_Store
+
+# Logs
+*.log

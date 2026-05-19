@@ -1,0 +1,136 @@
+{
+  "catalogId": "https://a2ui.org/specification/v0_8/standard_catalog_definition.json",
+  "version": "0.8",
+  "description": "A2UI Standard Catalog v0.8",
+  "components": {
+    "Text": {
+      "type": "leaf",
+      "properties": {
+        "text": { "type": "BoundValue", "required": true },
+        "usageHint": { "type": "enum", "values": ["heading", "subheading", "body", "caption", "code"], "required": false }
+      }
+    },
+    "Image": {
+      "type": "leaf",
+      "properties": {
+        "url": { "type": "BoundValue", "required": true },
+        "altText": { "type": "BoundValue", "required": false },
+        "fit": { "type": "enum", "values": ["fill", "contain", "cover", "fitWidth", "fitHeight", "none"], "required": false },
+        "usageHint": { "type": "enum", "values": ["hero", "thumbnail", "inline", "background"], "required": false }
+      }
+    },
+    "Icon": {
+      "type": "leaf",
+      "properties": {
+        "name": { "type": "BoundValue", "required": true }
+      }
+    },
+    "Video": {
+      "type": "leaf",
+      "properties": {
+        "url": { "type": "BoundValue", "required": true }
+      }
+    },
+    "AudioPlayer": {
+      "type": "leaf",
+      "properties": {
+        "url": { "type": "BoundValue", "required": true },
+        "description": { "type": "BoundValue", "required": false }
+      }
+    },
+    "Row": {
+      "type": "container",
+      "children": "list",
+      "properties": {
+        "distribution": { "type": "enum", "values": ["equal", "proportionalToWeight", "fillEqually"], "required": false },
+        "alignment": { "type": "enum", "values": ["leading", "center", "trailing"], "required": false }
+      }
+    },
+    "Column": {
+      "type": "container",
+      "children": "list",
+      "properties": {
+        "distribution": { "type": "enum", "values": ["equal", "proportionalToWeight", "fillEqually"], "required": false },
+        "alignment": { "type": "enum", "values": ["leading", "center", "trailing"], "required": false }
+      }
+    },
+    "List": {
+      "type": "container",
+      "children": "list",
+      "properties": {
+        "direction": { "type": "enum", "values": ["vertical", "horizontal"], "required": false },
+        "alignment": { "type": "enum", "values": ["leading", "center", "trailing"], "required": false }
+      }
+    },
+    "Card": {
+      "type": "container",
+      "children": "single",
+      "properties": {}
+    },
+    "Tabs": {
+      "type": "container",
+      "children": "tabItems",
+      "properties": {}
+    },
+    "Divider": {
+      "type": "leaf",
+      "properties": {
+        "axis": { "type": "enum", "values": ["horizontal", "vertical"], "required": false }
+      }
+    },
+    "Modal": {
+      "type": "container",
+      "children": "dual",
+      "properties": {}
+    },
+    "Button": {
+      "type": "container",
+      "children": "single",
+      "properties": {
+        "primary": { "type": "boolean", "required": false },
+        "action": { "type": "action", "required": false }
+      }
+    },
+    "CheckBox": {
+      "type": "leaf",
+      "properties": {
+        "label": { "type": "BoundValue", "required": true },
+        "value": { "type": "BoundValue", "required": true }
+      }
+    },
+    "TextField": {
+      "type": "leaf",
+      "properties": {
+        "label": { "type": "BoundValue", "required": true },
+        "text": { "type": "BoundValue", "required": false },
+        "textFieldType": { "type": "enum", "values": ["singleLine", "multiLine", "password", "email"], "required": false },
+        "validationRegexp": { "type": "string", "required": false }
+      }
+    },
+    "DateTimeInput": {
+      "type": "leaf",
+      "properties": {
+        "value": { "type": "BoundValue", "required": true },
+        "enableDate": { "type": "boolean", "required": false },
+        "enableTime": { "type": "boolean", "required": false }
+      }
+    },
+    "MultipleChoice": {
+      "type": "leaf",
+      "properties": {
+        "selections": { "type": "BoundValue", "required": true },
+        "options": { "type": "array", "required": true },
+        "maxAllowedSelections": { "type": "integer", "required": false }
+      }
+    },
+    "Slider": {
+      "type": "leaf",
+      "properties": {
+        "value": { "type": "BoundValue", "required": true },
+        "label": { "type": "BoundValue", "required": false },
+        "minValue": { "type": "number", "required": false },
+        "maxValue": { "type": "number", "required": false }
+      }
+    }
+  }
+}
