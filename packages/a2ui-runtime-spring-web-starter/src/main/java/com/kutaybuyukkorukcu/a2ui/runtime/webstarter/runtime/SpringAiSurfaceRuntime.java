@@ -1,9 +1,9 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.llm.A2UiLlmOutput;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.llm.A2UiLlmOutputMapper;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.A2UiSurfaceRequest;
-import com.kutaybuyukkorukcu.a2ui.runtime.parse.A2UiMessageParser;
-import com.kutaybuyukkorukcu.a2ui.runtime.parse.A2UiParseException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiPromptContext;
@@ -13,6 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
+import org.springframework.ai.converter.BeanOutputConverter;
+import org.springframework.ai.chat.client.AdvisorParams;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
 
@@ -29,20 +31,21 @@ public class SpringAiSurfaceRuntime implements A2UiSurfaceRuntime {
     private final Environment environment;
     private final A2UiWebProperties properties;
     private final A2UiPromptProvider promptProvider;
-    private final A2UiMessageParser messageParser;
+    private final A2UiLlmOutputMapper llmOutputMapper;
 
     public SpringAiSurfaceRuntime(
             ObjectProvider<ChatClient.Builder> chatClientBuilderProvider,
             List<Advisor> advisors,
             Environment environment,
             A2UiWebProperties properties,
-            A2UiPromptProvider promptProvider) {
+            A2UiPromptProvider promptProvider,
+            A2UiLlmOutputMapper llmOutputMapper) {
         this.chatClientBuilderProvider = chatClientBuilderProvider;
         this.advisors = advisors == null ? List.of() : advisors;
         this.environment = environment;
         this.properties = properties;
         this.promptProvider = promptProvider;
-        this.messageParser = new A2UiMessageParser();
+        this.llmOutputMapper = llmOutputMapper;
     }
 
     @Override
@@ -59,31 +62,23 @@ public class SpringAiSurfaceRuntime implements A2UiSurfaceRuntime {
         String systemPrompt = promptProvider.createSystemPrompt(promptContext);
         String userPrompt = promptProvider.createUserPrompt(promptContext);
 
-        String rawResponse = chatClient.prompt()
+        A2UiLlmOutput output = chatClient.prompt()
                 .system(systemPrompt)
                 .user(userPrompt)
                 .call()
-                .content();
+                .entity(A2UiLlmOutput.class);
 
-        if (rawResponse == null || rawResponse.isBlank()) {
+        if (output == null || output.messages() == null || output.messages().isEmpty()) {
             throw new SurfaceExecutionException(
-                    "LLM returned empty response",
+                    "LLM returned empty or unparseable response",
                     SurfaceErrorCodes.TRANSFORM_FAILED, null);
         }
 
-        A2UiMessageParser.ParseResult result = messageParser.bestEffortParse(rawResponse);
+        List<A2UiMessage> messages = llmOutputMapper.map(output);
 
-        if (result.messages().isEmpty() && result.hasFailures()) {
-            throw new SurfaceExecutionException(
-                    "Failed to parse any A2UI messages from LLM response",
-                    SurfaceErrorCodes.TRANSFORM_PARSE_FAILED,
-                    result.failures());
-        }
+        LOGGER.info("Generated {} A2UI messages", messages.size());
 
-        LOGGER.info("Generated {} A2UI messages ({} parse failures)",
-                result.messages().size(), result.failures().size());
-
-        return result.messages();
+        return messages;
     }
 
     @Override
@@ -99,13 +94,14 @@ public class SpringAiSurfaceRuntime implements A2UiSurfaceRuntime {
         if (builder == null) {
             throw new IllegalStateException("No ChatClient.Builder available. Ensure a ChatModel is configured.");
         }
+        builder = builder.defaultAdvisors(AdvisorParams.ENABLE_NATIVE_STRUCTURED_OUTPUT);
         for (Advisor advisor : advisors) {
             builder = builder.defaultAdvisors(advisor);
         }
         return builder.build();
     }
 
-@Override
+    @Override
     public Flux<A2UiMessage> stream(A2UiSurfaceRequest request, String requestId, String catalogId) {
         ChatClient chatClient = createClient();
 
@@ -119,52 +115,18 @@ public class SpringAiSurfaceRuntime implements A2UiSurfaceRuntime {
         String systemPrompt = promptProvider.createSystemPrompt(promptContext);
         String userPrompt = promptProvider.createUserPrompt(promptContext);
 
-        JsonlLineAccumulator lineAccumulator = new JsonlLineAccumulator();
+        BeanOutputConverter<A2UiLlmOutput> converter = new BeanOutputConverter<>(A2UiLlmOutput.class);
 
         return chatClient.prompt()
                 .system(systemPrompt)
                 .user(userPrompt)
                 .stream()
                 .content()
-                .flatMap(chunk -> Flux.fromIterable(lineAccumulator.accumulate(chunk)))
-                .concatWith(Flux.defer(() -> Flux.fromIterable(lineAccumulator.flush())))
-                .map(line -> parseStreamLine(line));
-    }
-
-    private A2UiMessage parseStreamLine(String line) {
-        try {
-            return messageParser.parseLine(line, 0);
-        } catch (A2UiParseException e) {
-            throw new SurfaceExecutionException(
-                    "Failed to parse streaming A2UI message: " + e.getMessage(),
-                    SurfaceErrorCodes.TRANSFORM_PARSE_FAILED, null);
-        }
-    }
-
-    private static class JsonlLineAccumulator {
-        private final StringBuilder buffer = new StringBuilder();
-
-        List<String> accumulate(String chunk) {
-            buffer.append(chunk);
-            List<String> completeLines = new java.util.ArrayList<>();
-            int newlineIndex;
-            while ((newlineIndex = buffer.indexOf("\n")) >= 0) {
-                String line = buffer.substring(0, newlineIndex).trim();
-                if (!line.isEmpty()) {
-                    completeLines.add(line);
-                }
-                buffer.delete(0, newlineIndex + 1);
-            }
-            return completeLines;
-        }
-
-        List<String> flush() {
-            String remaining = buffer.toString().trim();
-            if (!remaining.isEmpty()) {
-                return List.of(remaining);
-            }
-            return List.of();
-        }
+                .reduce("", String::concat)
+                .flatMapMany(content -> {
+                    A2UiLlmOutput output = converter.convert(content);
+                    return Flux.fromIterable(llmOutputMapper.map(output));
+                });
     }
 
     private String buildContextHints(A2UiSurfaceRequest request) {

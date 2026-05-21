@@ -178,15 +178,6 @@ public class A2UiMessageValidator {
         if (isBlank(br.root())) {
             diagnostics.add(diagnostic(path + ".root", A2UiErrorCode.MISSING_ROOT, "root is required"));
         }
-        if (isBlank(br.catalogId())) {
-            diagnostics.add(diagnostic(path + ".catalogId", A2UiErrorCode.MISSING_CATALOG_ID, "catalogId is required"));
-        } else if (!catalogRegistry.isSupportedCatalogId(br.catalogId())) {
-            Map<String, Object> details = new LinkedHashMap<>();
-            details.put("catalogId", br.catalogId());
-            details.put("supportedCatalogIds", List.copyOf(catalogRegistry.supportedCatalogIds()));
-            diagnostics.add(diagnostic(path + ".catalogId", A2UiErrorCode.UNSUPPORTED_CATALOG_ID,
-                    "catalogId is not supported by this runtime", details));
-        }
     }
 
     private void validateDeleteSurface(String path, A2UiMessage.DeleteSurface ds, List<A2UiDiagnostic> diagnostics) {

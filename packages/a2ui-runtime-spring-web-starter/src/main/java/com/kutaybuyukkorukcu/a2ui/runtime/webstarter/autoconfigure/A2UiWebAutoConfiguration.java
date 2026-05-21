@@ -10,6 +10,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.controller.A2UiCatalogContr
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.controller.A2UiStreamController;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.controller.A2UiSurfaceController;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.filter.RequestCorrelationMdcFilter;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.llm.A2UiLlmOutputMapper;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiPromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.DefaultA2UiPromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.properties.A2UiWebProperties;
@@ -58,18 +59,26 @@ public class A2UiWebAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public A2UiLlmOutputMapper a2UiLlmOutputMapper(ObjectMapper objectMapper) {
+        return new A2UiLlmOutputMapper(objectMapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public A2UiSurfaceRuntime a2UiSurfaceRuntime(
             ObjectProvider<ChatClient.Builder> chatClientBuilderProvider,
             ObjectProvider<List<Advisor>> advisorProvider,
             Environment environment,
             A2UiWebProperties properties,
-            A2UiPromptProvider promptProvider) {
+            A2UiPromptProvider promptProvider,
+            A2UiLlmOutputMapper llmOutputMapper) {
         return new SpringAiSurfaceRuntime(
                 chatClientBuilderProvider,
                 advisorProvider.getIfAvailable(List::of),
                 environment,
                 properties,
-                promptProvider);
+                promptProvider,
+                llmOutputMapper);
     }
 
     @Bean

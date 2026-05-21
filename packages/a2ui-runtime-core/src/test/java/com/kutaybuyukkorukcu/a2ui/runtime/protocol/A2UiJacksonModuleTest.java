@@ -45,7 +45,7 @@ class A2UiJacksonModuleTest {
         ComponentDefinition text = new ComponentDefinition("c1", Map.of("Text", Map.of()));
         A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("s1", List.of(text));
         A2UiMessage.DataModelUpdate dmu = new A2UiMessage.DataModelUpdate("s1", "p", List.of(DataEntry.ofString("k", "v")));
-        A2UiMessage.BeginRendering br = new A2UiMessage.BeginRendering("s1", "r1", "https://a2ui.org/specification/v0_8/standard_catalog_definition.json", null);
+        A2UiMessage.BeginRendering br = new A2UiMessage.BeginRendering("s1", "r1", null);
         A2UiMessage.DeleteSurface ds = new A2UiMessage.DeleteSurface("s1");
 
         for (A2UiMessage original : new A2UiMessage[]{su, dmu, br, ds}) {

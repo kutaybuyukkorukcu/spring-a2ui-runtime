@@ -26,7 +26,7 @@ class A2UiMessageParserTest {
     void shouldParseMultipleMessages() throws Exception {
         String line1 = "{\"surfaceUpdate\":{\"surfaceId\":\"main\",\"components\":[]}}";
         String line2 = "{\"dataModelUpdate\":{\"surfaceId\":\"main\",\"path\":\"user\",\"contents\":[{\"key\":\"name\",\"valueString\":\"Alice\"}]}}";
-        String line3 = "{\"beginRendering\":{\"surfaceId\":\"main\",\"root\":\"t1\",\"catalogId\":\"https://a2ui.org/specification/v0_8/standard_catalog_definition.json\"}}";
+        String line3 = "{\"beginRendering\":{\"surfaceId\":\"main\",\"root\":\"t1\"}}";
         String jsonl = line1 + "\n" + line2 + "\n" + line3;
         List<A2UiMessage> messages = parser.parseAll(jsonl);
         assertThat(messages).hasSize(3);

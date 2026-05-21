@@ -1,12 +1,20 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { A2UIProvider, A2UIRenderer, initializeDefaultCatalog } from '@a2ui/react/v0_8';
+import type { A2UIClientEventMessage } from '@a2ui/react/v0_8';
 import { useSurfaceGeneration } from '../hooks/useSurfaceGeneration';
 
 initializeDefaultCatalog();
 
-export function App() {
+function AppContent({ setActionHandler }: {
+  setActionHandler: (fn: ((event: A2UIClientEventMessage) => Promise<void>) | null) => void;
+}) {
   const { loading, error, mode, setMode, generate, clear, handleAction } = useSurfaceGeneration();
   const [input, setInput] = useState('');
+
+  useEffect(() => {
+    setActionHandler(handleAction);
+    return () => setActionHandler(null);
+  }, [handleAction, setActionHandler]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,7 +24,6 @@ export function App() {
   };
 
   return (
-    <A2UIProvider onAction={handleAction}>
       <div className="app">
         <header>
           <h1>A2UI Runtime Demo</h1>
@@ -82,6 +89,19 @@ export function App() {
           </form>
         </main>
       </div>
+  );
+}
+
+export function App() {
+  const actionHandlerRef = useRef<((event: A2UIClientEventMessage) => Promise<void>) | null>(null);
+
+  const onAction = useCallback((event: A2UIClientEventMessage) => {
+    return actionHandlerRef.current?.(event) ?? Promise.resolve();
+  }, []);
+
+  return (
+    <A2UIProvider onAction={onAction}>
+      <AppContent setActionHandler={(fn) => { actionHandlerRef.current = fn; }} />
     </A2UIProvider>
   );
 }

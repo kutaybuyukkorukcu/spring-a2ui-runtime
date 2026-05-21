@@ -1,6 +1,5 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.validation;
 
-import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiErrorCode;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiValidationContext;
@@ -60,7 +59,7 @@ class A2UiMessageValidatorTest {
     void shouldValidateBeginRenderingSequence() {
         ComponentDefinition text = new ComponentDefinition("root-1", Map.of("Text", Map.of("text", Map.of("literalString", "Hi"))));
         A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(text));
-        A2UiMessage.BeginRendering br = new A2UiMessage.BeginRendering("main", "root-1", A2UiCatalogIds.STANDARD_V0_8, null);
+        A2UiMessage.BeginRendering br = new A2UiMessage.BeginRendering("main", "root-1", null);
 
         List<A2UiDiagnostic> diagnostics = validator.validate(List.of(su, br));
         assertThat(diagnostics).isEmpty();
@@ -68,7 +67,7 @@ class A2UiMessageValidatorTest {
 
     @Test
     void shouldRejectBeginRenderingWithoutPrecedingSurfaceUpdate() {
-        A2UiMessage.BeginRendering br = new A2UiMessage.BeginRendering("main", "root-1", A2UiCatalogIds.STANDARD_V0_8, null);
+        A2UiMessage.BeginRendering br = new A2UiMessage.BeginRendering("main", "root-1", null);
         List<A2UiDiagnostic> diagnostics = validator.validate(List.of(br));
         assertThat(diagnostics).anyMatch(d -> d.code().equals(A2UiErrorCode.INVALID_MESSAGE_SEQUENCE.code()));
     }
@@ -77,7 +76,7 @@ class A2UiMessageValidatorTest {
     void shouldRejectBeginRenderingWithUnknownRoot() {
         ComponentDefinition text = new ComponentDefinition("txt-1", Map.of("Text", Map.of("text", Map.of("literalString", "Hi"))));
         A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(text));
-        A2UiMessage.BeginRendering br = new A2UiMessage.BeginRendering("main", "unknown-root", A2UiCatalogIds.STANDARD_V0_8, null);
+        A2UiMessage.BeginRendering br = new A2UiMessage.BeginRendering("main", "unknown-root", null);
 
         List<A2UiDiagnostic> diagnostics = validator.validate(List.of(su, br));
         assertThat(diagnostics).anyMatch(d -> d.code().equals(A2UiErrorCode.UNKNOWN_ROOT_COMPONENT.code()));
@@ -150,17 +149,10 @@ class A2UiMessageValidatorTest {
         A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(text));
         DataEntry entry = DataEntry.ofString("greeting", "Hello");
         A2UiMessage.DataModelUpdate dmu = new A2UiMessage.DataModelUpdate("main", null, List.of(entry));
-        A2UiMessage.BeginRendering br = new A2UiMessage.BeginRendering("main", "root-1", A2UiCatalogIds.STANDARD_V0_8, null);
+        A2UiMessage.BeginRendering br = new A2UiMessage.BeginRendering("main", "root-1", null);
 
         List<A2UiDiagnostic> diagnostics = validator.validate(List.of(su, dmu, br));
         assertThat(diagnostics).isEmpty();
-    }
-
-    @Test
-    void shouldRejectUnsupportedCatalogId() {
-        A2UiMessage.BeginRendering br = new A2UiMessage.BeginRendering("main", "root-1", "https://unknown.catalog/v1", null);
-        List<A2UiDiagnostic> diagnostics = validator.validate(List.of(br));
-        assertThat(diagnostics).anyMatch(d -> d.code().equals(A2UiErrorCode.UNSUPPORTED_CATALOG_ID.code()));
     }
 
     @Test
@@ -194,10 +186,4 @@ class A2UiMessageValidatorTest {
         assertThat(diagnostics).anyMatch(d -> d.code().equals(A2UiErrorCode.MISSING_SURFACE_ID.code()));
     }
 
-    @Test
-    void shouldValidateSingleMessageBeginRenderingWithValidCatalog() {
-        A2UiMessage.BeginRendering br = new A2UiMessage.BeginRendering("main", "root", A2UiCatalogIds.STANDARD_V0_8, null);
-        List<A2UiDiagnostic> diagnostics = validator.validateSingle(br);
-        assertThat(diagnostics).noneMatch(d -> d.code().equals(A2UiErrorCode.UNSUPPORTED_CATALOG_ID.code()));
     }
-}

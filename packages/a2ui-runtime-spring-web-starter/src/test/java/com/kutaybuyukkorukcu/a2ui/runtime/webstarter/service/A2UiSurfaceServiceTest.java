@@ -38,7 +38,7 @@ class A2UiSurfaceServiceTest {
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show a button", null, null);
         List<A2UiMessage> messages = List.of(
                 new A2UiMessage.SurfaceUpdate("main", List.of()),
-                new A2UiMessage.BeginRendering("main", "r1", A2UiCatalogIds.STANDARD_V0_8, null)
+                new A2UiMessage.BeginRendering("main", "r1", null)
         );
         when(runtime.generate(any(), anyString(), anyString())).thenReturn(messages);
         when(validator.validate(any())).thenReturn(List.of());

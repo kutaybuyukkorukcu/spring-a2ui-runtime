@@ -88,11 +88,9 @@ class A2UiSurfaceBufferTest {
 
         state.setRenderingBegun(true);
         state.setRootComponentId("root-1");
-        state.setCatalogId("cat-1");
 
         assertThat(state.isRenderingBegun()).isTrue();
         assertThat(state.getRootComponentId()).isEqualTo("root-1");
-        assertThat(state.getCatalogId()).isEqualTo("cat-1");
     }
 
     @Test

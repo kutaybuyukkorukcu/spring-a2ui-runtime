@@ -55,7 +55,6 @@ public final class A2UiSurfaceBuffer {
         private final Map<String, Object> dataModel = new LinkedHashMap<>();
         private boolean renderingBegun = false;
         private String rootComponentId;
-        private String catalogId;
 
         public void addComponent(String componentId, String componentType) {
             componentMap.put(componentId, componentType);
@@ -87,14 +86,6 @@ public final class A2UiSurfaceBuffer {
 
         public String getRootComponentId() {
             return rootComponentId;
-        }
-
-        public void setCatalogId(String catalogId) {
-            this.catalogId = catalogId;
-        }
-
-        public String getCatalogId() {
-            return catalogId;
         }
 
         public void applyDataEntries(String basePath, List<DataEntry> entries) {

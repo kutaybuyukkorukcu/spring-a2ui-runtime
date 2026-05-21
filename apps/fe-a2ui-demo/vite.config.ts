@@ -12,11 +12,6 @@ export default defineConfig({
       },
     },
   },
-  resolve: {
-    alias: {
-      '@a2ui/react/styles': '@a2ui/react/v0_8/styles/index.js',
-    },
-  },
   optimizeDeps: {
     include: ['@a2ui/react/v0_8', '@a2ui/web_core'],
   },
