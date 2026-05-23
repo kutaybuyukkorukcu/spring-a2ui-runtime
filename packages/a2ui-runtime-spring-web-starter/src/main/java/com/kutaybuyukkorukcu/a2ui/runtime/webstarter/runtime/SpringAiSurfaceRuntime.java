@@ -147,7 +147,7 @@ public class SpringAiSurfaceRuntime implements A2UiSurfaceRuntime {
                 .system(systemPrompt)
             .user(structuredUserPrompt)
                 .stream()
-                .contA2uent()
+                .content()
                 .reduce("", String::concat)
                 .flatMapMany(content -> {
                     try {

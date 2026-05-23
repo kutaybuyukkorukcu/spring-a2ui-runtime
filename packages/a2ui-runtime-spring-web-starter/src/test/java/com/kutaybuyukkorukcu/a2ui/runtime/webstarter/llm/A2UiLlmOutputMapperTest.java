@@ -172,7 +172,7 @@ class A2UiLlmOutputMapperTest {
     }
 
     @Test
-    void shouldSkipMessageItemWithoutEnvelope() throws Exception {
+    void shouldRejectMessageItemWithoutEnvelope() throws Exception {
         String json = """
                 {
                     "messages": [
@@ -183,9 +183,15 @@ class A2UiLlmOutputMapperTest {
                 """;
 
         A2UiLlmOutput output = new ObjectMapper().readValue(json, A2UiLlmOutput.class);
-        List<A2UiMessage> messages = mapper.map(output);
 
-        assertThat(messages).isEmpty();
+        assertThatThrownBy(() -> mapper.map(output))
+                .isInstanceOf(A2UiLlmMappingException.class)
+                .hasMessageContaining("exactly one envelope")
+                .satisfies(ex -> {
+                    A2UiLlmMappingException mappingException = (A2UiLlmMappingException) ex;
+                    assertThat(mappingException.getMessageItemIndex()).isEqualTo(0);
+                    assertThat(mappingException.getReason()).isEqualTo("missing_envelope");
+                });
     }
 
         @Test

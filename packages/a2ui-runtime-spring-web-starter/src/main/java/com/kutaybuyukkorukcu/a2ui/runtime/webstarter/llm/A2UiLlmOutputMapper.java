@@ -32,12 +32,24 @@ public class A2UiLlmOutputMapper {
     }
 
     private A2UiMessage mapMessage(A2UiLlmMessage msg, int messageItemIndex) {
+        if (msg == null) {
+            throw new A2UiLlmMappingException(
+                    "messages[] item must not be null",
+                    messageItemIndex,
+                    "null_message_item");
+        }
         int envelopeCount = countPresentEnvelopes(msg);
         if (envelopeCount > 1) {
             throw new A2UiLlmMappingException(
                     "Each messages[] item must contain exactly one envelope, but got " + envelopeCount,
                     messageItemIndex,
                     "multiple_envelopes");
+        }
+        if (envelopeCount == 0) {
+            throw new A2UiLlmMappingException(
+                    "Each messages[] item must contain exactly one envelope, but got 0",
+                    messageItemIndex,
+                    "missing_envelope");
         }
         if (msg.surfaceUpdate() != null) return mapSurfaceUpdate(msg.surfaceUpdate());
         if (msg.dataModelUpdate() != null) return mapDataModelUpdate(msg.dataModelUpdate());
