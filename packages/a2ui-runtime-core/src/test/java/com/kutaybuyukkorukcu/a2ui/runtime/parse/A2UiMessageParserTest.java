@@ -26,13 +26,15 @@ class A2UiMessageParserTest {
     void shouldParseMultipleMessages() throws Exception {
         String line1 = "{\"surfaceUpdate\":{\"surfaceId\":\"main\",\"components\":[]}}";
         String line2 = "{\"dataModelUpdate\":{\"surfaceId\":\"main\",\"path\":\"user\",\"contents\":[{\"key\":\"name\",\"valueString\":\"Alice\"}]}}";
-        String line3 = "{\"beginRendering\":{\"surfaceId\":\"main\",\"root\":\"t1\"}}";
+        String line3 = "{\"beginRendering\":{\"surfaceId\":\"main\",\"root\":\"t1\",\"catalogId\":\"https://a2ui.org/specification/v0_8/standard_catalog_definition.json\"}}";
         String jsonl = line1 + "\n" + line2 + "\n" + line3;
         List<A2UiMessage> messages = parser.parseAll(jsonl);
         assertThat(messages).hasSize(3);
         assertThat(messages.get(0)).isInstanceOf(A2UiMessage.SurfaceUpdate.class);
         assertThat(messages.get(1)).isInstanceOf(A2UiMessage.DataModelUpdate.class);
         assertThat(messages.get(2)).isInstanceOf(A2UiMessage.BeginRendering.class);
+        A2UiMessage.BeginRendering beginRendering = (A2UiMessage.BeginRendering) messages.get(2);
+        assertThat(beginRendering.catalogId()).isEqualTo("https://a2ui.org/specification/v0_8/standard_catalog_definition.json");
     }
 
     @Test

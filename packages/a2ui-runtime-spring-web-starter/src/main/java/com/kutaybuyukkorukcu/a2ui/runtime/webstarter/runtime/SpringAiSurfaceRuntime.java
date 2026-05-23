@@ -1,6 +1,7 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.llm.A2UiLlmMappingException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.llm.A2UiLlmOutput;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.llm.A2UiLlmOutputMapper;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.A2UiSurfaceRequest;
@@ -11,16 +12,17 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiPromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.properties.A2UiWebProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.chat.client.AdvisorParams;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.converter.BeanOutputConverter;
-import org.springframework.ai.chat.client.AdvisorParams;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
 
 import reactor.core.publisher.Flux;
 
 import java.util.List;
+import java.util.Map;
 
 public class SpringAiSurfaceRuntime implements A2UiSurfaceRuntime {
 
@@ -62,11 +64,20 @@ public class SpringAiSurfaceRuntime implements A2UiSurfaceRuntime {
         String systemPrompt = promptProvider.createSystemPrompt(promptContext);
         String userPrompt = promptProvider.createUserPrompt(promptContext);
 
-        A2UiLlmOutput output = chatClient.prompt()
-                .system(systemPrompt)
-                .user(userPrompt)
-                .call()
-                .entity(A2UiLlmOutput.class);
+        A2UiLlmOutput output;
+        try {
+            output = chatClient.prompt()
+                    .advisors(AdvisorParams.ENABLE_NATIVE_STRUCTURED_OUTPUT)
+                    .system(systemPrompt)
+                    .user(userPrompt)
+                    .call()
+                    .entity(A2UiLlmOutput.class);
+        } catch (Exception e) {
+            throw new SurfaceExecutionException(
+                "LLM output could not be parsed to A2UI messages",
+                SurfaceErrorCodes.TRANSFORM_PARSE_FAILED,
+                e);
+        }
 
         if (output == null || output.messages() == null || output.messages().isEmpty()) {
             throw new SurfaceExecutionException(
@@ -74,7 +85,20 @@ public class SpringAiSurfaceRuntime implements A2UiSurfaceRuntime {
                     SurfaceErrorCodes.TRANSFORM_FAILED, null);
         }
 
-        List<A2UiMessage> messages = llmOutputMapper.map(output);
+        List<A2UiMessage> messages;
+        try {
+            messages = llmOutputMapper.map(output);
+        } catch (A2UiLlmMappingException ex) {
+            throw new SurfaceExecutionException(
+                    "LLM output shape is invalid for A2UI message mapping",
+                    SurfaceErrorCodes.TRANSFORM_PARSE_FAILED,
+                    Map.of("reason", ex.getReason(), "messageItemIndex", ex.getMessageItemIndex()));
+        } catch (IllegalArgumentException ex) {
+            throw new SurfaceExecutionException(
+                    "LLM output shape is invalid for A2UI message mapping",
+                    SurfaceErrorCodes.TRANSFORM_PARSE_FAILED,
+                    Map.of("reason", ex.getMessage()));
+        }
 
         LOGGER.info("Generated {} A2UI messages", messages.size());
 
@@ -94,7 +118,6 @@ public class SpringAiSurfaceRuntime implements A2UiSurfaceRuntime {
         if (builder == null) {
             throw new IllegalStateException("No ChatClient.Builder available. Ensure a ChatModel is configured.");
         }
-        builder = builder.defaultAdvisors(AdvisorParams.ENABLE_NATIVE_STRUCTURED_OUTPUT);
         for (Advisor advisor : advisors) {
             builder = builder.defaultAdvisors(advisor);
         }
@@ -116,16 +139,31 @@ public class SpringAiSurfaceRuntime implements A2UiSurfaceRuntime {
         String userPrompt = promptProvider.createUserPrompt(promptContext);
 
         BeanOutputConverter<A2UiLlmOutput> converter = new BeanOutputConverter<>(A2UiLlmOutput.class);
+        String structuredUserPrompt = userPrompt
+            + "\n\nReturn ONLY valid JSON. Do not include markdown fences or prose.\n"
+            + converter.getFormat();
 
         return chatClient.prompt()
                 .system(systemPrompt)
-                .user(userPrompt)
+            .user(structuredUserPrompt)
                 .stream()
-                .content()
+                .contA2uent()
                 .reduce("", String::concat)
                 .flatMapMany(content -> {
-                    A2UiLlmOutput output = converter.convert(content);
-                    return Flux.fromIterable(llmOutputMapper.map(output));
+                    try {
+                        A2UiLlmOutput output = converter.convert(content);
+                        return Flux.fromIterable(llmOutputMapper.map(output));
+                    } catch (A2UiLlmMappingException ex) {
+                        return Flux.error(new SurfaceExecutionException(
+                                "LLM output shape is invalid for A2UI message mapping",
+                                SurfaceErrorCodes.TRANSFORM_PARSE_FAILED,
+                                Map.of("reason", ex.getReason(), "messageItemIndex", ex.getMessageItemIndex())));
+                    } catch (IllegalArgumentException ex) {
+                        return Flux.error(new SurfaceExecutionException(
+                                "LLM output shape is invalid for A2UI message mapping",
+                                SurfaceErrorCodes.TRANSFORM_PARSE_FAILED,
+                                Map.of("reason", ex.getMessage())));
+                    }
                 });
     }
 

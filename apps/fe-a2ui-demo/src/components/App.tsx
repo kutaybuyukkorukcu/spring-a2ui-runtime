@@ -8,7 +8,7 @@ initializeDefaultCatalog();
 function AppContent({ setActionHandler }: {
   setActionHandler: (fn: ((event: A2UIClientEventMessage) => Promise<void>) | null) => void;
 }) {
-  const { loading, error, mode, setMode, generate, clear, handleAction } = useSurfaceGeneration();
+  const { loading, error, mode, setMode, generate, clear, handleAction, activeSurfaceId } = useSurfaceGeneration();
   const [input, setInput] = useState('');
 
   useEffect(() => {
@@ -65,7 +65,7 @@ function AppContent({ setActionHandler }: {
           )}
 
           <div className="surface-container">
-            <A2UIRenderer surfaceId="main" fallback={
+            <A2UIRenderer surfaceId={activeSurfaceId} fallback={
               <div className="a2ui-empty">
                 <p>Send a message to generate an A2UI surface.</p>
               </div>

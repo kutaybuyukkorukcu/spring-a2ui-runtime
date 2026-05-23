@@ -42,6 +42,13 @@ public final class A2UiSurfaceBuffer {
         state.applyDataEntries(basePath, update.contents());
     }
 
+    public void applyBeginRendering(A2UiMessage.BeginRendering beginRendering) {
+        SurfaceState state = getOrCreateSurface(beginRendering.surfaceId());
+        state.setRenderingBegun(true);
+        state.setRootComponentId(beginRendering.root());
+        state.setCatalogId(beginRendering.catalogId());
+    }
+
     public Set<String> surfaceIds() {
         return Set.copyOf(surfaces.keySet());
     }
@@ -55,6 +62,7 @@ public final class A2UiSurfaceBuffer {
         private final Map<String, Object> dataModel = new LinkedHashMap<>();
         private boolean renderingBegun = false;
         private String rootComponentId;
+        private String catalogId;
 
         public void addComponent(String componentId, String componentType) {
             componentMap.put(componentId, componentType);
@@ -86,6 +94,14 @@ public final class A2UiSurfaceBuffer {
 
         public String getRootComponentId() {
             return rootComponentId;
+        }
+
+        public void setCatalogId(String catalogId) {
+            this.catalogId = catalogId;
+        }
+
+        public String getCatalogId() {
+            return catalogId;
         }
 
         public void applyDataEntries(String basePath, List<DataEntry> entries) {

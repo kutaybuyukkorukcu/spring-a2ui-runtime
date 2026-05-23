@@ -75,16 +75,16 @@ public class A2UiSurfaceController {
             runtimeMetrics.recordTransformFailure("sync", ex.getErrorCode());
             HttpStatus status = mapErrorCode(ex.getErrorCode());
             return withRequestIdHeaders(ResponseEntity.status(status), requestId)
-                    .body(A2UiSurfaceResponse.failure(ex.getMessage(), ex.getErrorCode(), requestId));
+                    .body(A2UiSurfaceResponse.failure(ex.getMessage(), ex.getErrorCode(), requestId, ex.getDetails()));
         } catch (A2UiValidationException ex) {
             runtimeMetrics.recordTransformFailure("sync", SurfaceErrorCodes.A2UI_VALIDATION_FAILED);
             return withRequestIdHeaders(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR), requestId)
-                    .body(A2UiSurfaceResponse.failure(ex.getMessage(), SurfaceErrorCodes.A2UI_VALIDATION_FAILED, requestId));
+                    .body(A2UiSurfaceResponse.failure(ex.getMessage(), SurfaceErrorCodes.A2UI_VALIDATION_FAILED, requestId, null));
         } catch (Exception ex) {
             runtimeMetrics.recordTransformFailure("sync", SurfaceErrorCodes.TRANSFORM_FAILED);
             LOGGER.error("Surface generation error", ex);
             return withRequestIdHeaders(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR), requestId)
-                    .body(A2UiSurfaceResponse.failure("Transformation failed: " + ex.getMessage(), SurfaceErrorCodes.TRANSFORM_FAILED, requestId));
+                    .body(A2UiSurfaceResponse.failure("Transformation failed: " + ex.getMessage(), SurfaceErrorCodes.TRANSFORM_FAILED, requestId, null));
         }
     }
 

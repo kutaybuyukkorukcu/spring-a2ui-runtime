@@ -17,14 +17,16 @@ public record A2UiSurfaceResponse(
         @JsonInclude(JsonInclude.Include.NON_NULL)
         @JsonProperty("error") String error,
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        @JsonProperty("errorCode") String errorCode
+        @JsonProperty("errorCode") String errorCode,
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        @JsonProperty("details") Object details
 ) {
     public static A2UiSurfaceResponse success(List<A2UiMessage> messages, TransformUsage usage, String requestId) {
-        return new A2UiSurfaceResponse(true, messages, usage, requestId, null, null);
+        return new A2UiSurfaceResponse(true, messages, usage, requestId, null, null, null);
     }
 
-    public static A2UiSurfaceResponse failure(String error, String errorCode, String requestId) {
-        return new A2UiSurfaceResponse(false, null, null, requestId, error, errorCode);
+    public static A2UiSurfaceResponse failure(String error, String errorCode, String requestId, Object details) {
+        return new A2UiSurfaceResponse(false, null, null, requestId, error, errorCode, details);
     }
 
     public record TransformUsage(

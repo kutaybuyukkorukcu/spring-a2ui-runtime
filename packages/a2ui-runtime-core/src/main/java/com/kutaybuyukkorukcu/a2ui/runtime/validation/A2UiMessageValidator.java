@@ -1,5 +1,7 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.validation;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
@@ -8,6 +10,8 @@ import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiValidationContext;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiProtocol;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.DataEntry;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -19,8 +23,12 @@ public class A2UiMessageValidator {
 
     private static final String SURFACE_ID_SUFFIX = ".surfaceId";
     private static final String SURFACE_ID_REQUIRED = "surfaceId is required";
+    private static final String COMPONENTS_PATH = "components";
+    private static final String STANDARD_CATALOG_RESOURCE = "META-INF/a2ui/catalogs/standard-v0.8.json";
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final A2UiCatalogRegistry catalogRegistry;
+    private final Map<String, Object> standardComponentSchemas;
 
     public A2UiMessageValidator() {
         this(A2UiCatalogRegistry.shared());
@@ -28,6 +36,7 @@ public class A2UiMessageValidator {
 
     public A2UiMessageValidator(A2UiCatalogRegistry catalogRegistry) {
         this.catalogRegistry = catalogRegistry;
+        this.standardComponentSchemas = loadStandardComponentSchemas();
     }
 
     public List<A2UiDiagnostic> validate(List<A2UiMessage> messages) {
@@ -136,7 +145,14 @@ public class A2UiMessageValidator {
             details.put("supportedCatalogIds", List.copyOf(catalogRegistry.supportedCatalogIds()));
             diagnostics.add(diagnostic(path + ".component." + componentType, A2UiErrorCode.UNKNOWN_COMPONENT_TYPE,
                     "component type is not supported by the published catalog", details));
+            return;
         }
+
+        validateComponentPayloadAgainstCatalog(
+                componentType,
+                cd.componentProperties(),
+                path + ".component." + componentType,
+                diagnostics);
     }
 
     private void validateDataModelUpdate(String path, A2UiMessage.DataModelUpdate dmu, List<A2UiDiagnostic> diagnostics) {
@@ -177,6 +193,15 @@ public class A2UiMessageValidator {
         }
         if (isBlank(br.root())) {
             diagnostics.add(diagnostic(path + ".root", A2UiErrorCode.MISSING_ROOT, "root is required"));
+        }
+        if (br.catalogId() != null
+                && !catalogRegistry.isSupportedCatalogId(br.catalogId())
+                && !A2UiCatalogIds.STANDARD_V0_8.equals(br.catalogId())) {
+            Map<String, Object> details = new LinkedHashMap<>();
+            details.put("catalogId", br.catalogId());
+            details.put("supportedCatalogIds", List.copyOf(catalogRegistry.supportedCatalogIds()));
+            diagnostics.add(diagnostic(path + ".catalogId", A2UiErrorCode.UNSUPPORTED_CATALOG_ID,
+                    "catalogId is not supported by this runtime", details));
         }
     }
 
@@ -251,6 +276,167 @@ public class A2UiMessageValidator {
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    @SuppressWarnings("unchecked")
+    private void validateComponentPayloadAgainstCatalog(
+            String componentType,
+            Map<String, Object> componentProperties,
+            String path,
+            List<A2UiDiagnostic> diagnostics) {
+        Object schemaNode = standardComponentSchemas.get(componentType);
+        if (!(schemaNode instanceof Map<?, ?> schema)) {
+            return;
+        }
+
+        validateAgainstSchema(componentProperties, (Map<String, Object>) schema, path, diagnostics);
+
+        if (("Row".equals(componentType) || "Column".equals(componentType) || "List".equals(componentType))
+                && componentProperties != null
+                && componentProperties.get("children") instanceof Map<?, ?> children) {
+            int childModes = 0;
+            if (children.containsKey("explicitList")) childModes++;
+            if (children.containsKey("template")) childModes++;
+            if (childModes != 1) {
+                diagnostics.add(diagnostic(
+                        path + ".children",
+                        A2UiErrorCode.INVALID_COMPONENT_PAYLOAD,
+                        "children must contain exactly one of explicitList or template"));
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void validateAgainstSchema(
+            Object value,
+            Map<String, Object> schema,
+            String path,
+            List<A2UiDiagnostic> diagnostics) {
+        String type = schema.get("type") instanceof String valueType ? valueType : null;
+        if (type == null) {
+            return;
+        }
+
+        switch (type) {
+            case "object" -> {
+                if (!(value instanceof Map<?, ?> objectValue)) {
+                    diagnostics.add(diagnostic(path, A2UiErrorCode.INVALID_COMPONENT_PAYLOAD,
+                            "expected object but got " + typeName(value)));
+                    return;
+                }
+
+                Map<String, Object> properties = schema.get("properties") instanceof Map<?, ?> props
+                        ? (Map<String, Object>) props
+                        : Map.of();
+
+                List<String> required = schema.get("required") instanceof List<?> req
+                        ? req.stream().map(String::valueOf).toList()
+                        : List.of();
+
+                for (String requiredKey : required) {
+                    if (!objectValue.containsKey(requiredKey)) {
+                        diagnostics.add(diagnostic(
+                                path + "." + requiredKey,
+                                A2UiErrorCode.INVALID_COMPONENT_PAYLOAD,
+                                "missing required property: " + requiredKey));
+                    }
+                }
+
+                if (Boolean.FALSE.equals(schema.get("additionalProperties"))) {
+                    for (Object rawKey : objectValue.keySet()) {
+                        String key = String.valueOf(rawKey);
+                        if (!properties.containsKey(key)) {
+                            diagnostics.add(diagnostic(
+                                    path + "." + key,
+                                    A2UiErrorCode.INVALID_COMPONENT_PAYLOAD,
+                                    "unknown property for component schema: " + key));
+                        }
+                    }
+                }
+
+                for (Map.Entry<?, ?> entry : objectValue.entrySet()) {
+                    String key = String.valueOf(entry.getKey());
+                    Object propertySchema = properties.get(key);
+                    if (propertySchema instanceof Map<?, ?> propertySchemaMap) {
+                        validateAgainstSchema(entry.getValue(), (Map<String, Object>) propertySchemaMap,
+                                path + "." + key, diagnostics);
+                    }
+                }
+            }
+            case "array" -> {
+                if (!(value instanceof List<?> listValue)) {
+                    diagnostics.add(diagnostic(path, A2UiErrorCode.INVALID_COMPONENT_PAYLOAD,
+                            "expected array but got " + typeName(value)));
+                    return;
+                }
+                Object itemsSchema = schema.get("items");
+                if (itemsSchema instanceof Map<?, ?> itemSchemaMap) {
+                    for (int i = 0; i < listValue.size(); i++) {
+                        validateAgainstSchema(listValue.get(i), (Map<String, Object>) itemSchemaMap,
+                                path + "[" + i + "]", diagnostics);
+                    }
+                }
+            }
+            case "string" -> {
+                if (!(value instanceof String)) {
+                    diagnostics.add(diagnostic(path, A2UiErrorCode.INVALID_COMPONENT_PAYLOAD,
+                            "expected string but got " + typeName(value)));
+                    return;
+                }
+                validateEnum(value, schema, path, diagnostics);
+            }
+            case "boolean" -> {
+                if (!(value instanceof Boolean)) {
+                    diagnostics.add(diagnostic(path, A2UiErrorCode.INVALID_COMPONENT_PAYLOAD,
+                            "expected boolean but got " + typeName(value)));
+                }
+            }
+            case "number" -> {
+                if (!(value instanceof Number)) {
+                    diagnostics.add(diagnostic(path, A2UiErrorCode.INVALID_COMPONENT_PAYLOAD,
+                            "expected number but got " + typeName(value)));
+                }
+            }
+            case "integer" -> {
+                if (!(value instanceof Number numberValue) || Math.rint(numberValue.doubleValue()) != numberValue.doubleValue()) {
+                    diagnostics.add(diagnostic(path, A2UiErrorCode.INVALID_COMPONENT_PAYLOAD,
+                            "expected integer but got " + typeName(value)));
+                }
+            }
+            default -> {
+                // Unknown schema type; skip strict validation for this node.
+            }
+        }
+    }
+
+    private void validateEnum(Object value, Map<String, Object> schema, String path, List<A2UiDiagnostic> diagnostics) {
+        if (schema.get("enum") instanceof List<?> enumValues && !enumValues.isEmpty() && !enumValues.contains(value)) {
+            diagnostics.add(diagnostic(path, A2UiErrorCode.INVALID_COMPONENT_PAYLOAD,
+                    "value is not in allowed enum set: " + value));
+        }
+    }
+
+    private String typeName(Object value) {
+        return value == null ? "null" : value.getClass().getSimpleName();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> loadStandardComponentSchemas() {
+        try (InputStream inputStream = A2UiMessageValidator.class.getResourceAsStream("/" + STANDARD_CATALOG_RESOURCE)) {
+            if (inputStream == null) {
+                return Map.of();
+            }
+
+            Map<String, Object> catalog = OBJECT_MAPPER.readValue(inputStream, new TypeReference<>() {
+            });
+            Object componentsNode = catalog.get(COMPONENTS_PATH);
+            if (!(componentsNode instanceof Map<?, ?> componentsMap)) {
+                return Map.of();
+            }
+            return (Map<String, Object>) componentsMap;
+        } catch (IOException ex) {
+            return Map.of();
+        }
     }
 
     private record SurfaceState(Set<String> componentIds) {

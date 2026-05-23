@@ -32,8 +32,14 @@ public class DefaultA2UiPromptProvider implements A2UiPromptProvider {
             ## Key Rules
             - Components use a flat adjacency list with ID references, NOT nested JSON trees
             - Each component must have exactly one key in its "component" object (the component type from the catalog)
+            - Never include multiple component types in a single "component" object
             - Container components reference children by ID. Card uses "child" (a single string component ID). Row, Column, and List use "children" (a Children object: {"explicitList": ["id1", "id2"]} or {"template": {...}})
+            - For Row/Column/List children, include exactly one of "explicitList" or "template" (never both)
             - Properties that accept data-bound values use BoundValue: {"literalString": "..."} or {"path": "/data/path"}
+            - For BoundValue, provide only the one field you intend to use. Do not emit placeholder defaults for other fields.
+            - For dataModelUpdate.contents entries, provide exactly one of: valueString, valueNumber, valueBoolean, valueMap
+            - Omit fields that are not used. Do not emit empty strings, zero, false, or empty arrays as placeholders.
+            - Use catalog-accurate field names and enums (examples: MultipleChoice uses "variant" not "type"; Text.usageHint in [h1,h2,h3,h4,h5,caption,body]; TextField.textFieldType in [date,longText,number,shortText,obscured])
             - Button actions have a "name" and optional "context" list of {key, value} pairs
             - beginRendering MUST follow at least one surfaceUpdate for the same surfaceId
             - The root component ID in beginRendering must reference a component defined in a previous surfaceUpdate

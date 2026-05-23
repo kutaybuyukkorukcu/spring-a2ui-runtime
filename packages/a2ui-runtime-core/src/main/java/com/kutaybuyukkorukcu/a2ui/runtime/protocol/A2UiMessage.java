@@ -32,8 +32,16 @@ public sealed interface A2UiMessage {
             @JsonProperty("surfaceId") String surfaceId,
             @JsonProperty("root") String root,
             @JsonInclude(JsonInclude.Include.NON_NULL)
+            @JsonProperty("catalogId") String catalogId,
+            @JsonInclude(JsonInclude.Include.NON_NULL)
             @JsonProperty("styles") Map<String, Object> styles
     ) implements A2UiMessage {
+
+        public BeginRendering(@JsonProperty("surfaceId") String surfaceId,
+                              @JsonProperty("root") String root,
+                              @JsonProperty("styles") Map<String, Object> styles) {
+            this(surfaceId, root, null, styles);
+        }
     }
 
     record DeleteSurface(
