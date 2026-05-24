@@ -8,14 +8,15 @@ public class A2UiGenerationPolicyProperties {
     private Double temperature = 0.0;
     private Double topP = 1.0;
     private Integer seed;
-    private ResponseFormatMode responseFormat = ResponseFormatMode.JSON_OBJECT;
+    private ResponseFormatMode responseFormat = ResponseFormatMode.NONE;
     private Integer maxTokens;
     private Integer maxCompletionTokens;
     private Capabilities capabilities = new Capabilities();
 
     public enum ResponseFormatMode {
         NONE,
-        JSON_OBJECT
+        JSON_OBJECT,
+        JSON_SCHEMA
     }
 
     public static class Capabilities {

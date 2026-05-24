@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.DataEntry;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -21,17 +22,14 @@ public class A2UiLlmOutputMapper {
         if (output == null || output.messages() == null) {
             return List.of();
         }
-        List<A2UiMessage> mapped = new java.util.ArrayList<>();
+        List<A2UiMessage> mapped = new ArrayList<>();
         for (int i = 0; i < output.messages().size(); i++) {
-            A2UiMessage message = mapMessage(output.messages().get(i), i);
-            if (message != null) {
-                mapped.add(message);
-            }
+            mapped.addAll(mapMessage(output.messages().get(i), i));
         }
         return List.copyOf(mapped);
     }
 
-    private A2UiMessage mapMessage(A2UiLlmMessage msg, int messageItemIndex) {
+    private List<A2UiMessage> mapMessage(A2UiLlmMessage msg, int messageItemIndex) {
         if (msg == null) {
             throw new A2UiLlmMappingException(
                     "messages[] item must not be null",
@@ -39,23 +37,27 @@ public class A2UiLlmOutputMapper {
                     "null_message_item");
         }
         int envelopeCount = countPresentEnvelopes(msg);
-        if (envelopeCount > 1) {
-            throw new A2UiLlmMappingException(
-                    "Each messages[] item must contain exactly one envelope, but got " + envelopeCount,
-                    messageItemIndex,
-                    "multiple_envelopes");
-        }
         if (envelopeCount == 0) {
             throw new A2UiLlmMappingException(
                     "Each messages[] item must contain exactly one envelope, but got 0",
                     messageItemIndex,
                     "missing_envelope");
         }
-        if (msg.surfaceUpdate() != null) return mapSurfaceUpdate(msg.surfaceUpdate());
-        if (msg.dataModelUpdate() != null) return mapDataModelUpdate(msg.dataModelUpdate());
-        if (msg.beginRendering() != null) return mapBeginRendering(msg.beginRendering());
-        if (msg.deleteSurface() != null) return mapDeleteSurface(msg.deleteSurface());
-        return null;
+
+        if (envelopeCount == 1) {
+            if (msg.surfaceUpdate() != null) return List.of(mapSurfaceUpdate(msg.surfaceUpdate()));
+            if (msg.dataModelUpdate() != null) return List.of(mapDataModelUpdate(msg.dataModelUpdate()));
+            if (msg.beginRendering() != null) return List.of(mapBeginRendering(msg.beginRendering()));
+            if (msg.deleteSurface() != null) return List.of(mapDeleteSurface(msg.deleteSurface()));
+        }
+
+        List<A2UiMessage> repaired = new ArrayList<>(envelopeCount);
+        // Preserve deterministic event ordering when repairing malformed multi-envelope items.
+        if (msg.surfaceUpdate() != null) repaired.add(mapSurfaceUpdate(msg.surfaceUpdate()));
+        if (msg.dataModelUpdate() != null) repaired.add(mapDataModelUpdate(msg.dataModelUpdate()));
+        if (msg.beginRendering() != null) repaired.add(mapBeginRendering(msg.beginRendering()));
+        if (msg.deleteSurface() != null) repaired.add(mapDeleteSurface(msg.deleteSurface()));
+        return List.copyOf(repaired);
     }
 
     private int countPresentEnvelopes(A2UiLlmMessage msg) {

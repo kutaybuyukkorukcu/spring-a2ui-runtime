@@ -141,7 +141,7 @@ class A2UiLlmOutputMapperTest {
     }
 
     @Test
-    void shouldRejectMessageItemWithMultipleEnvelopes() throws Exception {
+    void shouldSplitMessageItemWithMultipleEnvelopes() throws Exception {
         String json = """
                 {
                     "messages": [
@@ -160,15 +160,44 @@ class A2UiLlmOutputMapperTest {
                 """;
 
         A2UiLlmOutput output = new ObjectMapper().readValue(json, A2UiLlmOutput.class);
+        List<A2UiMessage> messages = mapper.map(output);
 
-        assertThatThrownBy(() -> mapper.map(output))
-                .isInstanceOf(A2UiLlmMappingException.class)
-                .hasMessageContaining("exactly one envelope")
-                .satisfies(ex -> {
-                    A2UiLlmMappingException mappingException = (A2UiLlmMappingException) ex;
-                    assertThat(mappingException.getMessageItemIndex()).isEqualTo(0);
-                    assertThat(mappingException.getReason()).isEqualTo("multiple_envelopes");
-                });
+        assertThat(messages).hasSize(2);
+        assertThat(messages.get(0)).isInstanceOf(A2UiMessage.SurfaceUpdate.class);
+        assertThat(messages.get(1)).isInstanceOf(A2UiMessage.BeginRendering.class);
+    }
+
+    @Test
+    void shouldPreserveMessageOrderWhenRepairingMultiEnvelopeItem() throws Exception {
+        String json = """
+                {
+                    "messages": [
+                        {
+                            "surfaceUpdate": {
+                                "surfaceId": "main",
+                                "components": []
+                            },
+                            "beginRendering": {
+                                "surfaceId": "main",
+                                "root": "c1"
+                            }
+                        },
+                        {
+                            "deleteSurface": {
+                                "surfaceId": "old"
+                            }
+                        }
+                    ]
+                }
+                """;
+
+        A2UiLlmOutput output = new ObjectMapper().readValue(json, A2UiLlmOutput.class);
+        List<A2UiMessage> messages = mapper.map(output);
+
+        assertThat(messages).hasSize(3);
+        assertThat(messages.get(0)).isInstanceOf(A2UiMessage.SurfaceUpdate.class);
+        assertThat(messages.get(1)).isInstanceOf(A2UiMessage.BeginRendering.class);
+        assertThat(messages.get(2)).isInstanceOf(A2UiMessage.DeleteSurface.class);
     }
 
     @Test

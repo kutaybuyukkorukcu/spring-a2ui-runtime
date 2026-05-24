@@ -4,9 +4,8 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.llm.A2UiLlmMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.llm.A2UiLlmMappingException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.llm.A2UiLlmOutput;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.llm.A2UiLlmOutputMapper;
+import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.A2UiSurfaceRequest;
-import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
-import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiPromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.properties.A2UiWebProperties;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,10 +16,8 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.StandardEnvironment;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -57,7 +54,7 @@ class SpringAiSurfaceRuntimeTest {
     }
 
     @Test
-    void shouldSurfaceMapperShapeErrorAsTransformParseFailed() {
+    void shouldReturnFallbackMessagesWhenMapperFails() {
         ObjectProvider<ChatClient.Builder> provider = new StaticObjectProvider(builder);
         SpringAiSurfaceRuntime runtime = new SpringAiSurfaceRuntime(
                 provider,
@@ -75,18 +72,32 @@ class SpringAiSurfaceRuntimeTest {
             "multiple_envelopes"));
 
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("weather", null, null);
+        List<A2UiMessage> messages = runtime.generate(request, "req-1", null);
 
-        assertThatThrownBy(() -> runtime.generate(request, "req-1", null))
-                .isInstanceOf(SurfaceExecutionException.class)
-                .satisfies(ex -> {
-                    SurfaceExecutionException se = (SurfaceExecutionException) ex;
-                    assertThat(se.getErrorCode()).isEqualTo(SurfaceErrorCodes.TRANSFORM_PARSE_FAILED);
-                    assertThat(se.getDetails()).isInstanceOf(Map.class);
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> details = (Map<String, Object>) se.getDetails();
-                    assertThat(details.get("reason")).isEqualTo("multiple_envelopes");
-                    assertThat(details.get("messageItemIndex")).isEqualTo(0);
-                });
+        assertThat(messages).hasSize(2);
+        assertThat(messages.get(0)).isInstanceOf(A2UiMessage.SurfaceUpdate.class);
+        assertThat(messages.get(1)).isInstanceOf(A2UiMessage.BeginRendering.class);
+    }
+
+    @Test
+    void shouldReturnFallbackMessagesWhenLlmCallFails() {
+        ObjectProvider<ChatClient.Builder> provider = new StaticObjectProvider(builder);
+        SpringAiSurfaceRuntime runtime = new SpringAiSurfaceRuntime(
+                provider,
+                List.<Advisor>of(),
+                new StandardEnvironment(),
+                new A2UiWebProperties(),
+                promptProvider,
+                llmOutputMapper);
+
+        when(requestSpec.call()).thenThrow(new RuntimeException("provider unavailable"));
+
+        A2UiSurfaceRequest request = new A2UiSurfaceRequest("show weather", null, null);
+        List<A2UiMessage> messages = runtime.generate(request, "req-2", null);
+
+        assertThat(messages).hasSize(2);
+        assertThat(messages.get(0)).isInstanceOf(A2UiMessage.SurfaceUpdate.class);
+        assertThat(messages.get(1)).isInstanceOf(A2UiMessage.BeginRendering.class);
     }
 
     private static final class StaticObjectProvider implements ObjectProvider<ChatClient.Builder> {
