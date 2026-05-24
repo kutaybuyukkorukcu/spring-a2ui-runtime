@@ -14,7 +14,7 @@ spring:
           model: ${OPENAI_MODEL:gpt-4.1-nano}
           temperature: 0.0
           response-format:
-            type: ${OPENAI_RESPONSE_FORMAT_TYPE:JSON_SCHEMA}
+            type: ${OPENAI_RESPONSE_FORMAT_TYPE:JSON_OBJECT}
 
 a2ui:
   runtime:

@@ -8,7 +8,7 @@ public class A2UiGenerationPolicyProperties {
     private Double temperature = 0.0;
     private Double topP = 1.0;
     private Integer seed;
-    private ResponseFormatMode responseFormat = ResponseFormatMode.NONE;
+    private ResponseFormatMode responseFormat = ResponseFormatMode.JSON_OBJECT;
     private Integer maxTokens;
     private Integer maxCompletionTokens;
     private Capabilities capabilities = new Capabilities();

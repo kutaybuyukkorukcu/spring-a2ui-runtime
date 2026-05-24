@@ -43,14 +43,17 @@ public class DefaultA2UiPromptProvider implements A2UiPromptProvider {
             - For Row/Column/List children, include exactly one of "explicitList" or "template" (never both)
             - Properties that accept data-bound values use BoundValue: {"literalString": "..."} or {"path": "/data/path"}
             - For BoundValue, provide only the one field you intend to use. Do not emit placeholder defaults for other fields.
+            - INVALID BoundValue example (do NOT do this): {"literalString":"x","literalNumber":0,"literalBoolean":false,"literalArray":[],"path":"/x"}
             - For dataModelUpdate.contents entries, provide exactly one of: valueString, valueNumber, valueBoolean, valueMap
             - Omit fields that are not used. Do not emit empty strings, zero, false, or empty arrays as placeholders.
             - Use catalog-accurate field names and enums (examples: MultipleChoice uses "variant" not "type"; Text.usageHint in [h1,h2,h3,h4,h5,caption,body]; TextField.textFieldType in [date,longText,number,shortText,obscured])
             - Button actions have a "name" and optional "context" list of {key, value} pairs
+            - Button.child and Card.child must be component IDs, not display text
             - beginRendering MUST follow at least one surfaceUpdate for the same surfaceId
             - The root component ID in beginRendering must reference a component defined in a previous surfaceUpdate
             - Any "child", "children.explicitList" ids, "children.template.componentId", and "beginRendering.root" must reference component ids defined in a surfaceUpdate for the same surfaceId
             - Within a single surfaceUpdate.components array, each id should appear only once
+            - Never emit giant "kitchen sink" component objects containing many types at once (Text+Image+Row+Column+Button+...). Emit one type per component entry only.
             - If the request is ambiguous, still return a minimal valid renderable surface for the requested intent instead of non-protocol output
             
             ## Available Component Types
@@ -82,6 +85,42 @@ public class DefaultA2UiPromptProvider implements A2UiPromptProvider {
                         Why invalid:
                         - One messages[] item contains multiple envelope keys
                         - One component object contains multiple component types
+
+                        ## INVALID Anti-Pattern (Do NOT do this either)
+                        {
+                            "messages": [
+                                {
+                                    "surfaceUpdate": {
+                                        "surfaceId": "main",
+                                        "components": [
+                                            {
+                                                "id": "broken-row",
+                                                "component": {
+                                                    "Row": {
+                                                        "children": {
+                                                            "explicitList": ["a", "b"],
+                                                            "template": { "dataBinding": "/items", "componentId": "item-template" }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "id": "broken-button",
+                                                "component": {
+                                                    "Button": {
+                                                        "child": "Play Audio",
+                                                        "action": { "name": "play" }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                        Why invalid:
+                        - Row/Column/List children contain both explicitList and template
+                        - Button.child references display text, not a component id
 
                         ## Example A: Correct Adjacency List (Complex UI)
                         {

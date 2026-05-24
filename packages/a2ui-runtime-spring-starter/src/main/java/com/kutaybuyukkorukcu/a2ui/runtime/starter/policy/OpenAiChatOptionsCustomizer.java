@@ -47,11 +47,7 @@ public class OpenAiChatOptionsCustomizer implements A2UiChatOptionsCustomizer {
             return ResponseFormat.builder().type(ResponseFormat.Type.JSON_OBJECT).build();
         }
         if (mode == A2UiGenerationPolicyProperties.ResponseFormatMode.JSON_SCHEMA) {
-            if (incoming != null && incoming.getType() == ResponseFormat.Type.JSON_SCHEMA) {
-                return incoming;
-            }
-            throw new IllegalArgumentException(
-                    "JSON_SCHEMA mode requires incoming OpenAI response format schema configuration");
+            return ResponseFormat.builder().type(ResponseFormat.Type.JSON_OBJECT).build();
         }
         throw new IllegalArgumentException("Unsupported OpenAI response format mode: " + mode);
     }
