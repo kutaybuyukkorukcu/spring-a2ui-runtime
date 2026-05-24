@@ -96,6 +96,23 @@ class A2UiSurfaceBufferTest {
     }
 
     @Test
+    void shouldApplyBeginRenderingMessage() {
+        A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
+
+        buffer.applyBeginRendering(new A2UiMessage.BeginRendering(
+                "main",
+                "root-1",
+                "https://a2ui.org/specification/v0_8/standard_catalog_definition.json",
+                null));
+
+        A2UiSurfaceBuffer.SurfaceState state = buffer.getSurface("main");
+        assertThat(state).isNotNull();
+        assertThat(state.isRenderingBegun()).isTrue();
+        assertThat(state.getRootComponentId()).isEqualTo("root-1");
+        assertThat(state.getCatalogId()).isEqualTo("https://a2ui.org/specification/v0_8/standard_catalog_definition.json");
+    }
+
+    @Test
     void shouldHandleDataModelWithNullPath() {
         A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
         DataEntry entry = DataEntry.ofString("key", "value");

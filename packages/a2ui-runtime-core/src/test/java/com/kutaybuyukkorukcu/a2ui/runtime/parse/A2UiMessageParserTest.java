@@ -33,6 +33,8 @@ class A2UiMessageParserTest {
         assertThat(messages.get(0)).isInstanceOf(A2UiMessage.SurfaceUpdate.class);
         assertThat(messages.get(1)).isInstanceOf(A2UiMessage.DataModelUpdate.class);
         assertThat(messages.get(2)).isInstanceOf(A2UiMessage.BeginRendering.class);
+        A2UiMessage.BeginRendering beginRendering = (A2UiMessage.BeginRendering) messages.get(2);
+        assertThat(beginRendering.catalogId()).isEqualTo("https://a2ui.org/specification/v0_8/standard_catalog_definition.json");
     }
 
     @Test

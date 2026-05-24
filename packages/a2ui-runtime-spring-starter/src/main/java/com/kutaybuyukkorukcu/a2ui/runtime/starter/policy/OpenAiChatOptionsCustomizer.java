@@ -28,7 +28,7 @@ public class OpenAiChatOptionsCustomizer implements A2UiChatOptionsCustomizer {
         options.setTemperature(policy.getTemperature());
         options.setTopP(policy.getTopP());
         options.setSeed(policy.getSeed());
-        options.setResponseFormat(toResponseFormat(policy.getResponseFormat()));
+        options.setResponseFormat(resolveResponseFormat(policy.getResponseFormat(), options.getResponseFormat()));
         options.setMaxTokens(policy.getMaxTokens());
         options.setMaxCompletionTokens(policy.getMaxCompletionTokens());
         return options;
@@ -37,9 +37,16 @@ public class OpenAiChatOptionsCustomizer implements A2UiChatOptionsCustomizer {
     @Override
     public int getOrder() { return 100; }
 
-    private ResponseFormat toResponseFormat(@Nullable A2UiGenerationPolicyProperties.ResponseFormatMode mode) {
-        if (mode == null || mode == A2UiGenerationPolicyProperties.ResponseFormatMode.NONE) return null;
+    private ResponseFormat resolveResponseFormat(
+            @Nullable A2UiGenerationPolicyProperties.ResponseFormatMode mode,
+            @Nullable ResponseFormat incoming) {
+        if (mode == null || mode == A2UiGenerationPolicyProperties.ResponseFormatMode.NONE) {
+            return incoming;
+        }
         if (mode == A2UiGenerationPolicyProperties.ResponseFormatMode.JSON_OBJECT) {
+            return ResponseFormat.builder().type(ResponseFormat.Type.JSON_OBJECT).build();
+        }
+        if (mode == A2UiGenerationPolicyProperties.ResponseFormatMode.JSON_SCHEMA) {
             return ResponseFormat.builder().type(ResponseFormat.Type.JSON_OBJECT).build();
         }
         throw new IllegalArgumentException("Unsupported OpenAI response format mode: " + mode);

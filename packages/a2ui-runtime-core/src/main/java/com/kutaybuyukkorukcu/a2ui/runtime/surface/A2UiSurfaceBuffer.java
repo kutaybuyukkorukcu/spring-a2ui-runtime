@@ -42,6 +42,13 @@ public final class A2UiSurfaceBuffer {
         state.applyDataEntries(basePath, update.contents());
     }
 
+    public void applyBeginRendering(A2UiMessage.BeginRendering beginRendering) {
+        SurfaceState state = getOrCreateSurface(beginRendering.surfaceId());
+        state.setRenderingBegun(true);
+        state.setRootComponentId(beginRendering.root());
+        state.setCatalogId(beginRendering.catalogId());
+    }
+
     public Set<String> surfaceIds() {
         return Set.copyOf(surfaces.keySet());
     }

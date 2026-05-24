@@ -15,7 +15,8 @@ public class A2UiGenerationPolicyProperties {
 
     public enum ResponseFormatMode {
         NONE,
-        JSON_OBJECT
+        JSON_OBJECT,
+        JSON_SCHEMA
     }
 
     public static class Capabilities {

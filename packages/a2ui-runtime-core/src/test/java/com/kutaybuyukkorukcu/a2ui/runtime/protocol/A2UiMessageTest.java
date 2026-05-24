@@ -45,9 +45,14 @@ class A2UiMessageTest {
 
     @Test
     void shouldSerializeBeginRendering() throws Exception {
-        A2UiMessage.BeginRendering br = new A2UiMessage.BeginRendering("main", "root-1", "https://a2ui.org/specification/v0_8/standard_catalog_definition.json", null);
+        A2UiMessage.BeginRendering br = new A2UiMessage.BeginRendering(
+                "main",
+                "root-1",
+                "https://a2ui.org/specification/v0_8/standard_catalog_definition.json",
+                null);
         String json = mapper.writeValueAsString((A2UiMessage) br);
         assertThat(json).contains("\"beginRendering\"");
+        assertThat(json).contains("\"catalogId\"");
     }
 
     @Test
@@ -85,6 +90,7 @@ class A2UiMessageTest {
         A2UiMessage.BeginRendering br = (A2UiMessage.BeginRendering) msg;
         assertThat(br.surfaceId()).isEqualTo("s1");
         assertThat(br.root()).isEqualTo("root-1");
+        assertThat(br.catalogId()).isEqualTo("https://a2ui.org/specification/v0_8/standard_catalog_definition.json");
     }
 
     @Test

@@ -13,6 +13,8 @@ spring:
         options:
           model: ${OPENAI_MODEL:gpt-4.1-nano}
           temperature: 0.0
+          response-format:
+            type: ${OPENAI_RESPONSE_FORMAT_TYPE:JSON_OBJECT}
 
 a2ui:
   runtime:
@@ -20,8 +22,8 @@ a2ui:
       temperature: ${A2UI_RUNTIME_TEMPERATURE:0.0}
       top-p: ${A2UI_RUNTIME_TOP_P:1.0}
       capabilities:
-        temperature: ${A2UI_RUNTIME_CAP_TEMPERATURE:true}
-        top-p: ${A2UI_RUNTIME_CAP_TOP_P:true}
+        temperature: ${A2UI_RUNTIME_CAP_TEMPERATURE:false}
+        top-p: ${A2UI_RUNTIME_CAP_TOP_P:false}
         seed: ${A2UI_RUNTIME_CAP_SEED:true}
         max-tokens: ${A2UI_RUNTIME_CAP_MAX_TOKENS:true}
         max-completion-tokens: ${A2UI_RUNTIME_CAP_MAX_COMPLETION_TOKENS:true}
