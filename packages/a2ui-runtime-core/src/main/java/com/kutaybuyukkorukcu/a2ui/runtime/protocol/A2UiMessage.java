@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.Map;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public sealed interface A2UiMessage {
 
     String surfaceId();
@@ -20,6 +21,7 @@ public sealed interface A2UiMessage {
 
     record DataModelUpdate(
             @JsonProperty("surfaceId") String surfaceId,
+            @JsonInclude(JsonInclude.Include.NON_NULL)
             @JsonProperty("path") String path,
             @JsonProperty("contents") List<DataEntry> contents
     ) implements A2UiMessage {
@@ -32,6 +34,7 @@ public sealed interface A2UiMessage {
             @JsonProperty("surfaceId") String surfaceId,
             @JsonProperty("root") String root,
             @JsonProperty("catalogId") String catalogId,
+            @JsonInclude(JsonInclude.Include.NON_NULL)
             @JsonProperty("styles") Map<String, Object> styles
     ) implements A2UiMessage {
     }
@@ -43,6 +46,7 @@ public sealed interface A2UiMessage {
 
     record ComponentDefinition(
             @JsonProperty("id") String id,
+            @JsonInclude(JsonInclude.Include.NON_NULL)
             @JsonProperty("weight") Double weight,
             @JsonInclude(JsonInclude.Include.NON_NULL)
             @JsonProperty("component") Map<String, Object> component

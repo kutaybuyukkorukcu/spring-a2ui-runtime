@@ -25,7 +25,6 @@ public class HealthController {
                 "description", "Thin Spring Boot sample host for A2UI serving, streaming, catalogs, and actions",
                 "endpoints", Map.of(
                         "health", "GET /health",
-                        "surface", "POST /a2ui/surface",
                         "surfaceStream", "POST /a2ui/surface/stream",
                         "catalog", "GET /a2ui/catalogs/standard-v0.8",
                         "actions", "POST /a2ui/actions"),

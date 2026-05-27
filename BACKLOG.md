@@ -51,13 +51,13 @@ The catalog defines **component vocabulary and prop shapes**, not page templates
 
 Unblocks both Option A and Option B.
 
-- [ ] Remove sync surface endpoint (`POST /a2ui/surface`): controller, service, tests, `docs/rest-api.md`, demo sync mode.
-- [ ] Fix streaming regression: incremental SSE emission (`JsonlLineAccumulator` or equivalent); remove full-response `.reduce()` before emit.
-- [ ] Remove silent fallback surfaces from `SpringAiSurfaceRuntime`; emit SSE `event: error` with diagnostics instead.
-- [ ] Remove monolithic `A2UiLlmOutput` / `.entity()` generation path from stream runtime (replaced in Phase 1/2).
-- [ ] Stream validation: fail-fast (SSE error), not warn-and-forward.
-- [ ] Inject `A2UiMessageValidator` bean into surface service.
-- [ ] Stream integration tests (progressive SSE, error events).
+- [x] Remove sync surface endpoint (`POST /a2ui/surface`): controller, service, tests, `docs/rest-api.md`, demo sync mode.
+- [x] Fix streaming regression: incremental SSE emission (`JsonlLineAccumulator` or equivalent); remove full-response `.reduce()` before emit.
+- [x] Remove silent fallback surfaces from `SpringAiSurfaceRuntime`; emit SSE `event: error` with diagnostics instead.
+- [x] Remove monolithic `A2UiLlmOutput` / `.entity()` generation path from stream runtime (replaced in Phase 1/2).
+- [x] Stream validation: fail-fast (SSE error), not warn-and-forward.
+- [x] Inject `A2UiMessageValidator` bean into surface service.
+- [x] Stream integration tests (progressive SSE, error events).
 
 ---
 
@@ -79,18 +79,18 @@ Defer: `list-items`, `metric-row`, `confirmation`, `weather-card` until Phase 1 
 
 Each template: fixed `surfaceUpdate` adjacency list → slot-driven `dataModelUpdate` → runtime-emitted `beginRendering`.
 
-- [ ] `A2UiSurfaceSpec` + `A2UiSurfaceTemplates` builder API
-- [ ] `A2UiTemplateRegistry` (load standard templates from classpath)
-- [ ] Unit tests: each MVP template → valid message sequence passes `A2UiMessageValidator`
+- [x] `A2UiSurfaceSpec` + `A2UiSurfaceTemplates` builder API
+- [x] `A2UiTemplateRegistry` (load standard templates from classpath)
+- [x] Unit tests: each MVP template → valid message sequence passes `A2UiMessageValidator`
 
 ### 1b — Orchestrator (template path)
 
-- [ ] Runtime `@Tool`: `renderTemplate(templateId, slots)` → delegates to registry/builder
-- [ ] Runtime `@Tool`: `selectTemplate(templateId, rationale)` with enum constrained to registered IDs
-- [ ] `A2UiStreamEmitter`: emit validated envelopes over SSE as tools complete
-- [ ] Wire `A2UiSurfaceBuffer` before `beginRendering`
-- [ ] Orchestrator integration test (mock ChatClient → template → SSE events)
-- [ ] Metrics: `a2ui.template.rendered`, `a2ui.stream.error`
+- [x] Runtime `@Tool`: `renderTemplate(templateId, slots)` → delegates to registry/builder
+- [x] Runtime `@Tool`: `selectTemplate(templateId, rationale)` with enum constrained to registered IDs
+- [x] Emit validated envelopes over SSE as tools complete (via `TemplateSurfaceOrchestrator` + existing stream pipeline)
+- [x] Wire `A2UiSurfaceBuffer` before `beginRendering`
+- [x] Orchestrator integration test (mock ChatClient → template → SSE events)
+- [x] Metrics: `a2ui.template.rendered` (`a2ui.stream.error` via existing transform failure metrics)
 
 ---
 

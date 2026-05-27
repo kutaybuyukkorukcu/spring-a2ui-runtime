@@ -13,32 +13,6 @@ interface A2UiSurfaceRequest {
   };
 }
 
-export async function generateSurface(content: string, signal?: AbortSignal): Promise<{ success: boolean; messages: unknown[]; error?: string; errorCode?: string }> {
-  const request: A2UiSurfaceRequest = {
-    content,
-    a2uiClientCapabilities: {
-      supportedCatalogIds: [CATALOG_ID],
-    },
-  };
-
-  const response = await fetch('/a2ui/surface', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Request-Id': crypto.randomUUID(),
-    },
-    body: JSON.stringify(request),
-    signal,
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(errorBody.error || `Surface generation failed: ${response.status}`);
-  }
-
-  return response.json();
-}
-
 export async function streamSurface(
   content: string,
   onMessage: (message: unknown) => void,
@@ -85,14 +59,35 @@ export async function streamSurface(
       const trimmed = line.trim();
       if (!trimmed) continue;
 
+      if (trimmed.startsWith('event:')) {
+        const eventType = trimmed.slice(6).trim();
+        if (eventType === 'error') {
+          continue;
+        }
+      }
+
       if (trimmed.startsWith('data:')) {
         const data = trimmed.slice(5).trim();
         if (data === '[DONE]') return;
+        if (data.startsWith('{"error"')) {
+          try {
+            const parsed = JSON.parse(data) as { error?: string; errorCode?: string };
+            onError(parsed.error || parsed.errorCode || 'Stream error');
+          } catch {
+            onError(`Stream error: ${data}`);
+          }
+          return;
+        }
         try {
           const message = JSON.parse(data);
-          onMessage(message);
+          try {
+            onMessage(message);
+          } catch (processingError) {
+            const detail = processingError instanceof Error ? processingError.message : String(processingError);
+            onError(`Invalid A2UI message from server: ${detail}`);
+          }
         } catch {
-          onError(`Failed to parse SSE message: ${data}`);
+          onError(`Failed to parse SSE JSON: ${data}`);
         }
       }
     }

@@ -58,4 +58,11 @@ public class A2UiRuntimeMetrics {
     public void recordRendererError(String errorCode) {
         // no-op for now, can be extended
     }
+
+    public void recordTemplateRendered(String templateId) {
+        MeterRegistry registry = meterRegistrySupplier.get();
+        if (registry != null && templateId != null) {
+            registry.counter("a2ui.template.rendered", "templateId", templateId).increment();
+        }
+    }
 }

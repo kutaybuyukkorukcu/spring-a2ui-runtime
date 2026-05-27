@@ -15,6 +15,9 @@ spring:
           temperature: 0.0
 
 a2ui:
+  web:
+    runtime:
+      generation-mode: template
   runtime:
     deterministic:
       temperature: ${A2UI_RUNTIME_TEMPERATURE:0.0}
@@ -30,8 +33,6 @@ a2ui:
       fail-fast: ${A2UI_RUNTIME_ADVISORS_FAIL_FAST:true}
       deterministic-options:
         enabled: ${A2UI_RUNTIME_ADVISORS_DETERMINISTIC_OPTIONS_ENABLED:true}
-      runtime-validation:
-        enabled: ${A2UI_RUNTIME_ADVISORS_RUNTIME_VALIDATION_ENABLED:true}
 
 management:
   prometheus:

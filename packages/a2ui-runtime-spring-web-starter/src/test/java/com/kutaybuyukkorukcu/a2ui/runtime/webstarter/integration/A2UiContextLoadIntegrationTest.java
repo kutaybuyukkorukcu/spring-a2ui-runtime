@@ -21,7 +21,6 @@ class A2UiContextLoadIntegrationTest {
     @Test
     void shouldRegisterA2UiWebAutoConfiguration() {
         assertThat(applicationContext.containsBean("a2UiSurfaceService")).isTrue();
-        assertThat(applicationContext.containsBean("a2UiSurfaceController")).isTrue();
         assertThat(applicationContext.containsBean("a2UiStreamController")).isTrue();
         assertThat(applicationContext.containsBean("a2UiCatalogController")).isTrue();
         assertThat(applicationContext.containsBean("a2UiActionController")).isTrue();

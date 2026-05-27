@@ -4,6 +4,8 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.properties.A2UiWebPropertie
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionHandler;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 import org.mockito.Mockito;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
@@ -24,6 +26,13 @@ public class A2UiTestConfiguration {
         ChatResponse chatResponse = Mockito.mock(ChatResponse.class);
         Mockito.when(mockChatModel.call(Mockito.any(Prompt.class))).thenReturn(chatResponse);
         return mockChatModel;
+    }
+
+    @Bean
+    public ChatClient.Builder chatClientBuilder() {
+        ChatClient.Builder builder = Mockito.mock(ChatClient.Builder.class);
+        Mockito.when(builder.defaultAdvisors(Mockito.any(Advisor.class))).thenReturn(builder);
+        return builder;
     }
 
     @Bean
