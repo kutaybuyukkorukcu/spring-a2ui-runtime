@@ -52,7 +52,11 @@ public class A2UiWebProperties {
 
     public static class RuntimeProperties {
         private String modelName;
+        private String generationMode = "dynamic";
+
         public String getModelName() { return modelName; }
         public void setModelName(String modelName) { this.modelName = modelName; }
+        public String getGenerationMode() { return generationMode; }
+        public void setGenerationMode(String generationMode) { this.generationMode = generationMode; }
     }
 }

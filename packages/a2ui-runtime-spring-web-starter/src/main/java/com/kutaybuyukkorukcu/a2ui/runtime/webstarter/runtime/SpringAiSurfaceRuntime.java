@@ -9,8 +9,6 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionExcep
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiPromptContext;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiPromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.properties.A2UiWebProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.beans.factory.ObjectProvider;
@@ -22,68 +20,29 @@ import java.util.List;
 
 public class SpringAiSurfaceRuntime implements A2UiSurfaceRuntime {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SpringAiSurfaceRuntime.class);
-
     private final ObjectProvider<ChatClient.Builder> chatClientBuilderProvider;
     private final List<Advisor> advisors;
     private final Environment environment;
     private final A2UiWebProperties properties;
     private final A2UiPromptProvider promptProvider;
     private final A2UiMessageParser messageParser;
+    private final TemplateSurfaceOrchestrator templateOrchestrator;
 
     public SpringAiSurfaceRuntime(
             ObjectProvider<ChatClient.Builder> chatClientBuilderProvider,
             List<Advisor> advisors,
             Environment environment,
             A2UiWebProperties properties,
-            A2UiPromptProvider promptProvider) {
+            A2UiPromptProvider promptProvider,
+            A2UiMessageParser messageParser,
+            TemplateSurfaceOrchestrator templateOrchestrator) {
         this.chatClientBuilderProvider = chatClientBuilderProvider;
         this.advisors = advisors == null ? List.of() : advisors;
         this.environment = environment;
         this.properties = properties;
         this.promptProvider = promptProvider;
-        this.messageParser = new A2UiMessageParser();
-    }
-
-    @Override
-    public List<A2UiMessage> generate(A2UiSurfaceRequest request, String requestId, String catalogId) {
-        ChatClient chatClient = createClient();
-
-        A2UiPromptContext promptContext = new A2UiPromptContext(
-                request.content(),
-                buildContextHints(request),
-                catalogId,
-                extractSupportedCatalogIds(request)
-        );
-
-        String systemPrompt = promptProvider.createSystemPrompt(promptContext);
-        String userPrompt = promptProvider.createUserPrompt(promptContext);
-
-        String rawResponse = chatClient.prompt()
-                .system(systemPrompt)
-                .user(userPrompt)
-                .call()
-                .content();
-
-        if (rawResponse == null || rawResponse.isBlank()) {
-            throw new SurfaceExecutionException(
-                    "LLM returned empty response",
-                    SurfaceErrorCodes.TRANSFORM_FAILED, null);
-        }
-
-        A2UiMessageParser.ParseResult result = messageParser.bestEffortParse(rawResponse);
-
-        if (result.messages().isEmpty() && result.hasFailures()) {
-            throw new SurfaceExecutionException(
-                    "Failed to parse any A2UI messages from LLM response",
-                    SurfaceErrorCodes.TRANSFORM_PARSE_FAILED,
-                    result.failures());
-        }
-
-        LOGGER.info("Generated {} A2UI messages ({} parse failures)",
-                result.messages().size(), result.failures().size());
-
-        return result.messages();
+        this.messageParser = messageParser;
+        this.templateOrchestrator = templateOrchestrator;
     }
 
     @Override
@@ -105,10 +64,19 @@ public class SpringAiSurfaceRuntime implements A2UiSurfaceRuntime {
         return builder.build();
     }
 
-@Override
+    @Override
     public Flux<A2UiMessage> stream(A2UiSurfaceRequest request, String requestId, String catalogId) {
-        ChatClient chatClient = createClient();
+        if (isTemplateMode()) {
+            return templateOrchestrator.stream(request, requestId, catalogId);
+        }
+        return streamDynamic(request, catalogId);
+    }
 
+    private boolean isTemplateMode() {
+        return "template".equalsIgnoreCase(properties.getRuntime().getGenerationMode());
+    }
+
+    private Flux<A2UiMessage> streamDynamic(A2UiSurfaceRequest request, String catalogId) {
         A2UiPromptContext promptContext = new A2UiPromptContext(
                 request.content(),
                 buildContextHints(request),
@@ -119,16 +87,19 @@ public class SpringAiSurfaceRuntime implements A2UiSurfaceRuntime {
         String systemPrompt = promptProvider.createSystemPrompt(promptContext);
         String userPrompt = promptProvider.createUserPrompt(promptContext);
 
-        JsonlLineAccumulator lineAccumulator = new JsonlLineAccumulator();
+        return Flux.defer(() -> {
+            ChatClient chatClient = createClient();
+            JsonlLineAccumulator lineAccumulator = new JsonlLineAccumulator();
 
-        return chatClient.prompt()
-                .system(systemPrompt)
-                .user(userPrompt)
-                .stream()
-                .content()
-                .flatMap(chunk -> Flux.fromIterable(lineAccumulator.accumulate(chunk)))
-                .concatWith(Flux.defer(() -> Flux.fromIterable(lineAccumulator.flush())))
-                .map(line -> parseStreamLine(line));
+            return chatClient.prompt()
+                    .system(systemPrompt)
+                    .user(userPrompt)
+                    .stream()
+                    .content()
+                    .flatMap(chunk -> Flux.fromIterable(lineAccumulator.accumulate(chunk)))
+                    .concatWith(Flux.defer(() -> Flux.fromIterable(lineAccumulator.flush())))
+                    .map(this::parseStreamLine);
+        });
     }
 
     private A2UiMessage parseStreamLine(String line) {

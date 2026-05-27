@@ -1,7 +1,6 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiValidationException;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.A2UiSurfaceRequest;
@@ -51,9 +50,11 @@ public class A2UiStreamController {
             @RequestHeader(value = RequestCorrelationService.REQUEST_ID_HEADER, required = false) String requestIdHeader,
             @RequestBody A2UiSurfaceRequest request) {
         String requestId = requestCorrelationService.resolveRequestId(requestIdHeader);
-        String catalogId = A2UiRequestCatalogNegotiator.negotiateCatalogId(request);
 
-        return surfaceService.stream(request, requestId, catalogId)
+        return Flux.defer(() -> {
+            String catalogId = A2UiRequestCatalogNegotiator.negotiateCatalogId(request);
+            return surfaceService.stream(request, requestId, catalogId);
+        })
                 .map(message -> {
                     runtimeMetrics.recordTransformSuccess("stream");
                     try {

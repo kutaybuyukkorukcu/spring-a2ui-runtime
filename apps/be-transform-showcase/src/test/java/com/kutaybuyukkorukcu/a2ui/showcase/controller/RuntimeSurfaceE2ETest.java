@@ -17,6 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -28,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class RuntimeSurfaceE2ETest {
 
     private static final String REQUEST_ID_HEADER = RequestCorrelationService.REQUEST_ID_HEADER;
-    private static final String SURFACE_PATH = "/a2ui/surface";
+    private static final String STREAM_PATH = "/a2ui/surface/stream";
     private static final String ACTIONS_PATH = "/a2ui/actions";
     private static final String CATALOG_PATH = "/a2ui/catalogs/standard-v0.8";
     private static final String DEFAULT_CATALOG_ID = A2UiCatalogIds.STANDARD_V0_8;
@@ -84,19 +85,22 @@ class RuntimeSurfaceE2ETest {
     }
 
     @Test
-    @DisplayName("showcase should reject surface request with missing content")
-    void shouldRejectSurfaceRequestWithMissingContent() throws Exception {
+    @DisplayName("showcase should emit SSE error for surface stream with missing content")
+    void shouldRejectSurfaceStreamWithMissingContent() throws Exception {
         A2UiSurfaceRequest request = new A2UiSurfaceRequest(
                 null,
                 null,
                 new A2UiSurfaceRequest.ClientCapabilities(List.of(DEFAULT_CATALOG_ID)));
 
         mockMvc.perform(
-                        post(SURFACE_PATH)
+                        post(STREAM_PATH)
                                 .header(REQUEST_ID_HEADER, "req-e2e-missing-content")
+                                .accept(MediaType.TEXT_EVENT_STREAM)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().is4xxClientError());
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("CONTENT_REQUIRED")))
+                .andExpect(content().string(containsString("event:error")));
     }
 
     @Test

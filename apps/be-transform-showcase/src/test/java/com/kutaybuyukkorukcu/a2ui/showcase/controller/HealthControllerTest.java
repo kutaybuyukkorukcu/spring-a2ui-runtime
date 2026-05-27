@@ -37,7 +37,7 @@ class HealthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("A2UI Runtime Showcase Host"))
                 .andExpect(jsonPath("$.version").value("1.0.0"))
-                .andExpect(jsonPath("$.endpoints.surface").exists())
+                .andExpect(jsonPath("$.endpoints.surfaceStream").exists())
                 .andExpect(jsonPath("$.endpoints.actions").exists())
                 .andExpect(jsonPath("$.endpoints.catalog").exists())
                 .andExpect(jsonPath("$.notes.runtimeBoundary").exists())

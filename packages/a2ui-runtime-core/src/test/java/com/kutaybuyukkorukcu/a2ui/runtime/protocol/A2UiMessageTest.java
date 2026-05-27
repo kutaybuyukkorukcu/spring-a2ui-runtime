@@ -44,6 +44,24 @@ class A2UiMessageTest {
     }
 
     @Test
+    void shouldOmitNullOptionalFieldsFromSerializedWireFormat() throws Exception {
+        ComponentDefinition text = new ComponentDefinition("txt-1",
+                Map.of("Text", Map.of("text", Map.of("path", "title"))));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(text));
+        A2UiMessage.DataModelUpdate dmu = new A2UiMessage.DataModelUpdate("main", null, List.of(DataEntry.ofString("title", "Hello")));
+        A2UiMessage.BeginRendering br = new A2UiMessage.BeginRendering(
+                "main", "txt-1", "https://a2ui.org/specification/v0_8/standard_catalog_definition.json", null);
+
+        String surfaceJson = mapper.writeValueAsString((A2UiMessage) su);
+        String dataJson = mapper.writeValueAsString((A2UiMessage) dmu);
+        String beginJson = mapper.writeValueAsString((A2UiMessage) br);
+
+        assertThat(surfaceJson).doesNotContain("\"weight\":null");
+        assertThat(dataJson).doesNotContain("\"path\":null");
+        assertThat(beginJson).doesNotContain("\"styles\":null");
+    }
+
+    @Test
     void shouldSerializeBeginRendering() throws Exception {
         A2UiMessage.BeginRendering br = new A2UiMessage.BeginRendering("main", "root-1", "https://a2ui.org/specification/v0_8/standard_catalog_definition.json", null);
         String json = mapper.writeValueAsString((A2UiMessage) br);
