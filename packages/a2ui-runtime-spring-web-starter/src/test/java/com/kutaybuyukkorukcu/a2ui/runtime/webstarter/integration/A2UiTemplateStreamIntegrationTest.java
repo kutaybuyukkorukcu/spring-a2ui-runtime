@@ -6,6 +6,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.A2UiTemplateTools;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,6 +15,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -51,9 +53,13 @@ class A2UiTemplateStreamIntegrationTest {
         when(requestSpec.system(anyString())).thenReturn(requestSpec);
         when(requestSpec.user(anyString())).thenReturn(requestSpec);
         when(requestSpec.tools(any())).thenReturn(requestSpec);
-        when(requestSpec.call()).thenReturn(callResponseSpec);
         when(callResponseSpec.content()).thenReturn("ok");
 
+        AtomicReference<Map<String, Object>> toolContextRef = new AtomicReference<>();
+        when(requestSpec.toolContext(any())).thenAnswer(invocation -> {
+            toolContextRef.set(invocation.getArgument(0));
+            return requestSpec;
+        });
         doAnswer(invocation -> {
             templateTools.renderTemplate(
                     A2UiSurfaceTemplates.FORM_LOGIN,
@@ -61,7 +67,8 @@ class A2UiTemplateStreamIntegrationTest {
                             "title", "Sign in",
                             "usernameLabel", "Email",
                             "passwordLabel", "Password",
-                            "submitLabel", "Continue"));
+                            "submitLabel", "Continue"),
+                    new ToolContext(toolContextRef.get()));
             return callResponseSpec;
         }).when(requestSpec).call();
     }

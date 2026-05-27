@@ -1,6 +1,5 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.autoconfigure;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.parse.A2UiMessageParser;
@@ -28,7 +27,6 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -146,11 +144,6 @@ public class A2UiWebAutoConfiguration {
     @Bean
     public com.fasterxml.jackson.databind.Module a2UiJacksonModule() {
         return new A2UiJacksonModule();
-    }
-
-    @Bean
-    public Jackson2ObjectMapperBuilderCustomizer a2UiJacksonWireFormatCustomizer() {
-        return builder -> builder.serializationInclusion(JsonInclude.Include.NON_NULL);
     }
 
     @Bean

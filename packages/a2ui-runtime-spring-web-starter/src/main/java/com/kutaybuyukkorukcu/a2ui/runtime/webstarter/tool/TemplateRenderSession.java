@@ -32,7 +32,7 @@ public final class TemplateRenderSession {
         this.selectedTemplateId = selectedTemplateId;
     }
 
-    List<A2UiMessage> renderedMessages() {
+    public List<A2UiMessage> renderedMessages() {
         return renderedMessages;
     }
 
@@ -40,7 +40,7 @@ public final class TemplateRenderSession {
         this.renderedMessages = renderedMessages;
     }
 
-    boolean hasRenderedMessages() {
+    public boolean hasRenderedMessages() {
         return renderedMessages != null && !renderedMessages.isEmpty();
     }
 }

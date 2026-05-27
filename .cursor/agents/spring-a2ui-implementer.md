@@ -28,9 +28,16 @@ Read before coding:
 | Errors | **Fail-fast.** SSE `event: error` + diagnostics. **No silent fallback surfaces.** |
 | LLM provider | **OpenAI-first** for MVP. Other providers later. |
 | Long-term product | **Option B** — dynamic catalog generative UI (Phase 2). |
-| Near-term MVP | **Option A** — 3 templates: `text-card`, `hero-cta`, `form-login`. |
+| Near-term MVP | **Option A** — templates: `text-card`, `hero-cta`, `form-login`, `weather-card`. |
 | Tool API | **Hybrid:** `A2UiSurfaceTemplates` / `A2UiSurfaceSpec` builders + runtime `@Tool` adapters. |
 | Monolithic DTO | **Remove** `A2UiLlmOutput` / `.entity()` full-tree generation from stream path. |
+
+## Implementation guardrails (from PR review)
+
+- **Never use `ThreadLocal`** for template tool session state — reactive SSE may hop threads. Pass `TemplateRenderSession` via Spring AI **`ToolContext`** (`.toolContext(Map.of(A2UiTemplateTools.SESSION_CONTEXT_KEY, session))`) and inject `ToolContext` into `@Tool` methods.
+- **Stream validation:** use `Flux.handle` for per-message validate/map/error — not `concatMap` + `Flux.just`/`Flux.error`.
+- **Jackson wire format:** rely on `@JsonInclude(NON_NULL)` on A2UI records + `A2UiMessageSerializer` — **do not** register a global `Jackson2ObjectMapperBuilderCustomizer` (host app side-effects).
+- **FE SSE:** track `event: error` with an `isErrorEvent` flag before the `data:` line (declare before the line loop).
 
 ## Module layout
 
@@ -61,7 +68,7 @@ Follow existing conventions: Java 21, records, Spring Boot 3.4, Spring AI, minim
 3. Ship **3 templates only:** `text-card`, `hero-cta`, `form-login` (fixed adjacency list + slot → `dataModelUpdate`).
 4. Runtime emits `beginRendering` after `A2UiSurfaceBuffer` validates ID graph.
 5. **`A2UiStreamEmitter`** — emit validated envelopes over SSE as tools complete.
-6. Spring AI **`@Tool`**: `selectTemplate(templateId, rationale)`, `renderTemplate(templateId, slots)` — OpenAI-first via existing `ChatClient` + advisors.
+6. Spring AI **`@Tool`**: `selectTemplate(...)`, `renderTemplate(...)` with **`ToolContext`** session — never ThreadLocal. OpenAI-first via existing `ChatClient` + advisors.
 7. Unit tests per template; orchestrator integration test with mocked `ChatClient`.
 8. Update showcase + fe demo to stream-only.
 

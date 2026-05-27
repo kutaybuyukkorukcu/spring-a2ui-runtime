@@ -13,6 +13,7 @@ import org.springframework.ai.chat.client.advisor.api.Advisor;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
+import java.util.Map;
 
 public class TemplateSurfaceOrchestrator {
 
@@ -36,32 +37,29 @@ public class TemplateSurfaceOrchestrator {
 
     public Flux<A2UiMessage> stream(A2UiSurfaceRequest request, String requestId, String catalogId) {
         return Flux.defer(() -> {
-            templateTools.bindSession(new TemplateRenderSession(DEFAULT_SURFACE_ID, catalogId));
-            try {
-                A2UiPromptContext promptContext = new A2UiPromptContext(
-                        request.content(),
-                        buildContextHints(request),
-                        catalogId,
-                        extractSupportedCatalogIds(request));
+            TemplateRenderSession session = new TemplateRenderSession(DEFAULT_SURFACE_ID, catalogId);
+            A2UiPromptContext promptContext = new A2UiPromptContext(
+                    request.content(),
+                    buildContextHints(request),
+                    catalogId,
+                    extractSupportedCatalogIds(request));
 
-                ChatClient chatClient = createClient();
-                chatClient.prompt()
-                        .system(promptProvider.createSystemPrompt())
-                        .user(promptProvider.createUserPrompt(promptContext))
-                        .tools(templateTools)
-                        .call()
-                        .content();
+            ChatClient chatClient = createClient();
+            chatClient.prompt()
+                    .system(promptProvider.createSystemPrompt())
+                    .user(promptProvider.createUserPrompt(promptContext))
+                    .tools(templateTools)
+                    .toolContext(Map.of(A2UiTemplateTools.SESSION_CONTEXT_KEY, session))
+                    .call()
+                    .content();
 
-                if (!templateTools.hasRenderedMessages()) {
-                    throw new SurfaceExecutionException(
-                            "Template orchestration did not produce a rendered surface",
-                            SurfaceErrorCodes.TRANSFORM_FAILED,
-                            null);
-                }
-                return Flux.fromIterable(templateTools.renderedMessages());
-            } finally {
-                templateTools.clearSession();
+            if (!session.hasRenderedMessages()) {
+                throw new SurfaceExecutionException(
+                        "Template orchestration did not produce a rendered surface",
+                        SurfaceErrorCodes.TRANSFORM_FAILED,
+                        null);
             }
+            return Flux.fromIterable(session.renderedMessages());
         });
     }
 

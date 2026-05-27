@@ -15,15 +15,16 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.A2UiTemplateTools;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.model.ToolContext;
 import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -60,15 +61,22 @@ class TemplateSurfaceOrchestratorTest {
         when(requestSpec.system(anyString())).thenReturn(requestSpec);
         when(requestSpec.user(anyString())).thenReturn(requestSpec);
         when(requestSpec.tools(any())).thenReturn(requestSpec);
+        when(requestSpec.toolContext(any())).thenReturn(requestSpec);
         when(callResponseSpec.content()).thenReturn("ok");
     }
 
     @Test
     void shouldReturnRenderedMessagesFromToolCall() {
+        AtomicReference<Map<String, Object>> toolContextRef = new AtomicReference<>();
+        when(requestSpec.toolContext(any())).thenAnswer(invocation -> {
+            toolContextRef.set(invocation.getArgument(0));
+            return requestSpec;
+        });
         when(requestSpec.call()).thenAnswer(invocation -> {
             templateTools.renderTemplate(
                     A2UiSurfaceTemplates.TEXT_CARD,
-                    Map.of("title", "News", "body", "Latest updates"));
+                    Map.of("title", "News", "body", "Latest updates"),
+                    new ToolContext(toolContextRef.get()));
             return callResponseSpec;
         });
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show a news card", null, null);

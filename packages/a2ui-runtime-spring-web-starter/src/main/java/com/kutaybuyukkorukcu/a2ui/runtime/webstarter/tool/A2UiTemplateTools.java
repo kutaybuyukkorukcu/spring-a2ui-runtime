@@ -4,6 +4,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiSurfaceAssemblyService;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiTemplateRegistry;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 
 import java.util.List;
@@ -11,10 +12,11 @@ import java.util.Map;
 
 public class A2UiTemplateTools {
 
+    public static final String SESSION_CONTEXT_KEY = "a2ui.templateRenderSession";
+
     private final A2UiTemplateRegistry templateRegistry;
     private final A2UiSurfaceAssemblyService assemblyService;
     private final A2UiRuntimeMetrics runtimeMetrics;
-    private final ThreadLocal<TemplateRenderSession> sessionHolder = new ThreadLocal<>();
 
     public A2UiTemplateTools(
             A2UiTemplateRegistry templateRegistry,
@@ -25,38 +27,17 @@ public class A2UiTemplateTools {
         this.runtimeMetrics = runtimeMetrics;
     }
 
-    public void bindSession(TemplateRenderSession session) {
-        sessionHolder.set(session);
-    }
-
-    public void clearSession() {
-        sessionHolder.remove();
-    }
-
-    public boolean hasRenderedMessages() {
-        TemplateRenderSession session = sessionHolder.get();
-        return session != null && session.hasRenderedMessages();
-    }
-
-    public List<A2UiMessage> renderedMessages() {
-        TemplateRenderSession session = sessionHolder.get();
-        if (session == null || !session.hasRenderedMessages()) {
-            return List.of();
-        }
-        return session.renderedMessages();
-    }
-
     @Tool(description = "Select a surface template. Must be one of: text-card, hero-cta, form-login, weather-card.")
-    public String selectTemplate(String templateId, String rationale) {
+    public String selectTemplate(String templateId, String rationale, ToolContext toolContext) {
         templateRegistry.require(templateId);
-        TemplateRenderSession session = requireSession();
+        TemplateRenderSession session = requireSession(toolContext);
         session.setSelectedTemplateId(templateId);
         return "Selected template " + templateId;
     }
 
     @Tool(description = "Render the selected template with slot values as string key-value pairs.")
-    public String renderTemplate(String templateId, Map<String, String> slots) {
-        TemplateRenderSession session = requireSession();
+    public String renderTemplate(String templateId, Map<String, String> slots, ToolContext toolContext) {
+        TemplateRenderSession session = requireSession(toolContext);
         List<A2UiMessage> messages = assemblyService.assemble(
                 templateId, session.surfaceId(), session.catalogId(), slots);
         session.setRenderedMessages(messages);
@@ -64,11 +45,14 @@ public class A2UiTemplateTools {
         return "Rendered template " + templateId;
     }
 
-    private TemplateRenderSession requireSession() {
-        TemplateRenderSession session = sessionHolder.get();
-        if (session == null) {
-            throw new IllegalStateException("Template render session is not bound");
+    private TemplateRenderSession requireSession(ToolContext toolContext) {
+        if (toolContext == null || toolContext.getContext() == null) {
+            throw new IllegalStateException("Template render session is not available in ToolContext");
         }
-        return session;
+        Object session = toolContext.getContext().get(SESSION_CONTEXT_KEY);
+        if (!(session instanceof TemplateRenderSession renderSession)) {
+            throw new IllegalStateException("Template render session is not bound in ToolContext");
+        }
+        return renderSession;
     }
 }

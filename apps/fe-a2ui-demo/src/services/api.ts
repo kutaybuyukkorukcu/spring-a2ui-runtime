@@ -55,27 +55,29 @@ export async function streamSurface(
     const lines = buffer.split('\n');
     buffer = lines.pop() || '';
 
+    let isErrorEvent = false;
+
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed) continue;
 
       if (trimmed.startsWith('event:')) {
         const eventType = trimmed.slice(6).trim();
-        if (eventType === 'error') {
-          continue;
-        }
+        isErrorEvent = eventType === 'error';
+        continue;
       }
 
       if (trimmed.startsWith('data:')) {
         const data = trimmed.slice(5).trim();
         if (data === '[DONE]') return;
-        if (data.startsWith('{"error"')) {
+        if (isErrorEvent) {
           try {
             const parsed = JSON.parse(data) as { error?: string; errorCode?: string };
             onError(parsed.error || parsed.errorCode || 'Stream error');
           } catch {
             onError(`Stream error: ${data}`);
           }
+          isErrorEvent = false;
           return;
         }
         try {

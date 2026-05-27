@@ -25,15 +25,16 @@ public class A2UiSurfaceService {
         return Flux.defer(() -> {
             ensureContentPresent(request);
             return surfaceRuntime.stream(request, requestId, catalogId)
-                    .concatMap(message -> {
+                    .handle((message, sink) -> {
                         List<A2UiDiagnostic> diagnostics = messageValidator.validateSingle(message);
                         if (!diagnostics.isEmpty()) {
-                            return Flux.error(new SurfaceExecutionException(
+                            sink.error(new SurfaceExecutionException(
                                     "Streaming message failed validation",
                                     SurfaceErrorCodes.A2UI_VALIDATION_FAILED,
                                     diagnostics));
+                        } else {
+                            sink.next(message);
                         }
-                        return Flux.just(message);
                     });
         });
     }
