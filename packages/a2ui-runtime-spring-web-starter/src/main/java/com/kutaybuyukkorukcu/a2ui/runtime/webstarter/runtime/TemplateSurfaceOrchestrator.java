@@ -11,6 +11,8 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.TemplateRenderSession;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 import java.util.Map;
@@ -36,7 +38,7 @@ public class TemplateSurfaceOrchestrator {
     }
 
     public Flux<A2UiMessage> stream(A2UiSurfaceRequest request, String requestId, String catalogId) {
-        return Flux.defer(() -> {
+        return Mono.fromCallable(() -> {
             TemplateRenderSession session = new TemplateRenderSession(DEFAULT_SURFACE_ID, catalogId);
             A2UiPromptContext promptContext = new A2UiPromptContext(
                     request.content(),
@@ -59,12 +61,14 @@ public class TemplateSurfaceOrchestrator {
                         SurfaceErrorCodes.TRANSFORM_FAILED,
                         null);
             }
-            return Flux.fromIterable(session.renderedMessages());
-        });
+            return session.renderedMessages();
+        })
+                .subscribeOn(Schedulers.boundedElastic())
+                .flatMapMany(Flux::fromIterable);
     }
 
     private ChatClient createClient() {
-        ChatClient.Builder builder = chatClientBuilder;
+        ChatClient.Builder builder = chatClientBuilder.clone();
         for (Advisor advisor : advisors) {
             builder = builder.defaultAdvisors(advisor);
         }

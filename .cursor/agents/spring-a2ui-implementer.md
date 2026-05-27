@@ -37,7 +37,9 @@ Read before coding:
 - **Never use `ThreadLocal`** for template tool session state — reactive SSE may hop threads. Pass `TemplateRenderSession` via Spring AI **`ToolContext`** (`.toolContext(Map.of(A2UiTemplateTools.SESSION_CONTEXT_KEY, session))`) and inject `ToolContext` into `@Tool` methods.
 - **Stream validation:** use `Flux.handle` for per-message validate/map/error — not `concatMap` + `Flux.just`/`Flux.error`.
 - **Jackson wire format:** rely on `@JsonInclude(NON_NULL)` on A2UI records + `A2UiMessageSerializer` — **do not** register a global `Jackson2ObjectMapperBuilderCustomizer` (host app side-effects).
-- **FE SSE:** track `event: error` with an `isErrorEvent` flag before the `data:` line (declare before the line loop).
+- **FE SSE:** track `event: error` with an `isErrorEvent` flag — declare at **`streamSurface` outer scope** (alongside `buffer`), not inside the per-chunk loop, so split chunks preserve state.
+- **`ChatClient.Builder`:** always **`clone()`** before `defaultAdvisors(...)` — the injected builder is a singleton and mutating it is not thread-safe.
+- **Blocking LLM calls:** wrap synchronous `ChatClient.prompt()...call()` in **`Mono.fromCallable(...).subscribeOn(Schedulers.boundedElastic())`** — never block the WebFlux event loop inside `Flux.defer`.
 
 ## Module layout
 

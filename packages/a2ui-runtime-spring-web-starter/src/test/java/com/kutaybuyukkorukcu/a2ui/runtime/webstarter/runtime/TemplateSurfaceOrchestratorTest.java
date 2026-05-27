@@ -54,6 +54,7 @@ class TemplateSurfaceOrchestratorTest {
                 new TemplateModePromptProvider(registry),
                 templateTools);
 
+        when(builder.clone()).thenReturn(builder);
         when(builder.defaultAdvisors(any(org.springframework.ai.chat.client.advisor.api.Advisor.class)))
                 .thenReturn(builder);
         when(builder.build()).thenReturn(chatClient);
