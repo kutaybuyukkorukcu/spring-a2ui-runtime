@@ -6,11 +6,12 @@ All endpoints are under `/a2ui` by default. Configurable via `a2ui.web.base-path
 
 ## Endpoints
 
-### Generate Surface (Synchronous)
+### Stream Surface (SSE)
 
 ```
-POST /a2ui/surface
+POST /a2ui/surface/stream
 Content-Type: application/json
+Accept: text/event-stream
 X-A2UI-Request-Id: <optional-client-request-id>
 ```
 
@@ -29,46 +30,6 @@ X-A2UI-Request-Id: <optional-client-request-id>
 }
 ```
 
-**Response (200):**
-```json
-{
-  "success": true,
-  "messages": [
-    {"surfaceUpdate": {"surfaceId": "main", "components": [...]}},
-    {"beginRendering": {"surfaceId": "main", "root": "root-1", "catalogId": "...}}
-  ],
-  "usage": {
-    "estimatedTokens": 150,
-    "model": "gpt-4o",
-    "estimatedCostUsd": 0.00009,
-    "processingTimeMs": 2340
-  },
-  "requestId": "req-123"
-}
-```
-
-**Error Responses:**
-| Status | Code | Description |
-|--------|------|-------------|
-| 400 | CONTENT_REQUIRED | Request content is null or blank |
-| 422 | NO_COMPATIBLE_CATALOG | Client capabilities include no known catalog IDs |
-| 422 | TRANSFORM_PARSE_FAILED | LLM output could not be parsed as A2UI messages |
-| 500 | A2UI_VALIDATION_FAILED | Generated messages failed validation |
-| 500 | TRANSFORM_FAILED | Unexpected error during surface generation |
-
----
-
-### Stream Surface (SSE)
-
-```
-POST /a2ui/surface/stream
-Content-Type: application/json
-Accept: text/event-stream
-X-A2UI-Request-Id: <optional-client-request-id>
-```
-
-**Request:** Same as synchronous.
-
 **Response (200):** Server-Sent Events stream:
 ```
 event: surfaceUpdate
@@ -86,6 +47,14 @@ Error events:
 event: error
 data: {"error":"Content is required","errorCode":"CONTENT_REQUIRED"}
 ```
+
+| Error Code | Description |
+|------------|-------------|
+| CONTENT_REQUIRED | Request content is null or blank |
+| NO_COMPATIBLE_CATALOG | Client capabilities include no known catalog IDs |
+| TRANSFORM_PARSE_FAILED | LLM output could not be parsed as A2UI messages |
+| A2UI_VALIDATION_FAILED | Generated messages failed validation |
+| TRANSFORM_FAILED | Unexpected error during surface generation |
 
 ---
 
@@ -160,7 +129,6 @@ Accept: application/json
 |----------|---------|-------------|
 | `a2ui.web.enabled` | `true` | Enable/disable all web endpoints |
 | `a2ui.web.base-path` | `/a2ui` | Base path for all endpoints |
-| `a2ui.web.surface.enabled` | `true` | Enable/disable surface generation endpoint |
 | `a2ui.web.stream.enabled` | `true` | Enable/disable SSE streaming endpoint |
 | `a2ui.web.stream.timeout-ms` | `120000` | SSE stream timeout in milliseconds |
 | `a2ui.web.actions.enabled` | `true` | Enable/disable action handling endpoint |
