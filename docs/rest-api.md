@@ -133,4 +133,5 @@ Accept: application/json
 | `a2ui.web.stream.timeout-ms` | `120000` | SSE stream timeout in milliseconds |
 | `a2ui.web.actions.enabled` | `true` | Enable/disable action handling endpoint |
 | `a2ui.web.catalog.enabled` | `true` | Enable/disable catalog serving endpoint |
+| `a2ui.web.runtime.generation-mode` | `template` | Surface generation mode: `template` (Phase 1 template tools) or `dynamic` (Phase 2 catalog-only generative UI). See [Dynamic Generative UI guide](guides/dynamic-generative-ui.md). |
 | `a2ui.web.runtime.model-name` | _(from Spring AI)_ | Override for model name in usage reports |

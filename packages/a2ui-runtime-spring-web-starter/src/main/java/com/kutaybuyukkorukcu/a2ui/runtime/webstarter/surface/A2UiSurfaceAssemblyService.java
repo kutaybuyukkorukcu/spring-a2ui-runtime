@@ -34,7 +34,7 @@ public class A2UiSurfaceAssemblyService {
         List<A2UiMessage> messages = new ArrayList<>(spec.buildMessages(surfaceId, slots));
         A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
         for (A2UiMessage message : messages) {
-            apply(buffer, message);
+            A2UiSurfaceBufferOps.apply(buffer, message);
         }
 
         if (!buffer.getOrCreateSurface(surfaceId).hasComponent(spec.rootComponentId())) {
@@ -93,17 +93,4 @@ public class A2UiSurfaceAssemblyService {
         }
     }
 
-    private static void apply(A2UiSurfaceBuffer buffer, A2UiMessage message) {
-        switch (message) {
-            case A2UiMessage.SurfaceUpdate su -> buffer.applySurfaceUpdate(su);
-            case A2UiMessage.DataModelUpdate dmu -> buffer.applyDataModelUpdate(dmu);
-            case A2UiMessage.BeginRendering br -> {
-                A2UiSurfaceBuffer.SurfaceState state = buffer.getOrCreateSurface(br.surfaceId());
-                state.setRenderingBegun(true);
-                state.setRootComponentId(br.root());
-                state.setCatalogId(br.catalogId());
-            }
-            case A2UiMessage.DeleteSurface ds -> buffer.deleteSurface(ds.surfaceId());
-        }
-    }
 }

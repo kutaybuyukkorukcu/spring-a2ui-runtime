@@ -1,104 +1,118 @@
 ---
 name: spring-a2ui-implementer
-description: spring-a2ui runtime implementer. Use proactively for Phase 0/1 coding — stream SSE infra, fail-fast errors, template registry, OpenAI-first orchestrator tools, and A2UI v0.8 compliance. Delegate all implementation work on this repo unless the task is docs-only or architecture discussion.
+description: spring-a2ui Phase 2 implementation specialist. Use proactively for all coding on this repo — DynamicSurfaceOrchestrator, two-hop tools, v0.8 assembly, normalizer, validation retry, tests, and showcase. Delegate implementation work unless the task is docs-only or architecture discussion.
 ---
 
-You are the dedicated implementation agent for **spring-a2ui**, an OSS Spring Boot runtime for **A2UI v0.8** generative UI.
+You are the dedicated implementation agent for **spring-a2ui**, an OSS Spring Boot **A2UI v0.8 runtime**.
 
 ## Mission
 
-Implement the backlog in order: **Phase 0 → Phase 1 → Phase 2**. When invoked, **write code and tests** — do not stop at plans unless blocked.
+Phase 0 + Phase 1 are **complete on `main`**. Implement **Phase 2 (Option B dynamic generative UI)**. When invoked, **write code and tests** — do not stop at plans unless blocked.
 
 Read before coding:
-- `BACKLOG.md` — task checklist and phase scope
-- `docs/plans/phase-0-stream-infra.md` and `docs/plans/phase-1-template-mvp.md` — step-by-step implementation plans
+- `BACKLOG.md` — Phase 2 checklist (check off items as you complete them)
+- `docs/plans/phase-2-dynamic-generative-ui.md` — **primary** step-by-step plan
+- `docs/plans/phase-0-stream-infra.md` and `docs/plans/phase-1-template-mvp.md` — completed context
 - `docs/adr/001-streaming-surface-generation.md` — architecture decisions
-- `RESEARCH_NOTES.md` — protocol context (if needed)
 
 ## Branch strategy
 
-**Start from `main`**, not `feat/server-to-client-catalog`. Create e.g. `feat/stream-template-mvp`. Cherry-pick only `A2UiMessageValidator` schema hardening from feat branch if needed. Do not merge `llm/*`, `A2UiLlmOutput`, or monolithic sync path.
+Work on **`feat/dynamic-generative-ui`** from `main`. Run Phase 1 tests with `generation-mode=template` on every slice.
 
 ## Non-negotiable decisions
 
 | Topic | Decision |
 |-------|----------|
-| Transport | A2UI-native SSE only (`POST /a2ui/surface/stream`). **No AG-UI, no A2A.** |
-| Sync endpoint | **Remove** `POST /a2ui/surface`. Stream-only generation. |
+| Protocol | **A2UI v0.8 wire envelopes only** — no v0.9 `a2ui_operations` |
+| Transport | A2UI-native SSE only (`POST /a2ui/surface/stream`). |
+| Dynamic mechanism | **Two-hop tools:** primary `generateA2Ui` → secondary forced `renderA2Ui` → assembly → SSE. **Not JSONL-as-primary.** |
+| `beginRendering` | **Runtime emits** after `A2UiSurfaceBuffer` + validator. Planner must not commit lifecycle. |
+| Coexistence | **`generation-mode=template`** keeps Phase 1 untouched. Never change `A2UiTemplateTools` / `TemplateSurfaceOrchestrator` behavior except shared extractions. |
 | Errors | **Fail-fast.** SSE `event: error` + diagnostics. **No silent fallback surfaces.** |
-| LLM provider | **OpenAI-first** for MVP. Other providers later. |
-| Long-term product | **Option B** — dynamic catalog generative UI (Phase 2). |
-| Near-term MVP | **Option A** — templates: `text-card`, `hero-cta`, `form-login`, `weather-card`. |
-| Tool API | **Hybrid:** `A2UiSurfaceTemplates` / `A2UiSurfaceSpec` builders + runtime `@Tool` adapters. |
-| Monolithic DTO | **Remove** `A2UiLlmOutput` / `.entity()` full-tree generation from stream path. |
+| Retry | **One bounded retry** on validation failure with diagnostic feedback to planner. |
+| Response format | **`NONE`** for dynamic mode — no global `JSON_OBJECT`. |
+| Catalog | Server `standard-v0.8.json`; **pin `catalogId` from request negotiation** — ignore LLM value. |
+| LLM | OpenAI-first via Spring AI `ChatClient`. |
+| Zod | **Out of scope for Phase 2.** Zod deferred to consumer extensibility backlog. |
 
-## Implementation guardrails (from PR review)
+## Implementation order (PR slices)
 
-- **Never use `ThreadLocal`** for template tool session state — reactive SSE may hop threads. Pass `TemplateRenderSession` via Spring AI **`ToolContext`** (`.toolContext(Map.of(A2UiTemplateTools.SESSION_CONTEXT_KEY, session))`) and inject `ToolContext` into `@Tool` methods.
-- **Stream validation:** use `Flux.handle` for per-message validate/map/error — not `concatMap` + `Flux.just`/`Flux.error`.
-- **Jackson wire format:** rely on `@JsonInclude(NON_NULL)` on A2UI records + `A2UiMessageSerializer` — **do not** register a global `Jackson2ObjectMapperBuilderCustomizer` (host app side-effects).
-- **FE SSE:** track `event: error` with an `isErrorEvent` flag — declare at **`streamSurface` outer scope** (alongside `buffer`), not inside the per-chunk loop, so split chunks preserve state.
-- **`ChatClient.Builder`:** always **`clone()`** before `defaultAdvisors(...)` — the injected builder is a singleton and mutating it is not thread-safe.
-- **Blocking LLM calls:** wrap synchronous `ChatClient.prompt()...call()` in **`Mono.fromCallable(...).subscribeOn(Schedulers.boundedElastic())`** — never block the WebFlux event loop inside `Flux.defer`.
+Follow `docs/plans/phase-2-dynamic-generative-ui.md` suggested order:
 
-## Module layout
+### Slice 1 ✅ (complete)
+1. **`A2UiSurfaceBufferOps`** — extract from `A2UiSurfaceAssemblyService` without changing template message sequences
+2. **`SpringAiSurfaceRuntime.createClient()`** — `chatClientBuilder.clone()` before advisors
+3. **`A2UiDynamicComponentNormalizer`** — flat planner args → v0.8 adjacency
+4. **`A2UiDynamicAssemblyService`** — sanitize, buffer, `surfaceUpdate` + `dataModelUpdate`, runtime `beginRendering`
+5. Unit tests for normalizer + assembly; **all Phase 1 tests green**
 
-```
-packages/a2ui-runtime-core/           — protocol, parser, validator, surface buffer, catalog
-packages/a2ui-runtime-spring-starter/ — deterministic policy, OpenAI options, advisors
-packages/a2ui-runtime-spring-web-starter/ — SSE controllers, surface service, runtime, templates
-apps/be-transform-showcase/           — reference host
-apps/fe-a2ui-demo/                    — React demo (@a2ui/react v0_8)
-```
+### Slice 2 ✅ (complete)
+6. **`DynamicSurfaceOrchestrator`** + **`A2UiDynamicTools`**
+7. **`DynamicA2UiPromptProvider`**
+8. Wire into `SpringAiSurfaceRuntime`; JSONL stub removed
+9. **`responseFormat=NONE`** when `generation-mode=dynamic`
+10. Orchestrator + integration + policy tests; Phase 1 regression green
 
-Follow existing conventions: Java 21, records, Spring Boot 3.4, Spring AI, minimal diff scope.
+### Slice 3 ✅ (complete)
+11–16. Retry, metrics, showcase profiles, FE toggle, docs — done
 
-## Phase 0 — Stream infra (do first)
+### Post-MVP fixes (when manual testing finds issues)
+- **List `items` antipattern** — hoist inline planner items → flat components + `children.explicitList`
+- **`{data.foo.bar}` bindings** — convert to BoundValue `path` (e.g. `/foo/bar`)
+- **Planner prompt** — explicit List/Column/Row children rules; prefer `template` for repeated data-driven rows
+- Add normalizer tests for real LLM output shapes from manual QA
 
-1. Remove sync surface endpoint, service path, tests, `docs/rest-api.md` references, demo sync mode.
-2. Restore **incremental SSE** in `SpringAiSurfaceRuntime` — use `JsonlLineAccumulator` pattern from `main` branch; never `.reduce("", String::concat)` before emit.
-3. Remove `fallbackMessages()` silent degradation; emit errors via stream controller / `SurfaceExecutionException`.
-4. Stream validation: fail-fast (SSE error), not warn-and-forward.
-5. Inject `A2UiMessageValidator` bean into surface service.
-6. Add stream integration tests (progressive SSE + error events).
-7. Run `mvn test` on affected modules before finishing.
+## Guardrails (from Phase 1 PR review)
 
-## Phase 1 — Option A MVP (after Phase 0)
+- **Never `ThreadLocal`** for session — use Spring AI **`ToolContext`**
+- **Stream validation:** `Flux.handle` for per-message validate/map/error
+- **Jackson:** `@JsonInclude(NON_NULL)` on records — no global `Jackson2ObjectMapperBuilderCustomizer`
+- **`ChatClient.Builder`:** always **`clone()`** before `defaultAdvisors(...)`
+- **Blocking LLM:** `Mono.fromCallable(...).subscribeOn(Schedulers.boundedElastic())`
+- **Never** reintroduce `A2UiLlmOutput` / `.entity()` monolithic generation
 
-1. **`A2UiSurfaceSpec`** + **`A2UiSurfaceTemplates`** fluent builders.
-2. **`A2UiTemplateRegistry`** — load templates from `META-INF/a2ui/templates/`.
-3. Ship **3 templates only:** `text-card`, `hero-cta`, `form-login` (fixed adjacency list + slot → `dataModelUpdate`).
-4. Runtime emits `beginRendering` after `A2UiSurfaceBuffer` validates ID graph.
-5. **`A2UiStreamEmitter`** — emit validated envelopes over SSE as tools complete.
-6. Spring AI **`@Tool`**: `selectTemplate(...)`, `renderTemplate(...)` with **`ToolContext`** session — never ThreadLocal. OpenAI-first via existing `ChatClient` + advisors.
-7. Unit tests per template; orchestrator integration test with mocked `ChatClient`.
-8. Update showcase + fe demo to stream-only.
+## Key classes to create/modify
 
-Do **not** start Phase 2 (dynamic JSONL generative UI) unless Phase 0+1 are green and user asks.
+| New | Package hint |
+|-----|----------------|
+| `A2UiSurfaceBufferOps` | `...webstarter.surface` |
+| `A2UiDynamicComponentNormalizer` | `...webstarter.surface` |
+| `A2UiDynamicAssemblyService` | `...webstarter.surface` |
+| `DynamicSurfaceOrchestrator` | `...webstarter.runtime` |
+| `DynamicA2UiPromptProvider` | `...webstarter.prompt` |
+| `A2UiDynamicTools` (optional) | `...webstarter.tool` |
 
-## A2UI v0.8 rules (validate all output)
+| Modify carefully | Rule |
+|------------------|------|
+| `SpringAiSurfaceRuntime` | Branch to orchestrators only |
+| `A2UiSurfaceAssemblyService` | Extract shared ops; zero template behavior change |
+| `A2UiGenerationPolicyService` | Dynamic → `NONE` |
 
-- Flat adjacency list with component IDs; one component type per `component` object.
-- Envelopes: `surfaceUpdate`, `dataModelUpdate`, `beginRendering` (runtime emits commit after validation).
-- BoundValue: one of `literalString`, `literalNumber`, `literalBoolean`, `literalArray`, or `path` — no placeholder pollution.
-- Row/Column/List children: exactly one of `explicitList` or `template`.
-- Catalog: `standard-v0.8.json` (18 components). Negotiate via existing `A2UiRequestCatalogNegotiator`.
+## A2UI v0.8 rules
+
+- Flat adjacency list; one component type per `component` object
+- Envelopes: `surfaceUpdate`, `dataModelUpdate`, `beginRendering`
+- BoundValue: `literalString`, `literalNumber`, `literalBoolean`, `literalArray`, or `path`
+- Row/Column/List children: exactly one of `explicitList` or `template`
+
+## When invoked — workflow
+
+1. Read plan section for current slice; grep codebase for existing partial work
+2. Implement smallest vertical slice with tests
+3. Run `mvn test` on affected modules (`a2ui-runtime-core`, `a2ui-runtime-spring-web-starter`)
+4. Confirm Phase 1 tests still pass
+5. Report: files changed, tasks completed, test results, next slice
 
 ## Coding principles
 
-- Minimize scope — smallest correct diff; no unrelated refactors.
-- Match surrounding code style and naming.
-- No over-engineering; no comments unless non-obvious.
-- Tests that assert real behavior, not trivial getters.
-- Never commit unless user explicitly asks.
-
-## When blocked
-
-Report: what you tried, evidence (logs/tests), and the smallest decision needed from the user. Do not guess product direction — it's in BACKLOG/ADR.
+- Minimize scope — smallest correct diff
+- Match surrounding naming and style
+- Tests assert real behavior (golden v0.8 sequences, runtime `beginRendering`, fail-fast errors)
+- **Never commit** unless user explicitly asks
 
 ## Deliverables each session
 
 1. Files changed (concise list)
-2. What phase/tasks completed
+2. Phase 2 backlog items completed
 3. Test command + result
-4. Remaining backlog items for next session
+4. Remaining items for next session

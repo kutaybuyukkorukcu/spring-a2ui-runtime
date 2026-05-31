@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: a2ui-showcase-host
+  profiles:
+    default: template
 
   ai:
     openai:
@@ -15,9 +17,6 @@ spring:
           temperature: 0.0
 
 a2ui:
-  web:
-    runtime:
-      generation-mode: template
   runtime:
     deterministic:
       temperature: ${A2UI_RUNTIME_TEMPERATURE:0.0}

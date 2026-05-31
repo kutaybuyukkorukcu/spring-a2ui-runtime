@@ -5,6 +5,20 @@ import { useSurfaceGeneration } from '../hooks/useSurfaceGeneration';
 
 initializeDefaultCatalog();
 
+const generationMode = import.meta.env.VITE_A2UI_GENERATION_MODE === 'dynamic' ? 'dynamic' : 'template';
+
+const TEMPLATE_SAMPLE_PROMPTS = [
+  'Show me a login form',
+  'Create a weather card for San Francisco',
+  'Display a hero section with a call to action',
+];
+
+const DYNAMIC_SAMPLE_PROMPTS = [
+  'Build a dashboard summarizing Q1 sales by region',
+  'Create a product comparison table for three laptops',
+  'Design a settings panel for notification preferences',
+];
+
 export function App() {
   const onActionRef = useRef<(event: A2UIClientEventMessage) => void | Promise<void>>(async () => {});
 
@@ -22,6 +36,7 @@ function DemoContent({
 }) {
   const { loading, error, generate, clear, handleAction } = useSurfaceGeneration();
   const [input, setInput] = useState('');
+  const samplePrompts = generationMode === 'dynamic' ? DYNAMIC_SAMPLE_PROMPTS : TEMPLATE_SAMPLE_PROMPTS;
 
   useEffect(() => {
     onActionRef.current = handleAction;
@@ -34,11 +49,22 @@ function DemoContent({
     setInput('');
   };
 
+  const handleSamplePrompt = (prompt: string) => {
+    if (loading) return;
+    generate(prompt);
+  };
+
   return (
     <div className="app">
       <header>
         <h1>A2UI Runtime Demo</h1>
         <p>Connect to spring-a2ui-runtime backend and render A2UI v0.8 surfaces</p>
+        <p className="generation-mode-hint">
+          Generation mode: <strong>{generationMode}</strong>
+          {generationMode === 'dynamic' && (
+            <span> — start the showcase with <code>--spring.profiles.active=dynamic</code></span>
+          )}
+        </p>
       </header>
 
       <main>
@@ -63,12 +89,31 @@ function DemoContent({
 
         {loading && <div className="a2ui-loading">Generating...</div>}
 
+        <div className="sample-prompts">
+          <span className="sample-prompts-label">Try:</span>
+          {samplePrompts.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              className="sample-prompt-button"
+              disabled={loading}
+              onClick={() => handleSamplePrompt(prompt)}
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+
         <form onSubmit={handleSubmit} className="input-form">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Describe a surface to generate..."
+            placeholder={
+              generationMode === 'dynamic'
+                ? 'Describe any UI to generate from scratch...'
+                : 'Describe a surface to generate...'
+            }
             disabled={loading}
             className="input-field"
           />

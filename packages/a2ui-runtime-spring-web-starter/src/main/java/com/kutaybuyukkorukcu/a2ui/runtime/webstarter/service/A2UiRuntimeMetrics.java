@@ -65,4 +65,27 @@ public class A2UiRuntimeMetrics {
             registry.counter("a2ui.template.rendered", "templateId", templateId).increment();
         }
     }
+
+    public void recordDynamicSurfaceGenerated() {
+        incrementCounter("a2ui.dynamic.surface.generated");
+    }
+
+    public void recordDynamicValidationFailed() {
+        incrementCounter("a2ui.dynamic.validation.failed");
+    }
+
+    public void recordDynamicValidationRetrySuccess() {
+        incrementCounter("a2ui.dynamic.validation.retry.success");
+    }
+
+    public void recordDynamicValidationRetryFailed() {
+        incrementCounter("a2ui.dynamic.validation.retry.failed");
+    }
+
+    private void incrementCounter(String name) {
+        MeterRegistry registry = meterRegistrySupplier.get();
+        if (registry != null) {
+            registry.counter(name).increment();
+        }
+    }
 }
