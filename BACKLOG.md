@@ -1,6 +1,6 @@
 # Backlog
 
-Execution order: **Phase 0 (infra)** ✅ → **Phase 1 (Option A MVP)** ✅ → **Phase 2 (Option B dynamic generative UI)** → **Later**.
+Execution order: **Phase 0 (infra)** ✅ → **Phase 1 (Option A MVP)** ✅ → **Phase 2 (Option B dynamic generative UI)** ✅ → **Phase 2.5 (scalable dynamic runtime)** → **Later**.
 
 ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)`
 
@@ -138,6 +138,44 @@ Goal: LLM generates UI **from scratch** using only the standard catalog — incr
 
 ---
 
+## Phase 2.5 — Scalable dynamic runtime (do next)
+
+Phase 2 dynamic mode works end-to-end but relies on a **repair normalizer** that patches LLM shorthand into valid v0.8. This does not scale — every new prompt shape risks a new alias rule. The CheckBox bug illustrates the gap: the server emits `CheckBox` with `label` (path) but missing `value` (required), and neither the normalizer nor the server-side validator catches it. The `@a2ui/react` client rejects it.
+
+**Goal:** Make dynamic mode production-grade by constraining the LLM at the source and validating on the server with the same rigor as the client.
+
+### 2.5a — Catalog property validation in `A2UiMessageValidator`
+
+- Extend `A2UiMessageValidator.validateComponentDefinition()` to validate component **properties** against the v0.8 catalog JSON Schema (required fields, BoundValue shapes, child reference patterns), not just type names.
+- Catch missing required props (e.g. CheckBox without `value`), wrong BoundValue shapes, unknown props for a component type.
+- Align server validation with `@a2ui/react` client validation so errors are caught before SSE emission.
+
+**Acceptance:** Invalid CheckBox (missing `value`), Text (wrong BoundValue shape), Card (wrong child pattern) all fail fast with diagnostics. No server-emitted envelope that the client would reject.
+
+### 2.5b — Strict `renderA2Ui` tool JSON Schema
+
+- Generate JSON Schema for the `renderA2Ui` tool `components` parameter from `standard-v0.8.json`, so the LLM is structurally constrained at tool-call time (required fields, allowed component types, prop shapes).
+- This is the upstream fix: fewer invalid tool args means fewer retry cycles and less normalizer pressure.
+
+**Acceptance:** Planner tool call for CheckBox must include `value`; planner cannot emit `checked` if the schema disallows it. Reduces `a2ui.dynamic.validation.failed` metric in practice.
+
+### 2.5c — Freeze normalizer growth
+
+- Document the current normalizer's allowed alias/shorthand adaptations (these are intentional canonicalization, not repairs).
+- Stop adding structural repair rules to the normalizer. Invalid structure should fail validation and trigger bounded retry — not be silently repaired.
+- Move structural fixes (like Card multi-child wrapping) into the tool schema + validation + retry pipeline.
+
+**Acceptance:** New component prop issues are resolved via schema + validation + retry, not via normalizer patches. Existing normalizer rules are documented.
+
+### 2.5d — Metrics-driven validation iteration
+
+- Ensure `a2ui.dynamic.validation.failed`, `a2ui.dynamic.validation.retry.success`, `a2ui.dynamic.validation.retry.failed` counters are wired and emitted.
+- Use these metrics to identify which validation failures dominate and whether strict tool schema (2.5b) reduces retry rates.
+
+**Acceptance:** Counters visible in actuator metrics; baseline measurement taken before and after strict schema introduction.
+
+---
+
 ## Later — consumer extensibility
 
 - `A2UiTemplateRegistry` SPI: app developers register custom templates (Option A path)
@@ -164,5 +202,6 @@ Goal: LLM generates UI **from scratch** using only the standard catalog — incr
 | 0     | Stream progressive SSE, error events, sync removal                    |
 | 1     | Template builder unit, orchestrator integration                       |
 | 2     | JSONL partial parse, dynamic stream integration, E2E arbitrary prompt |
+| 2.5   | Catalog prop validation, strict tool schema, normalizer freeze, metrics |
 
 
