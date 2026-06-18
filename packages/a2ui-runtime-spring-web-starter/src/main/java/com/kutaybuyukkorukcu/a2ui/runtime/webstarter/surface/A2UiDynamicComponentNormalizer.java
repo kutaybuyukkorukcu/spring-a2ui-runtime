@@ -157,6 +157,9 @@ public class A2UiDynamicComponentNormalizer {
                     .replaceAll("(?i)-?btn$", "")
                     .replaceAll("([a-z])([A-Z])", "$1_$2")
                     .replaceAll("[\\s-]+", "_")
+                    .replaceAll("[^a-zA-Z0-9_]+", "")
+                    .replaceAll("_+", "_")
+                    .replaceAll("^_|_$", "")
                     .toLowerCase();
             if (!fromId.isBlank()) {
                 return fromId;
@@ -619,8 +622,11 @@ public class A2UiDynamicComponentNormalizer {
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> normalizeAction(Object value) {
+        if (value instanceof String stringValue) {
+            return Map.of("name", stringValue);
+        }
         if (!(value instanceof Map<?, ?> actionMap)) {
-            throw new IllegalArgumentException("action must be an object");
+            throw new IllegalArgumentException("action must be an object or string");
         }
         Map<String, Object> normalizedAction = new LinkedHashMap<>();
         for (Map.Entry<?, ?> entry : actionMap.entrySet()) {
@@ -735,8 +741,10 @@ public class A2UiDynamicComponentNormalizer {
             }
         }
 
+        Set<String> visited = new LinkedHashSet<>();
+        Set<String> visiting = new LinkedHashSet<>();
         for (String componentId : allIds) {
-            if (hasCycle(componentId, adjacency, new LinkedHashSet<>())) {
+            if (hasCycle(componentId, adjacency, visiting, visited)) {
                 throw new IllegalArgumentException("Cyclic component reference detected involving: " + componentId);
             }
         }
@@ -789,16 +797,24 @@ public class A2UiDynamicComponentNormalizer {
         return childIds;
     }
 
-    private boolean hasCycle(String current, Map<String, Set<String>> adjacency, Set<String> visiting) {
+    private boolean hasCycle(
+            String current,
+            Map<String, Set<String>> adjacency,
+            Set<String> visiting,
+            Set<String> visited) {
+        if (visited.contains(current)) {
+            return false;
+        }
         if (!visiting.add(current)) {
             return true;
         }
         for (String childId : adjacency.getOrDefault(current, Set.of())) {
-            if (hasCycle(childId, adjacency, visiting)) {
+            if (hasCycle(childId, adjacency, visiting, visited)) {
                 return true;
             }
         }
         visiting.remove(current);
+        visited.add(current);
         return false;
     }
 

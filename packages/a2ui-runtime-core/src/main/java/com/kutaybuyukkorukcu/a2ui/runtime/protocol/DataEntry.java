@@ -12,18 +12,17 @@ public record DataEntry(
         @JsonProperty("valueMap") @JsonInclude(JsonInclude.Include.NON_NULL) List<DataEntry> valueMap
 ) {
     public DataEntry {
-        long nonNullValues = 0;
-        if (valueString != null) nonNullValues++;
-        if (valueNumber != null) nonNullValues++;
-        if (valueBoolean != null) nonNullValues++;
-        if (valueMap != null) nonNullValues++;
-        if (nonNullValues == 0) {
+        boolean isMap = valueMap != null;
+        boolean isNumber = valueNumber != null;
+        boolean isBoolean = valueBoolean != null;
+        long typedFields = (isMap ? 1 : 0) + (isNumber ? 1 : 0) + (isBoolean ? 1 : 0);
+        if (typedFields > 1) {
             throw new IllegalArgumentException(
-                    "DataEntry must have exactly one value field, but none were set for key: " + key);
+                    "DataEntry must have exactly one value field, but got " + typedFields + " for key: " + key);
         }
-        if (nonNullValues > 1) {
+        if (typedFields == 1 && valueString != null) {
             throw new IllegalArgumentException(
-                    "DataEntry must have exactly one value field, but got " + nonNullValues + " for key: " + key);
+                    "DataEntry must have exactly one value field, but got multiple for key: " + key);
         }
     }
 

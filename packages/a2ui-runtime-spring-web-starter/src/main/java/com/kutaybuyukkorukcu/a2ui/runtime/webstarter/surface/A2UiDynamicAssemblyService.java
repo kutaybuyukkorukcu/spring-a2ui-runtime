@@ -224,6 +224,9 @@ public class A2UiDynamicAssemblyService {
         if (value instanceof Boolean booleanValue) {
             return DataEntry.ofBoolean(key, booleanValue);
         }
+        if (value == null) {
+            return DataEntry.ofString(key, null);
+        }
         return DataEntry.ofString(key, String.valueOf(value));
     }
 }

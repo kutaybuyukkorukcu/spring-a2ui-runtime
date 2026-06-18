@@ -195,6 +195,36 @@ class A2UiDynamicAssemblyServiceTest {
     }
 
     @Test
+    void shouldSerializeNullDataValuesWithoutLiteralNullString() {
+        Map<String, Object> data = new java.util.LinkedHashMap<>();
+        data.put("label", null);
+        data.put("count", 3);
+
+        RenderA2UiArgs args = new RenderA2UiArgs(
+                "planner-surface",
+                "root",
+                List.of(Map.of("id", "root", "component", "Text", "text", "Hello")),
+                data);
+
+        List<A2UiMessage> messages = assemblyService.assemble(args, A2UiCatalogIds.STANDARD_V0_8, "main");
+
+        assertThat(validator.validate(messages)).isEmpty();
+
+        A2UiMessage.DataModelUpdate dataModelUpdate = (A2UiMessage.DataModelUpdate) messages.get(1);
+        assertThat(dataModelUpdate.contents()).hasSize(2);
+        assertThat(dataModelUpdate.contents().stream()
+                .filter(entry -> "label".equals(entry.key()))
+                .findFirst()
+                .orElseThrow()
+                .valueString()).isNull();
+        assertThat(dataModelUpdate.contents().stream()
+                .filter(entry -> "count".equals(entry.key()))
+                .findFirst()
+                .orElseThrow()
+                .valueNumber()).isEqualTo(3);
+    }
+
+    @Test
     void shouldAssembleSettingsPanelWithButtonAndCheckBoxes() {
         RenderA2UiArgs args = new RenderA2UiArgs(
                 "planner-surface",

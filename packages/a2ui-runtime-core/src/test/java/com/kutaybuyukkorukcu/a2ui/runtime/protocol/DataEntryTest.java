@@ -44,14 +44,17 @@ class DataEntryTest {
     }
 
     @Test
-    void shouldRejectZeroValueFields() {
-        assertThatThrownBy(() -> new DataEntry("key", null, null, null, null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("exactly one value field");
+    void shouldAllowNullStringEntry() {
+        DataEntry entry = DataEntry.ofString("name", null);
+        assertThat(entry.key()).isEqualTo("name");
+        assertThat(entry.valueString()).isNull();
+        assertThat(entry.valueNumber()).isNull();
+        assertThat(entry.valueBoolean()).isNull();
+        assertThat(entry.valueMap()).isNull();
     }
 
     @Test
-    void shouldRejectMultipleValueFields() {
+    void shouldRejectMultipleTypedValueFields() {
         assertThatThrownBy(() -> new DataEntry("key", "str", 42, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("exactly one value field");
