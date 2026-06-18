@@ -18,15 +18,11 @@ public class A2UiGenerationPolicyService {
         Double temperature = choose(capabilities.isTemperature(), properties.getTemperature(), "temperature", skipped);
         Double topP = choose(capabilities.isTopP(), properties.getTopP(), "topP", skipped);
         Integer seed = choose(capabilities.isSeed(), properties.getSeed(), "seed", skipped);
+        A2UiGenerationPolicyProperties.ResponseFormatMode targetResponseFormat = isDynamicGenerationMode()
+            ? A2UiGenerationPolicyProperties.ResponseFormatMode.NONE
+            : properties.getResponseFormat();
         A2UiGenerationPolicyProperties.ResponseFormatMode responseFormat = choose(
-                capabilities.isResponseFormat(), properties.getResponseFormat(), "responseFormat", skipped);
-        if (isDynamicGenerationMode()) {
-            responseFormat = choose(
-                    capabilities.isResponseFormat(),
-                    A2UiGenerationPolicyProperties.ResponseFormatMode.NONE,
-                    "responseFormat",
-                    skipped);
-        }
+            capabilities.isResponseFormat(), targetResponseFormat, "responseFormat", skipped);
         Integer maxTokens = choose(capabilities.isMaxTokens(), properties.getMaxTokens(), "maxTokens", skipped);
         Integer maxCompletionTokens = choose(
                 capabilities.isMaxCompletionTokens(), properties.getMaxCompletionTokens(), "maxCompletionTokens", skipped);
