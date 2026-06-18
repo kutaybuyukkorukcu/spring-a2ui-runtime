@@ -1,12 +1,12 @@
 # Backlog
 
-Execution order: **Phase 0 (infra)** → **Phase 1 (Option A MVP)** → **Phase 2 (Option B dynamic generative UI)** → **Later**.
+Execution order: **Phase 0 (infra)** ✅ → **Phase 1 (Option A MVP)** ✅ → **Phase 2 (Option B dynamic generative UI)** ✅ → **Phase 2.5 (scalable dynamic runtime)** → **Later**.
 
-ADR: [`docs/adr/001-streaming-surface-generation.md`](docs/adr/001-streaming-surface-generation.md)
+ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)`
 
-Implementation plans (for agents): [`docs/plans/phase-0-stream-infra.md`](docs/plans/phase-0-stream-infra.md) · [`docs/plans/phase-1-template-mvp.md`](docs/plans/phase-1-template-mvp.md)
+Implementation plans (for agents): `[docs/plans/phase-0-stream-infra.md](docs/plans/phase-0-stream-infra.md)` · `[docs/plans/phase-1-template-mvp.md](docs/plans/phase-1-template-mvp.md)` · `[docs/plans/phase-2-dynamic-generative-ui.md](docs/plans/phase-2-dynamic-generative-ui.md)`
 
-**Branch:** implement on a new branch from `main` (not `feat/server-to-client-catalog`). Cherry-pick validator hardening only if needed.
+**Branch:** Phase 2 — `feat/dynamic-generative-ui` from `main`.
 
 ---
 
@@ -51,110 +51,157 @@ The catalog defines **component vocabulary and prop shapes**, not page templates
 
 Unblocks both Option A and Option B.
 
-- [x] Remove sync surface endpoint (`POST /a2ui/surface`): controller, service, tests, `docs/rest-api.md`, demo sync mode.
-- [x] Fix streaming regression: incremental SSE emission (`JsonlLineAccumulator` or equivalent); remove full-response `.reduce()` before emit.
-- [x] Remove silent fallback surfaces from `SpringAiSurfaceRuntime`; emit SSE `event: error` with diagnostics instead.
-- [x] Remove monolithic `A2UiLlmOutput` / `.entity()` generation path from stream runtime (replaced in Phase 1/2).
-- [x] Stream validation: fail-fast (SSE error), not warn-and-forward.
-- [x] Inject `A2UiMessageValidator` bean into surface service.
-- [x] Stream integration tests (progressive SSE, error events).
+- Remove sync surface endpoint (`POST /a2ui/surface`): controller, service, tests, `docs/rest-api.md`, demo sync mode.
+- Fix streaming regression: incremental SSE emission (`JsonlLineAccumulator` or equivalent); remove full-response `.reduce()` before emit.
+- Remove silent fallback surfaces from `SpringAiSurfaceRuntime`; emit SSE `event: error` with diagnostics instead.
+- Remove monolithic `A2UiLlmOutput` / `.entity()` generation path from stream runtime (replaced in Phase 1/2).
+- Stream validation: fail-fast (SSE error), not warn-and-forward.
+- Inject `A2UiMessageValidator` bean into surface service.
+- Stream integration tests (progressive SSE, error events).
 
 ---
 
-## Phase 1 — Option A MVP (focus now, small scope)
+## Phase 1 — Option A MVP ✅ (complete)
 
-Goal: **one reliable rendered surface** via templates + tools. Est. small effort if scoped to 2–3 templates.
+Goal: **one reliable rendered surface** via templates + tools.
 
 ### 1a — Minimal template pack
 
-Ship under `META-INF/a2ui/templates/` + Java builders. **Start with these only:**
 
-| Priority | Template ID | Use case |
-|----------|-------------|----------|
-| P0 | `text-card` | Title + body — simplest proof |
-| P1 | `hero-cta` | Heading + subtitle + button |
-| P1 | `form-login` | Two fields + submit |
+| Template ID    | Status |
+| -------------- | ------ |
+| `text-card`    | ✅      |
+| `hero-cta`     | ✅      |
+| `form-login`   | ✅      |
+| `weather-card` | ✅      |
 
-Defer: `list-items`, `metric-row`, `confirmation`, `weather-card` until Phase 1 works.
 
 Each template: fixed `surfaceUpdate` adjacency list → slot-driven `dataModelUpdate` → runtime-emitted `beginRendering`.
 
-- [x] `A2UiSurfaceSpec` + `A2UiSurfaceTemplates` builder API
-- [x] `A2UiTemplateRegistry` (load standard templates from classpath)
-- [x] Unit tests: each MVP template → valid message sequence passes `A2UiMessageValidator`
+- `A2UiSurfaceSpec` + `A2UiSurfaceTemplates` builder API
+- `A2UiTemplateRegistry` (load standard templates from classpath)
+- Unit tests: each MVP template → valid message sequence passes `A2UiMessageValidator`
 
 ### 1b — Orchestrator (template path)
 
-- [x] Runtime `@Tool`: `renderTemplate(templateId, slots)` → delegates to registry/builder
-- [x] Runtime `@Tool`: `selectTemplate(templateId, rationale)` with enum constrained to registered IDs
-- [x] Emit validated envelopes over SSE as tools complete (via `TemplateSurfaceOrchestrator` + existing stream pipeline)
-- [x] Wire `A2UiSurfaceBuffer` before `beginRendering`
-- [x] Orchestrator integration test (mock ChatClient → template → SSE events)
-- [x] Metrics: `a2ui.template.rendered` (`a2ui.stream.error` via existing transform failure metrics)
+- Runtime `@Tool`: `renderTemplate(templateId, slots)` → delegates to registry/builder
+- Runtime `@Tool`: `selectTemplate(templateId, rationale)` with enum constrained to registered IDs
+- Session via Spring AI `ToolContext` (not ThreadLocal)
+- Emit validated envelopes over SSE as tools complete (via `TemplateSurfaceOrchestrator` + existing stream pipeline)
+- Wire `A2UiSurfaceBuffer` before `beginRendering`
+- Orchestrator integration test (mock ChatClient → template → SSE events)
+- Metrics: `a2ui.template.rendered` (`a2ui.stream.error` via existing transform failure metrics)
+
+**Plan:** `[docs/plans/phase-1-template-mvp.md](docs/plans/phase-1-template-mvp.md)`
 
 ---
 
-## Phase 2 — Option B dynamic generative UI (true product end-state)
+## Phase 2 — Option B dynamic generative UI ✅ (complete)
 
 Goal: LLM generates UI **from scratch** using only the standard catalog — incremental envelopes, no page templates, no monolithic JSON blob.
 
-This replaces the failed `A2UiLlmOutput` approach with a **correct** dynamic schema pipeline (CopilotKit [dynamic schema](https://docs.copilotkit.ai/google-adk/generative-ui/a2ui/dynamic-schema) analogue, A2UI-native SSE).
+**Plan:** `[docs/plans/phase-2-dynamic-generative-ui.md](docs/plans/phase-2-dynamic-generative-ui.md)`
 
-### 2a — Incremental envelope generation
+**Starting point:** Replace legacy JSONL stub in `SpringAiSurfaceRuntime.streamDynamic()` with **google-adk-style two-hop tools** (`generateA2Ui` → forced `renderA2Ui`) → **v0.8 assembly** → SSE. Phase 1 template path stays untouched.
 
-- [ ] **Wire `A2UiMessageParser`** into stream runtime: parse one JSONL line / one envelope at a time as tokens arrive
-- [ ] Prompt targets **wire-format A2UI envelopes** (not `{"messages":[]}` wrapper)
-- [ ] Phase streaming contract:
-  1. Stream `surfaceUpdate` (flat component graph from catalog types)
-  2. Stream `dataModelUpdate` (bound values / init shorthand)
-  3. Runtime emits `beginRendering` after `A2UiSurfaceBuffer` validates ID graph
-- [ ] Shallow structured output **per envelope type** if used (not one nested catalog-wide DTO)
-- [ ] Catalog in prompt: component type names + BoundValue rules + adjacency-list anti-patterns (reuse `DefaultA2UiPromptProvider` content, trimmed)
+### 2a — v0.8 dynamic assembly (google-adk inspired)
 
-### 2b — Dynamic orchestration
+- ✅ `**A2UiDynamicComponentNormalizer`** — flat planner tool args → v0.8 adjacency
+- ✅ `**A2UiDynamicAssemblyService**` — sanitize, buffer, `surfaceUpdate` + `dataModelUpdate`, runtime `beginRendering`
+- ✅ `**A2UiSurfaceBufferOps**` — shared helper extracted from template assembly (non-breaking)
+- ✅ `**DynamicA2UiPromptProvider**` — planner hard requirements (catalog names, root id, no empty `{}`)
+- ✅ `**responseFormat=NONE**` when `generation-mode=dynamic`
+- ✅ Fix `createClient()` to `**clone()**` builder
+- **v0.9 out of scope** — no `a2ui_operations` container in Phase 2
 
-- [ ] Optional planner step: intent → `surfaceId`, component strategy (no template ID required)
-- [ ] `@Tool` or dedicated stream path: `composeSurface(userIntent)` — LLM emits envelopes incrementally
-- [ ] Bounded correction retry on validation failure (one retry with diagnostic feedback)
-- [ ] Remove/replace `A2UiLlmOutputMapper` multi-envelope repair with explicit errors + metrics (`a2ui.envelope.repaired` if kept)
-- [ ] Document: “Dynamic generative UI” guide for app developers
+### 2b — Dynamic orchestration (two-hop tools)
 
-### 2c — Integration with Option A
+- ✅ `**DynamicSurfaceOrchestrator`** — primary agent + `generateA2Ui` → secondary forced `renderA2Ui`
+- ✅ **Pin `catalogId`** from request negotiation (ignore LLM hallucination)
+- ✅ Bounded correction retry on validation failure (one retry with diagnostic feedback)
+- ✅ `**A2UiLlmOutput` stays removed** — no reintroduction
+- ✅ Document: “Dynamic generative UI” guide for app developers
 
-- [ ] Runtime mode selection: `template` (Option A) vs `dynamic` (Option B) — property or request flag
-- [ ] Phase 1 templates remain available for predictable UX; dynamic mode is default for open-ended generation once stable
+### 2c — Coexistence with Phase 1 (non-regression)
+
+- `**generation-mode=template`** — Phase 1 path unchanged; all template tests green
+- `**generation-mode=dynamic**` — new orchestrator only; separate tools from `selectTemplate`/`renderTemplate`
+- ✅ Showcase dynamic profile; template profile remains default until stable
 
 ### 2d — Test coverage
 
-- [ ] Unit tests: JSONL line parser under partial token chunks
-- [ ] Integration tests: mock LLM streaming envelope lines → progressive SSE
-- [ ] Validator tests: cross-component ID references, children mode, catalog schema
-- [ ] E2E demo: arbitrary prompt → rendered surface without template selection
+- ✅ `A2UiDynamicComponentNormalizerTest` + `A2UiDynamicAssemblyServiceTest`
+- ✅ `DynamicSurfaceOrchestratorTest` + `A2UiDynamicStreamIntegrationTest`
+- ✅ `A2UiGenerationPolicyDynamicModeTest`
+- Phase 1 regression suite on every PR
+- ✅ E2E demo: open-ended prompt via dynamic mode (no template selection)
+
+---
+
+## Phase 2.5 — Scalable dynamic runtime (do next)
+
+Phase 2 dynamic mode works end-to-end but relies on a **repair normalizer** that patches LLM shorthand into valid v0.8. This does not scale — every new prompt shape risks a new alias rule. The CheckBox bug illustrates the gap: the server emits `CheckBox` with `label` (path) but missing `value` (required), and neither the normalizer nor the server-side validator catches it. The `@a2ui/react` client rejects it.
+
+**Goal:** Make dynamic mode production-grade by constraining the LLM at the source and validating on the server with the same rigor as the client.
+
+### 2.5a — Catalog property validation in `A2UiMessageValidator`
+
+- Extend `A2UiMessageValidator.validateComponentDefinition()` to validate component **properties** against the v0.8 catalog JSON Schema (required fields, BoundValue shapes, child reference patterns), not just type names.
+- Catch missing required props (e.g. CheckBox without `value`), wrong BoundValue shapes, unknown props for a component type.
+- Align server validation with `@a2ui/react` client validation so errors are caught before SSE emission.
+
+**Acceptance:** Invalid CheckBox (missing `value`), Text (wrong BoundValue shape), Card (wrong child pattern) all fail fast with diagnostics. No server-emitted envelope that the client would reject.
+
+### 2.5b — Strict `renderA2Ui` tool JSON Schema
+
+- Generate JSON Schema for the `renderA2Ui` tool `components` parameter from `standard-v0.8.json`, so the LLM is structurally constrained at tool-call time (required fields, allowed component types, prop shapes).
+- This is the upstream fix: fewer invalid tool args means fewer retry cycles and less normalizer pressure.
+
+**Acceptance:** Planner tool call for CheckBox must include `value`; planner cannot emit `checked` if the schema disallows it. Reduces `a2ui.dynamic.validation.failed` metric in practice.
+
+### 2.5c — Freeze normalizer growth
+
+- Document the current normalizer's allowed alias/shorthand adaptations (these are intentional canonicalization, not repairs).
+- Stop adding structural repair rules to the normalizer. Invalid structure should fail validation and trigger bounded retry — not be silently repaired.
+- Move structural fixes (like Card multi-child wrapping) into the tool schema + validation + retry pipeline.
+
+**Acceptance:** New component prop issues are resolved via schema + validation + retry, not via normalizer patches. Existing normalizer rules are documented.
+
+### 2.5d — Metrics-driven validation iteration
+
+- Ensure `a2ui.dynamic.validation.failed`, `a2ui.dynamic.validation.retry.success`, `a2ui.dynamic.validation.retry.failed` counters are wired and emitted.
+- Use these metrics to identify which validation failures dominate and whether strict tool schema (2.5b) reduces retry rates.
+
+**Acceptance:** Counters visible in actuator metrics; baseline measurement taken before and after strict schema introduction.
 
 ---
 
 ## Later — consumer extensibility
 
-- [ ] `A2UiTemplateRegistry` SPI: app developers register custom templates (Option A path)
-- [ ] Custom catalog registration beyond standard v0.8 (catalog negotiation already exists)
-- [ ] Per-template slot schema validation
-- [ ] Documentation: “Authoring a custom surface template”
-- [ ] Optional: expose consumer templates as `@Tool` beans
+- `A2UiTemplateRegistry` SPI: app developers register custom templates (Option A path)
+- Custom catalog registration beyond standard v0.8 (catalog negotiation already exists)
+- Per-template slot schema validation
+- Documentation: “Authoring a custom surface template”
+- Optional: expose consumer templates as `@Tool` beans
 
 ---
 
 ## Reliability and observability (ongoing)
 
 - Structured redacted logging for invalid payloads / validation diagnostics
-- Metrics: `a2ui.dynamic.envelope.parsed`, `a2ui.dynamic.validation.failed`, `a2ui.transform.retry.success` / `failed`
+- Metrics: `a2ui.dynamic.surface.generated`, `a2ui.dynamic.validation.failed`, `a2ui.dynamic.validation.retry.success` / `retry.failed`
 - Remove or honestly implement `JSON_SCHEMA` response format mode
 
 ---
 
 ## Test coverage (summary)
 
-| Phase | Tests |
-|-------|-------|
-| 0 | Stream progressive SSE, error events, sync removal |
-| 1 | Template builder unit, orchestrator integration |
-| 2 | JSONL partial parse, dynamic stream integration, E2E arbitrary prompt |
+
+| Phase | Tests                                                                 |
+| ----- | --------------------------------------------------------------------- |
+| 0     | Stream progressive SSE, error events, sync removal                    |
+| 1     | Template builder unit, orchestrator integration                       |
+| 2     | JSONL partial parse, dynamic stream integration, E2E arbitrary prompt |
+| 2.5   | Catalog prop validation, strict tool schema, normalizer freeze, metrics |
+
+

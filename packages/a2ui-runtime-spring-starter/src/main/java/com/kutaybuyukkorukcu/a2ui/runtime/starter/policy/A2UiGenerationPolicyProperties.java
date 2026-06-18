@@ -11,6 +11,7 @@ public class A2UiGenerationPolicyProperties {
     private ResponseFormatMode responseFormat = ResponseFormatMode.JSON_OBJECT;
     private Integer maxTokens;
     private Integer maxCompletionTokens;
+    private String generationMode = "dynamic";
     private Capabilities capabilities = new Capabilities();
 
     public enum ResponseFormatMode {
@@ -52,6 +53,8 @@ public class A2UiGenerationPolicyProperties {
     public void setMaxTokens(Integer maxTokens) { this.maxTokens = maxTokens; }
     public Integer getMaxCompletionTokens() { return maxCompletionTokens; }
     public void setMaxCompletionTokens(Integer maxCompletionTokens) { this.maxCompletionTokens = maxCompletionTokens; }
+    public String getGenerationMode() { return generationMode; }
+    public void setGenerationMode(String generationMode) { this.generationMode = generationMode; }
     public Capabilities getCapabilities() { return capabilities; }
     public void setCapabilities(Capabilities capabilities) { this.capabilities = capabilities; }
 }

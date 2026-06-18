@@ -9,16 +9,22 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.controller.A2UiActionContro
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.controller.A2UiCatalogController;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.controller.A2UiStreamController;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.filter.RequestCorrelationMdcFilter;
+import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.A2UiGenerationPolicyProperties;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiPromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.DefaultA2UiPromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.properties.A2UiWebProperties;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.DynamicA2UiPromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.TemplateModePromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiSurfaceRuntime;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.DynamicSurfaceOrchestrator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.SpringAiSurfaceRuntime;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.TemplateSurfaceOrchestrator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.*;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiDynamicAssemblyService;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiDynamicComponentNormalizer;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiSurfaceAssemblyService;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiTemplateRegistry;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.A2UiDynamicTools;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.A2UiTemplateTools;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.ai.chat.client.ChatClient;
@@ -32,6 +38,7 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.Environment;
+import jakarta.annotation.PostConstruct;
 
 import java.util.List;
 
@@ -76,6 +83,35 @@ public class A2UiWebAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public A2UiDynamicComponentNormalizer a2UiDynamicComponentNormalizer() {
+        return new A2UiDynamicComponentNormalizer();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public A2UiDynamicAssemblyService a2UiDynamicAssemblyService(
+            A2UiDynamicComponentNormalizer componentNormalizer,
+            A2UiMessageValidator messageValidator,
+            ObjectMapper objectMapper) {
+        return new A2UiDynamicAssemblyService(componentNormalizer, messageValidator, objectMapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public A2UiGenerationPolicyWebBinder a2UiGenerationPolicyWebBinder(
+            A2UiGenerationPolicyProperties generationPolicyProperties,
+            A2UiWebProperties webProperties) {
+        return new A2UiGenerationPolicyWebBinder(generationPolicyProperties, webProperties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public DynamicA2UiPromptProvider dynamicA2UiPromptProvider(A2UiCatalogRegistry catalogRegistry) {
+        return new DynamicA2UiPromptProvider(catalogRegistry);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public TemplateModePromptProvider templateModePromptProvider(A2UiTemplateRegistry templateRegistry) {
         return new TemplateModePromptProvider(templateRegistry);
     }
@@ -87,6 +123,36 @@ public class A2UiWebAutoConfiguration {
             A2UiSurfaceAssemblyService assemblyService,
             A2UiRuntimeMetrics runtimeMetrics) {
         return new A2UiTemplateTools(templateRegistry, assemblyService, runtimeMetrics);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public A2UiDynamicTools a2UiDynamicTools(
+            ChatClient.Builder chatClientBuilder,
+            ObjectProvider<List<Advisor>> advisorProvider,
+            DynamicA2UiPromptProvider dynamicPromptProvider,
+            A2UiDynamicAssemblyService dynamicAssemblyService,
+            A2UiRuntimeMetrics runtimeMetrics) {
+        return new A2UiDynamicTools(
+                chatClientBuilder,
+                advisorProvider.getIfAvailable(List::of),
+                dynamicPromptProvider,
+                dynamicAssemblyService,
+                runtimeMetrics);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public DynamicSurfaceOrchestrator dynamicSurfaceOrchestrator(
+            ChatClient.Builder chatClientBuilder,
+            ObjectProvider<List<Advisor>> advisorProvider,
+            DynamicA2UiPromptProvider dynamicPromptProvider,
+            A2UiDynamicTools dynamicTools) {
+        return new DynamicSurfaceOrchestrator(
+                chatClientBuilder,
+                advisorProvider.getIfAvailable(List::of),
+                dynamicPromptProvider,
+                dynamicTools);
     }
 
     @Bean
@@ -110,17 +176,15 @@ public class A2UiWebAutoConfiguration {
             ObjectProvider<List<Advisor>> advisorProvider,
             Environment environment,
             A2UiWebProperties properties,
-            A2UiPromptProvider promptProvider,
-            A2UiMessageParser messageParser,
-            TemplateSurfaceOrchestrator templateOrchestrator) {
+            TemplateSurfaceOrchestrator templateOrchestrator,
+            DynamicSurfaceOrchestrator dynamicOrchestrator) {
         return new SpringAiSurfaceRuntime(
                 chatClientBuilderProvider,
                 advisorProvider.getIfAvailable(List::of),
                 environment,
                 properties,
-                promptProvider,
-                messageParser,
-                templateOrchestrator);
+                templateOrchestrator,
+                dynamicOrchestrator);
     }
 
     @Bean
@@ -171,5 +235,23 @@ public class A2UiWebAutoConfiguration {
     @ConditionalOnProperty(prefix = "a2ui.web.actions", name = "enabled", havingValue = "true", matchIfMissing = true)
     public A2UiActionController a2UiActionController(A2UiActionService actionService, RequestCorrelationService requestCorrelationService) {
         return new A2UiActionController(actionService, requestCorrelationService);
+    }
+
+    static final class A2UiGenerationPolicyWebBinder {
+
+        private final A2UiGenerationPolicyProperties generationPolicyProperties;
+        private final A2UiWebProperties webProperties;
+
+        A2UiGenerationPolicyWebBinder(
+                A2UiGenerationPolicyProperties generationPolicyProperties,
+                A2UiWebProperties webProperties) {
+            this.generationPolicyProperties = generationPolicyProperties;
+            this.webProperties = webProperties;
+        }
+
+        @PostConstruct
+        void bindGenerationMode() {
+            generationPolicyProperties.setGenerationMode(webProperties.getRuntime().getGenerationMode());
+        }
     }
 }

@@ -18,7 +18,7 @@ The previous feature-branch approach attempted this (dynamic generative UI) but 
 | Buffer full LLM response before emit | Incremental envelope forwarding |
 | Silent fallback text surface | Fail-fast SSE `event: error` |
 
-**Option A (templates)** is a **short MVP tactic** (~days) to prove streaming, validation, and error handling while building toward **Option B (dynamic schema)** as the **long-term product** — true generative UI from the catalog alone, analogous to CopilotKit [dynamic schema](https://docs.copilotkit.ai/google-adk/generative-ui/a2ui/dynamic-schema) and the original spring-a2ui vision.
+**Option A (templates)** is a **short MVP tactic** (~days) to prove streaming, validation, and error handling while building toward **Option B (dynamic schema)** as the **long-term product**
 
 Option A does not replace Option B. Phase 1 builds trust; Phase 2 delivers the generative runtime developers should prefer.
 
@@ -73,7 +73,7 @@ User message
 | Fast first SSE frame | Less novelty for open-ended demos |
 | Easy unit tests (builder/template in, messages out) | Template library maintenance |
 
-**CopilotKit analogue:** [Fixed schema A2UI](https://docs.copilotkit.ai/google-adk/generative-ui/a2ui/fixed-schema) — agent tool returns data; schema is pre-authored.
+Fixed schema A2UI, agent tool returns data; schema is pre-authored.
 
 ---
 

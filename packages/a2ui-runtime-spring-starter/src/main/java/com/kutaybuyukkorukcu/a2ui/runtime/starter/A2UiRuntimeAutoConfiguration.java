@@ -55,6 +55,7 @@ public class A2UiRuntimeAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public A2UiGenerationPolicyService a2UiGenerationPolicyService(A2UiGenerationPolicyProperties properties) {
         return new A2UiGenerationPolicyService(properties);
     }
