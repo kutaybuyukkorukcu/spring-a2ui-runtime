@@ -124,10 +124,6 @@ public class A2UiDynamicComponentNormalizer {
         if (props.containsKey("checked") && !props.containsKey("value")) {
             props.put("value", normalizeBoundValue(props.remove("checked")));
         }
-        Object value = props.get("value");
-        if (value instanceof String stringValue) {
-            props.put("value", normalizeBoundValue(stringValue));
-        }
         return rebuildComponent(checkbox, "CheckBox", props);
     }
 
@@ -141,11 +137,6 @@ public class A2UiDynamicComponentNormalizer {
         }
         if (label instanceof String stringLabel) {
             return normalizeBoundValue(stringLabel);
-        }
-        if (label instanceof Map<?, ?> labelMap) {
-            if (labelMap.containsKey("literalString") || labelMap.containsKey("path")) {
-                return copyBoundValueMap(label);
-            }
         }
         return Map.of("literalString", String.valueOf(label));
     }
@@ -234,10 +225,9 @@ public class A2UiDynamicComponentNormalizer {
 
     private ComponentDefinition fixTextComponent(ComponentDefinition text) {
         Map<String, Object> props = new LinkedHashMap<>(text.componentProperties());
-        if (props.containsKey("variant") && !props.containsKey("usageHint")) {
-            props.put("usageHint", props.remove("variant"));
-        } else {
-            props.remove("variant");
+        Object variant = props.remove("variant");
+        if (variant != null && !props.containsKey("usageHint")) {
+            props.put("usageHint", variant);
         }
         return rebuildComponent(text, "Text", props);
     }
