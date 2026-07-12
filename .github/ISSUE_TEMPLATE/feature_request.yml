@@ -1,0 +1,41 @@
+name: Feature request
+description: Propose an enhancement to the runtime or docs
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please check [BACKLOG.md](https://github.com/kutaybuyukkorukcu/spring-a2ui-runtime/blob/main/BACKLOG.md)
+        and existing issues before filing. Large protocol changes may need an ADR discussion first.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do that is awkward or missing today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Sketch the API, endpoint, or docs change you have in mind.
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Touches
+      options:
+        - Core validation / catalog
+        - Spring starter / orchestration
+        - Web starter (HTTP / SSE)
+        - Docs only
+        - Showcase / demo
+        - Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional — other approaches you already ruled out.

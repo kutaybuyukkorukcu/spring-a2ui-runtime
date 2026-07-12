@@ -6,10 +6,10 @@ spring-a2ui supports two surface generation modes. Both emit **A2UI v0.8 wire en
 
 | Mode | Property | Behavior |
 |------|----------|----------|
-| **Template** (default) | `a2ui.web.runtime.generation-mode=template` | LLM selects a registered template (`selectTemplate`) and fills slots (`renderTemplate`). Fixed adjacency lists authored in the runtime. |
-| **Dynamic** | `a2ui.web.runtime.generation-mode=dynamic` | LLM composes a surface from the standard v0.8 catalog alone via two-hop tools — no page templates. |
+| **Template** | `a2ui.web.runtime.generation-mode=template` | LLM selects a registered template (`selectTemplate`) and fills slots (`renderTemplate`). Fixed adjacency lists authored in the runtime. |
+| **Dynamic** (library default) | `a2ui.web.runtime.generation-mode=dynamic` | LLM composes a surface from the standard v0.8 catalog alone via two-hop tools — no page templates. |
 
-Use **template mode** when you want predictable layouts and fast MVP integration. Use **dynamic mode** when prompts are open-ended and the LLM should invent layout structure from catalog components only.
+The showcase app defaults to the `template` Spring profile for predictable demos; set the property explicitly in your own application.
 
 ## A2UI v0.8 contract
 
@@ -25,7 +25,7 @@ Bound values use v0.8 shapes: `literalString`, `literalNumber`, `literalBoolean`
 
 ## Two-hop tool flow
 
-Dynamic generation uses a primary agent plus an inner planner (google-adk inspired):
+Dynamic generation uses a primary agent plus an inner planner (two-hop tools):
 
 ```mermaid
 sequenceDiagram
@@ -119,6 +119,5 @@ data: {"error":"Dynamic surface failed validation","errorCode":"A2UI_VALIDATION_
 
 ## Further reading
 
+- [Getting started](getting-started.md) — dependency to first SSE stream
 - [REST API](../rest-api.md) — stream endpoint and configuration
-- [Phase 2 plan](../plans/phase-2-dynamic-generative-ui.md) — implementation details
-- [ADR 001](../adr/001-streaming-surface-generation.md) — streaming architecture

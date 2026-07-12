@@ -5,7 +5,7 @@
 **ADR:** [`docs/adr/001-streaming-surface-generation.md`](../adr/001-streaming-surface-generation.md)  
 **Backlog:** [`BACKLOG.md`](../../BACKLOG.md) — Phase 2 section  
 
-**Reference architecture (inspiration, not copy):** [CopilotKit google-adk showcase](https://github.com/CopilotKit/CopilotKit/tree/main/showcase/integrations/google-adk) — especially `declarative_gen_ui_agent.py`, `main.py` → `generate_a2ui`, and `tools/generate_a2ui.py`.
+**Orchestration pattern:** two-hop tools — primary agent decides *when* UI helps; secondary structured call decides *what* (`generateA2Ui` → forced `renderA2Ui`).
 
 ---
 
@@ -48,28 +48,26 @@ flowchart TD
 
 ---
 
-## Positioning: google-adk inspiration vs spring-a2ui choices
+## Positioning: two-hop pattern vs spring-a2ui choices
 
-We align with the **google-adk orchestration pattern** (primary agent decides *when*; secondary structured call decides *what*) because it matches how A2UI runtimes should behave. We differ where spring-a2ui’s product constraints require it.
+We use a **two-hop orchestration pattern** (primary agent decides *when*; secondary structured call decides *what*) because it matches how A2UI runtimes should behave. Choices below are spring-a2ui product constraints.
 
-| Topic | CopilotKit google-adk | spring-a2ui Phase 2 (our choice) | Rationale |
-|-------|----------------------|----------------------------------|-----------|
-| Protocol version | v0.9 ops container (`a2ui_operations`) | **v0.8 wire envelopes** (`surfaceUpdate`, `dataModelUpdate`, `beginRendering`) | `@a2ui/react` demo + validator target v0.8; v0.9 later |
-| Transport | AG-UI middleware → React renderer | **Native A2UI SSE** (`A2UiStreamController`) | ADR: no AG-UI wrapper |
-| Catalog source | Client Zod catalog → `copilotkit.context` | **Server `standard-v0.8.json`** + request negotiation | Host-app runtime, not CopilotKit frontend |
-| Dynamic mechanism | Two-hop tools: `generate_a2ui` → forced `render_a2ui` | **Same two-hop pattern** via Spring AI `@Tool` | Proven reliability vs free-form JSONL |
-| LLM output shape | Flat `{id, component: "Text", text: "..."}` in tool args | **Normalize to v0.8 adjacency** `{component: {Text: {...}}}` in assembly layer | Validator + client expect spec wire format |
-| `beginRendering` | Implicit via middleware / ops sequence | **Runtime emits after buffer validation** | Stricter lifecycle; never trust planner |
-| `catalogId` | Pinned per agent name | **Pinned from request negotiation** | Prevent LLM hallucination |
-| Fixed / template path | `display_flight` + JSON schema file | **Phase 1 templates** (Java builders + slot tools) | Already shipped; keep |
-| Errors | Structured tool errors + middleware | **Fail-fast SSE `event: error` + diagnostics** | Phase 0 contract |
-| JSONL chat stream | Not used in google-adk dynamic on `main` | **Not primary**; optional experimental path behind flag later | Avoid two competing dynamic implementations |
+| Topic | spring-a2ui Phase 2 choice | Rationale |
+|-------|----------------------------|-----------|
+| Protocol version | **v0.8 wire envelopes** (`surfaceUpdate`, `dataModelUpdate`, `beginRendering`) | `@a2ui/react` demo + validator target v0.8; v0.9 later |
+| Transport | **Native A2UI SSE** (`A2UiStreamController`) | ADR: A2UI-native only |
+| Catalog source | **Server `standard-v0.8.json`** + request negotiation | Host-app runtime owns catalog |
+| Dynamic mechanism | **Two-hop tools:** `generateA2Ui` → forced `renderA2Ui` via Spring AI `@Tool` | Structured reliability vs free-form JSONL |
+| LLM output shape | Flat `{id, component: "Text", text: "..."}` in tool args → **normalize to v0.8 adjacency** in assembly | Validator + client expect spec wire format |
+| `beginRendering` | **Runtime emits after buffer validation** | Stricter lifecycle; never trust planner |
+| `catalogId` | **Pinned from request negotiation** | Prevent LLM hallucination |
+| Fixed / template path | **Phase 1 templates** (Java builders + slot tools) | Already shipped; keep |
+| Errors | **Fail-fast SSE `event: error` + diagnostics** | Phase 0 contract |
+| JSONL chat stream | **Not primary**; optional experimental path behind flag later | Avoid two competing dynamic implementations |
 
 ---
 
 ## Target architecture (dynamic mode)
-
-Inspired by [`declarative_gen_ui_agent.py`](https://github.com/CopilotKit/CopilotKit/blob/main/showcase/integrations/google-adk/src/agents/declarative_gen_ui_agent.py) + [`main.py` → `generate_a2ui`](https://github.com/CopilotKit/CopilotKit/blob/main/showcase/integrations/google-adk/src/agents/main.py):
 
 ```mermaid
 sequenceDiagram
@@ -91,15 +89,15 @@ sequenceDiagram
     Primary-->>User: short text reply (optional)
 ```
 
-### Primary agent (like `DeclarativeGenUiAgent`)
+### Primary agent
 
 - Instruction: when a rich visual helps, call **`generateA2Ui`** (no args); keep chat reply to one short sentence.
-- Tools: **`generateA2Ui` only** for UI generation in dynamic demo — do not expose Phase 1 `selectTemplate` / `renderTemplate` on the same agent config (avoids tool-slot confusion, mirrors google-adk’s `injectA2UITool: false` separation).
+- Tools: **`generateA2Ui` only** for UI generation in dynamic demo — do not expose Phase 1 `selectTemplate` / `renderTemplate` on the same agent config (avoids tool-slot confusion).
 
 ### Secondary planner (inside `generateA2Ui`)
 
 - Separate `ChatClient` call with **forced tool choice** → `renderA2Ui`.
-- Tool parameters (google-adk analogue):
+- Tool parameters:
 
   | Param | Type | Notes |
   |-------|------|-------|
@@ -108,13 +106,13 @@ sequenceDiagram
   | `root` | string | Must exist in `components`, typically `"root"` |
   | `data` | object | Plain JSON; assembly converts to `dataModelUpdate` contents |
 
-- **`catalogId` is NOT trusted from the LLM** — inject from `A2UiRequestCatalogNegotiator` / request capabilities (google-adk pins per agent; we pin per request).
+- **`catalogId` is NOT trusted from the LLM** — inject from `A2UiRequestCatalogNegotiator` / request capabilities (pin per request).
 
 ### Assembly → v0.8 SSE (our unique layer)
 
 New: **`A2UiDynamicAssemblyService`**
 
-1. **Sanitize** components (port google-adk rules from `tools/generate_a2ui.py`):
+1. **Sanitize** components:
    - Drop entries missing `id` or `component`
    - Require `root` id present
    - Unstringify JSON-as-string fields (`data`, etc.)
@@ -148,14 +146,14 @@ Reuse **`A2UiSurfaceBuffer`** via shared helper extracted from `A2UiSurfaceAssem
 | Topic | Decision |
 |-------|----------|
 | Protocol | **A2UI v0.8 wire format only** for Phase 2 |
-| Transport | A2UI-native SSE — no AG-UI, no A2A |
+| Transport | A2UI-native SSE only |
 | Coexistence | `template` and `dynamic` modes both supported; Phase 1 code paths preserved |
 | Dynamic mechanism | **Two-hop tools** (`generateA2Ui` → forced `renderA2Ui`), not JSONL-as-primary |
 | `beginRendering` | **Runtime emits** after buffer + validator — planner must not emit lifecycle commit |
 | Validation | Fail-fast SSE `event: error` + diagnostics |
 | Retry | One bounded retry on validation failure with diagnostic feedback to planner |
 | Response format | `NONE` for dynamic tool calls — no global `JSON_OBJECT` |
-| LLM | OpenAI-first via `ChatClient` + advisors; google-adk uses Gemini — pattern is portable |
+| LLM | OpenAI-first via `ChatClient` + advisors |
 | Catalog | Server-side `standard-v0.8.json`; optional catalog summary in planner prompt |
 
 ---
@@ -206,7 +204,7 @@ Extract without changing template behavior:
 
 Convert planner-friendly flat entries to v0.8 component objects.
 
-Example input (planner / google-adk style):
+Example input (flat planner style):
 
 ```json
 {"id": "title", "component": "Text", "text": "Hello", "usageHint": "h2"}
@@ -231,7 +229,7 @@ Rules:
 
 ### 2.3 — `A2UiDynamicAssemblyService`
 
-Mirrors [`build_a2ui_operations_from_tool_call`](https://github.com/CopilotKit/CopilotKit/blob/main/showcase/integrations/google-adk/tools/generate_a2ui.py) but outputs **v0.8 messages**:
+Assembles planner tool args into **v0.8 messages**:
 
 ```java
 List<A2UiMessage> assemble(RenderA2UiArgs args, String catalogId, String negotiatedSurfaceId);
@@ -271,8 +269,8 @@ Mono.fromCallable(() -> { ... primary ChatClient with generateA2Ui tool ... })
 
 **`generateA2Ui` implementation:**
 
-1. Read conversation context from `ToolContext` / session (Spring AI equivalent of ADK session + copilotkit context)
-2. Build planner system prompt: hard requirements (from google-adk `main.py`) + catalog component names from `A2UiCatalogRegistry`
+1. Read conversation context from `ToolContext` / session
+2. Build planner system prompt: hard requirements + catalog component names from `A2UiCatalogRegistry`
 3. Secondary `ChatClient` call with `.tools(renderA2UiTool)` + forced tool choice
 4. Pin `catalogId` from request; ignore planner value if present
 5. Call `A2UiDynamicAssemblyService.assemble(...)`
@@ -298,7 +296,7 @@ Remove inline `streamDynamic()` once orchestrator is tested.
 | Class | Used by | Content |
 |-------|---------|---------|
 | `TemplateModePromptProvider` | Phase 1 | **No changes** |
-| `DynamicA2UiPromptProvider` | Phase 2 primary + planner | Port google-adk hard requirements: root id, flat array, no empty `{}`, populate data props, chart vs card heuristics |
+| `DynamicA2UiPromptProvider` | Phase 2 primary + planner | Hard requirements: root id, flat array, no empty `{}`, populate data props, chart vs card heuristics |
 | `DefaultA2UiPromptProvider` | Legacy JSONL stub | Deprecate for dynamic default; keep or move to `experimental` |
 
 Planner prompt must **not** ask for `beginRendering` or raw JSONL.
@@ -403,10 +401,10 @@ flowchart LR
 ## Out of scope (Phase 2 MVP)
 
 - **A2UI v0.9** ops container or translation layer
-- **AG-UI / CopilotRuntime** integration
-- **Client-side Zod catalog injection** (CopilotKit BYOC frontend pattern)
+- **Generic agent↔app chat/event bridge** (optional later utilization work)
+- **Client-injected catalogs** as the primary catalog source (server owns `standard-v0.8.json`)
 - **JSONL chat stream as primary dynamic path** — defer to experimental flag if needed
-- **Fixed streaming** (google-adk `streamingSurfaces` / progressive tool-arg parse) — Phase 2.5+ optional
+- **Progressive per-tool-arg streaming** of surfaces — Phase 2.5+ optional
 - **Action handler / optimistic UI swap** — later; template actions via existing `A2UiActionService`
 - Multi-provider parity beyond OpenAI-first
 
@@ -429,11 +427,5 @@ flowchart LR
 
 ## References
 
-- [CopilotKit google-adk showcase](https://github.com/CopilotKit/CopilotKit/tree/main/showcase/integrations/google-adk)
-- [`declarative_gen_ui_agent.py`](https://github.com/CopilotKit/CopilotKit/blob/main/showcase/integrations/google-adk/src/agents/declarative_gen_ui_agent.py)
-- [`main.py` → `generate_a2ui`](https://github.com/CopilotKit/CopilotKit/blob/main/showcase/integrations/google-adk/src/agents/main.py)
-- [`tools/generate_a2ui.py`](https://github.com/CopilotKit/CopilotKit/blob/main/showcase/integrations/google-adk/tools/generate_a2ui.py)
-- [`a2ui_fixed_agent.py`](https://github.com/CopilotKit/CopilotKit/blob/main/showcase/integrations/google-adk/src/agents/a2ui_fixed_agent.py) (maps to our Phase 1)
-- [CopilotKit dynamic schema docs](https://docs.copilotkit.ai/google-adk/generative-ui/a2ui/dynamic-schema)
 - [A2UI v0.8 specification](https://a2ui.org/)
 - Internal: [`phase-1-template-mvp.md`](phase-1-template-mvp.md), ADR 001

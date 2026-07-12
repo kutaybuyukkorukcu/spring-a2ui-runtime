@@ -55,7 +55,7 @@ Sources: [v0.9 evolution guide](https://a2ui.org/specification/v0.9-evolution-gu
 2. Keep reliability stack: **sanitize (syntax) + validate (catalog) + retry** — no semantic repair.
 3. Shrink or delete `A2UiDynamicComponentNormalizer` / assembler where v0.9 flat format removes BoundValue translation.
 4. Preserve Phase 1 template path OR migrate templates to v0.9 ops (decide in kickoff).
-5. Keep **A2UI-native SSE** unless a separate decision adds AG-UI as an optional adapter.
+5. Keep **A2UI-native SSE** unless a separate decision adds an optional chat/interaction bridge.
 
 ---
 
@@ -94,7 +94,7 @@ Sources: [v0.9 evolution guide](https://a2ui.org/specification/v0.9-evolution-gu
 ## Non-goals (for this stub)
 
 - Implementing v0.9 before the v0.8 release.
-- Adopting AG-UI as primary transport (separate decision).
+- Adopting a generic agent↔app chat protocol as primary transport (separate decision).
 - Reintroducing FogUI-style intermediate canonical models.
 
 ---
@@ -114,4 +114,4 @@ Sources: [v0.9 evolution guide](https://a2ui.org/specification/v0.9-evolution-gu
 - [A2UI v0.9.1 protocol](https://a2ui.org/specification/v0.9.1-a2ui/)
 - [Google Developers: A2UI v0.9](https://developers.googleblog.com/a2ui-v0-9-generative-ui/)
 - Phase 2.5 (v0.8 reliability foundation): [`phase-2.5-scalable-dynamic-runtime.md`](phase-2.5-scalable-dynamic-runtime.md)
-- CopilotKit / AG-UI dynamic schema (orchestration pattern; transport differs): google-adk showcase `generate_a2ui` / `render_a2ui`
+- Internal: two-hop dynamic orchestration (`generateA2Ui` / `renderA2Ui`) already shipped in Phase 2
