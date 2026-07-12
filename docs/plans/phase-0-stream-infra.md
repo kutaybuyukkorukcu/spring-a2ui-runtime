@@ -196,7 +196,6 @@ mvn test -pl packages/a2ui-runtime-core,packages/a2ui-runtime-spring-web-starter
 - Template registry / `A2UiSurfaceTemplates`
 - `@Tool` orchestrator (`renderTemplate`, `selectTemplate`)
 - Phase 2 dynamic JSONL generative UI changes to prompt
-- AG-UI, A2A, non-OpenAI providers
 
 ---
 

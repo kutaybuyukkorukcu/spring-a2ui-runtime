@@ -20,7 +20,7 @@
     <url>https://github.com/kutaybuyukkorukcu/spring-a2ui-runtime</url>
 
     <properties>
-        <revision>1.0.0</revision>
+        <revision>1.1.0</revision>
         <java.version>21</java.version>
         <spring-ai.version>1.1.0-M2</spring-ai.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

@@ -13,10 +13,11 @@ This repository is an A2UI-first backend runtime. Treat it as a new runtime, not
 
 When changing public behavior, preserve and verify the A2UI surface:
 
-- `POST /a2ui/surface` — sync surface generation
-- `POST /a2ui/surface/stream` — SSE streaming surface generation
+- `POST /a2ui/surface/stream` — SSE streaming surface generation (only generation transport)
 - `GET /a2ui/catalogs/standard-v0.8` — catalog serving
 - `POST /a2ui/actions` — action handler
+
+There is no sync `POST /a2ui/surface` endpoint. Generation is stream-only.
 
 The internal runtime response contract version is `a2ui-runtime/0.1`. Treat that separately from public A2UI protocol compatibility.
 

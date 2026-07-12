@@ -1,8 +1,9 @@
 # ADR 001: Streaming A2UI Surface Generation (Option A vs Option B)
 
-| Status | Draft |
-|--------|-------|
+| Status | Accepted |
+|--------|----------|
 | Date | 2026-05-25 |
+| Accepted | 2026-07-12 |
 | Deciders | spring-a2ui maintainers |
 
 ## Clarification: dynamic A2UI is the product; Option A is the MVP bootstrap
@@ -28,7 +29,7 @@ Option A does not replace Option B. Phase 1 builds trust; Phase 2 delivers the g
 
 spring-a2ui is an OSS Spring backend runtime for [A2UI v0.8](https://a2ui.org/). The end goal is to become the **preferred runtime for app developers** building generative UI applications — predictable enough for product/design expectations, not just demo novelty.
 
-We failed to ship reliable UI generation with a **monolithic LLM contract** (`A2UiLlmOutput` + `.entity()` / full-response buffering). Sync `/a2ui/surface` is being removed; **A2UI-native SSE** is the only generation transport (no AG-UI, no A2A for now).
+We failed to ship reliable UI generation with a **monolithic LLM contract** (`A2UiLlmOutput` + `.entity()` / full-response buffering). Sync `/a2ui/surface` is being removed; **A2UI-native SSE** is the only generation transport.
 
 A2UI’s wire model is already incremental:
 
@@ -98,13 +99,13 @@ Each phase uses a **shallow schema** or JSONL line parser — never one nested c
 | Closer to “generative” marketing | Higher LLM failure rate on structure phase |
 | Can patch/update surfaces incrementally | Harder for consumers to reason about output |
 
-**CopilotKit analogue:** [Dynamic schema](https://docs.copilotkit.ai/google-adk/generative-ui/a2ui/dynamic-schema) — still tool-driven and middleware-streamed, not one free-form JSON document.
+Dynamic mode is still **tool-driven** (structured tool args → assembly → SSE), not one free-form JSON document.
 
 ---
 
-### Option C — AG-UI transport wrapper
+### Option C — Wrap A2UI in a generic agent↔app chat event protocol
 
-**Rejected.** We stay **A2UI-native SSE** (`event: surfaceUpdate`, etc.). No AG-UI event layer.
+**Rejected.** We stay **A2UI-native SSE** (`event: surfaceUpdate`, etc.). Chat/run/text shells are a later optional concern, not the v0.8 transport.
 
 ---
 
@@ -142,7 +143,7 @@ Templates are **not** the long-term product. They unblock the demo and library c
 | No page templates required | Catalog = vocabulary; LLM = layout + data |
 | Correct prior failure mode | JSONL / shallow per-envelope parsing — never monolithic `A2UiLlmOutput` |
 
-Option B is the **generative runtime** app developers should prefer for open-ended prompts. Option A remains available for predictable, design-system-aligned surfaces (CopilotKit fixed-schema path).
+Option B is the **generative runtime** app developers should prefer for open-ended prompts. Option A remains available for predictable, design-system-aligned surfaces (fixed template schemas).
 
 ### Coexistence after Phase 2
 
@@ -211,7 +212,7 @@ public void renderTemplate(
 - **Keep:** `POST /a2ui/surface/stream` (SSE), `POST /a2ui/actions`, catalog endpoints.
 - **Remove:** `POST /a2ui/surface` (sync).
 - **SSE events:** raw A2UI envelopes (`surfaceUpdate`, `dataModelUpdate`, `beginRendering`, `deleteSurface`, `done`, `error`).
-- **No AG-UI.** No A2A extension transport in this ADR.
+- **No alternate agent chat/event transport** in this ADR — A2UI envelopes over SSE only.
 
 ---
 
@@ -240,7 +241,7 @@ See [`BACKLOG.md`](../BACKLOG.md) for task breakdown.
 
 ### Positive
 
-- Aligns with A2UI spec and CopilotKit’s production-proven fixed-schema path.
+- Aligns with the A2UI spec and a fixed-schema (template) path that product teams can reason about.
 - Gives app developers a clear extension point (templates) without prompt engineering.
 - MVP path is short: templates + tools + stream fix.
 
@@ -265,6 +266,4 @@ None — provider scope decided **OpenAI-first** for MVP; multi-provider parity 
 ## References
 
 - [A2UI v0.8 protocol](https://a2ui.org/)
-- [CopilotKit fixed schema A2UI](https://docs.copilotkit.ai/google-adk/generative-ui/a2ui/fixed-schema)
-- [CopilotKit dynamic schema A2UI](https://docs.copilotkit.ai/google-adk/generative-ui/a2ui/dynamic-schema)
-- Internal: `RESEARCH_NOTES.md`, `BACKLOG.md`
+- Internal: `BACKLOG.md`, phase plans under `docs/plans/`

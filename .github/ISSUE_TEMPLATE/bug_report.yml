@@ -1,0 +1,48 @@
+name: Bug report
+description: Something is broken in the runtime or sample apps
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The more concrete the repro, the faster we can fix it.
+  - type: textarea
+    id: describe
+    attributes:
+      label: Describe the bug
+      description: What happened, and what did you expect instead?
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Generation mode
+      options:
+        - template
+        - dynamic
+        - both / unsure
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: "e.g. spring-a2ui 1.1.0, Spring Boot 3.4.1, Spring AI 1.1.0-M2"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps, curl payload, or a small sample repo link.
+      placeholder: |
+        1. Set a2ui.web.runtime.generation-mode=...
+        2. POST /a2ui/surface/stream with ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / SSE error event
+      render: text

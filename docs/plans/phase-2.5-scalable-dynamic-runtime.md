@@ -203,7 +203,7 @@ Finish 2.5a remaining tests
 ## Non-goals
 
 - **A2UI v0.9 migration** — tracked separately in [`phase-x-migrating-to-v0.9.md`](phase-x-migrating-to-v0.9.md); start **after** v0.8 release.
-- **AG-UI transport** — out of scope for v0.8 (A2UI-native SSE remains).
+- **Alternate agent chat/event transports** — out of scope for v0.8 (A2UI-native SSE remains).
 - **Client-side Zod catalog generation** — server validates from the same catalog JSON the client uses.
 - **Semantic repair feature flags** — prefer hard delete over dual-path maintenance.
 
@@ -234,4 +234,4 @@ Finish 2.5a remaining tests
 - [`docs/guides/dynamic-generative-ui.md`](../guides/dynamic-generative-ui.md)
 - [`docs/plans/phase-x-migrating-to-v0.9.md`](phase-x-migrating-to-v0.9.md)
 - [A2UI v0.8](https://a2ui.org/) · [standard-v0.8.json](../../packages/a2ui-runtime-core/src/main/resources/META-INF/a2ui/catalogs/standard-v0.8.json)
-- Frontier analogues: CopilotKit google-adk sanitize-only; A2UI v0.9 prompt→validate→retry (syntax heal only)
+- Related direction: A2UI v0.9 prompt→validate→retry (syntax heal only) — see Phase X
