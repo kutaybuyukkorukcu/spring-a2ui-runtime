@@ -200,4 +200,253 @@ class A2UiMessageValidatorTest {
         List<A2UiDiagnostic> diagnostics = validator.validateSingle(br);
         assertThat(diagnostics).noneMatch(d -> d.code().equals(A2UiErrorCode.UNSUPPORTED_CATALOG_ID.code()));
     }
+
+    @Test
+    void shouldValidateValidCheckBoxWithCatalogContext() {
+        ComponentDefinition checkbox = new ComponentDefinition("cb-1", Map.of("CheckBox", Map.of(
+                "label", Map.of("literalString", "Accept terms"),
+                "value", Map.of("literalBoolean", true))));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(checkbox));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).isEmpty();
+    }
+
+    @Test
+    void shouldRejectCheckBoxMissingValue() {
+        ComponentDefinition checkbox = new ComponentDefinition("cb-1", Map.of("CheckBox", Map.of(
+                "label", Map.of("path", "/notificationPrefs/email"))));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(checkbox));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).anyMatch(d -> d.code().equals(A2UiErrorCode.MISSING_REQUIRED_PROP.code()));
+        assertThat(diagnostics).anyMatch(d -> d.message().contains("value"));
+    }
+
+    @Test
+    void shouldRejectCheckBoxMissingLabel() {
+        ComponentDefinition checkbox = new ComponentDefinition("cb-1", Map.of("CheckBox", Map.of(
+                "value", Map.of("literalBoolean", false))));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(checkbox));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).anyMatch(d -> d.code().equals(A2UiErrorCode.MISSING_REQUIRED_PROP.code()));
+        assertThat(diagnostics).anyMatch(d -> d.message().contains("label"));
+    }
+
+    @Test
+    void shouldRejectUnknownPropOnCheckBox() {
+        ComponentDefinition checkbox = new ComponentDefinition("cb-1", Map.of("CheckBox", Map.of(
+                "label", Map.of("literalString", "Accept"),
+                "value", Map.of("literalBoolean", true),
+                "checked", true)));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(checkbox));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).anyMatch(d -> d.code().equals(A2UiErrorCode.UNKNOWN_PROP.code()));
+        assertThat(diagnostics).anyMatch(d -> d.message().contains("checked"));
+    }
+
+    @Test
+    void shouldRejectInvalidBoundValuePlainBoolean() {
+        ComponentDefinition checkbox = new ComponentDefinition("cb-1", Map.of("CheckBox", Map.of(
+                "label", Map.of("literalString", "Accept"),
+                "value", true)));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(checkbox));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).anyMatch(d -> d.code().equals(A2UiErrorCode.INVALID_PROP_TYPE.code()));
+    }
+
+    @Test
+    void shouldRejectWrongBoundValueKeyOnCheckBoxLabel() {
+        ComponentDefinition checkbox = new ComponentDefinition("cb-1", Map.of("CheckBox", Map.of(
+                "label", Map.of("literalNumber", 5),
+                "value", Map.of("literalBoolean", true))));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(checkbox));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).anyMatch(d -> d.code().equals(A2UiErrorCode.UNKNOWN_PROP.code()));
+    }
+
+    @Test
+    void shouldRejectInvalidEnumValueOnTextUsageHint() {
+        ComponentDefinition text = new ComponentDefinition("t-1", Map.of("Text", Map.of(
+                "text", Map.of("literalString", "Hello"),
+                "usageHint", "heading")));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(text));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).anyMatch(d -> d.code().equals(A2UiErrorCode.INVALID_ENUM_VALUE.code()));
+    }
+
+    @Test
+    void shouldAcceptValidEnumValueOnTextUsageHint() {
+        ComponentDefinition text = new ComponentDefinition("t-1", Map.of("Text", Map.of(
+                "text", Map.of("literalString", "Hello"),
+                "usageHint", "h3")));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(text));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).isEmpty();
+    }
+
+    @Test
+    void shouldRejectButtonMissingChild() {
+        ComponentDefinition button = new ComponentDefinition("btn-1", Map.of("Button", Map.of(
+                "action", Map.of("name", "submit"))));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(button));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).anyMatch(d -> d.code().equals(A2UiErrorCode.MISSING_REQUIRED_PROP.code()));
+        assertThat(diagnostics).anyMatch(d -> d.message().contains("child"));
+    }
+
+    @Test
+    void shouldRejectButtonMissingAction() {
+        ComponentDefinition button = new ComponentDefinition("btn-1", Map.of("Button", Map.of(
+                "child", "btn-label")));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(button));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).anyMatch(d -> d.code().equals(A2UiErrorCode.MISSING_REQUIRED_PROP.code()));
+        assertThat(diagnostics).anyMatch(d -> d.message().contains("action"));
+    }
+
+    @Test
+    void shouldRejectCardMissingChild() {
+        ComponentDefinition card = new ComponentDefinition("card-1", Map.of("Card", Map.of()));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(card));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).anyMatch(d -> d.code().equals(A2UiErrorCode.MISSING_REQUIRED_PROP.code()));
+        assertThat(diagnostics).anyMatch(d -> d.message().contains("child"));
+    }
+
+    @Test
+    void shouldRejectButtonActionMissingName() {
+        ComponentDefinition button = new ComponentDefinition("btn-1", Map.of("Button", Map.of(
+                "child", "btn-label",
+                "action", Map.of("context", List.of()))));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(button));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).anyMatch(d -> d.code().equals(A2UiErrorCode.MISSING_REQUIRED_PROP.code()));
+    }
+
+    @Test
+    void shouldRejectInvalidChildrenShape() {
+        ComponentDefinition column = new ComponentDefinition("col-1", Map.of("Column", Map.of(
+                "children", "not-a-valid-children-object")));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(column));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).anyMatch(d -> d.code().equals(A2UiErrorCode.INVALID_PROP_TYPE.code()));
+    }
+
+    @Test
+    void shouldRejectChildrenWithoutExplicitListOrTemplate() {
+        ComponentDefinition column = new ComponentDefinition("col-1", Map.of("Column", Map.of(
+                "children", Map.of("foo", "bar"))));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(column));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).anyMatch(d -> d.code().equals(A2UiErrorCode.UNKNOWN_PROP.code()));
+    }
+
+    @Test
+    void shouldAcceptValidChildrenExplicitList() {
+        ComponentDefinition column = new ComponentDefinition("col-1", Map.of("Column", Map.of(
+                "children", Map.of("explicitList", List.of("child-a", "child-b")))));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(column));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).isEmpty();
+    }
+
+    @Test
+    void shouldAcceptValidChildrenTemplate() {
+        ComponentDefinition list = new ComponentDefinition("list-1", Map.of("List", Map.of(
+                "children", Map.of("template", Map.of("componentId", "row-1", "dataBinding", "/items")))));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(list));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).isEmpty();
+    }
+
+    @Test
+    void shouldRejectChildrenTemplateMissingComponentId() {
+        ComponentDefinition list = new ComponentDefinition("list-1", Map.of("List", Map.of(
+                "children", Map.of("template", Map.of("dataBinding", "/items")))));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(list));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).anyMatch(d -> d.code().equals(A2UiErrorCode.MISSING_REQUIRED_PROP.code()));
+    }
+
+    @Test
+    void shouldRejectPlainTypeMismatchOnPrimaryProp() {
+        ComponentDefinition button = new ComponentDefinition("btn-1", Map.of("Button", Map.of(
+                "child", "btn-label",
+                "action", Map.of("name", "submit"),
+                "primary", "yes")));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(button));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).anyMatch(d -> d.code().equals(A2UiErrorCode.INVALID_PROP_TYPE.code()));
+    }
+
+    @Test
+    void shouldNotValidatePropsWithoutCatalogContext() {
+        ComponentDefinition checkbox = new ComponentDefinition("cb-1", Map.of("CheckBox", Map.of(
+                "label", Map.of("literalString", "Accept"))));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(checkbox));
+        List<A2UiDiagnostic> diagnostics = validator.validate(List.of(su));
+        assertThat(diagnostics).isEmpty();
+    }
+
+    @Test
+    void shouldValidateValidButtonWithCatalogContext() {
+        ComponentDefinition button = new ComponentDefinition("btn-1", Map.of("Button", Map.of(
+                "child", "btn-label",
+                "action", Map.of("name", "submit"),
+                "primary", true)));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(button));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).isEmpty();
+    }
+
+    @Test
+    void shouldValidateValidCardWithCatalogContext() {
+        ComponentDefinition card = new ComponentDefinition("card-1", Map.of("Card", Map.of(
+                "child", "card-content")));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(card));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).isEmpty();
+    }
+
+    @Test
+    void shouldValidateValidSliderWithCatalogContext() {
+        ComponentDefinition slider = new ComponentDefinition("sld-1", Map.of("Slider", Map.of(
+                "value", Map.of("literalNumber", 50),
+                "label", Map.of("literalString", "Volume"),
+                "minValue", 0,
+                "maxValue", 100)));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(slider));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).isEmpty();
+    }
+
+    @Test
+    void shouldRejectSliderValueWithWrongBoundValueType() {
+        ComponentDefinition slider = new ComponentDefinition("sld-1", Map.of("Slider", Map.of(
+                "value", Map.of("literalBoolean", true))));
+        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(slider));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                List.of(su), A2UiValidationContext.forCatalog(A2UiCatalogIds.STANDARD_V0_8));
+        assertThat(diagnostics).anyMatch(d -> d.code().equals(A2UiErrorCode.UNKNOWN_PROP.code()));
+    }
 }

@@ -3,6 +3,7 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
+import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiValidationContext;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage.ComponentDefinition;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.DataEntry;
@@ -108,7 +109,8 @@ public class A2UiDynamicAssemblyService {
 
         messages.add(new A2UiMessage.BeginRendering(negotiatedSurfaceId, root, catalogId, null));
 
-        List<A2UiDiagnostic> diagnostics = messageValidator.validate(messages);
+        List<A2UiDiagnostic> diagnostics = messageValidator.validate(
+                messages, A2UiValidationContext.forCatalog(catalogId));
         if (!diagnostics.isEmpty()) {
             throw new SurfaceExecutionException(
                     "Dynamic surface failed validation",

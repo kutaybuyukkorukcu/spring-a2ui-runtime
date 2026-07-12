@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.A2UiSurfaceRequest;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiSurfaceRuntime;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.RequestCorrelationService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -39,6 +41,9 @@ class RuntimeSurfaceE2ETest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private A2UiRuntimeMetrics runtimeMetrics;
 
     @MockitoBean
     private A2UiSurfaceRuntime surfaceRuntime;
@@ -127,5 +132,16 @@ class RuntimeSurfaceE2ETest {
 
         mockMvc.perform(get("/actuator/health/readiness"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("showcase should expose dynamic validation failed metric via actuator")
+    void shouldExposeDynamicValidationFailedMetric() throws Exception {
+        runtimeMetrics.recordDynamicValidationFailed();
+
+        mockMvc.perform(get("/actuator/metrics/a2ui.dynamic.validation.failed"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("a2ui.dynamic.validation.failed"))
+                .andExpect(jsonPath("$.measurements[0].value", greaterThanOrEqualTo(1.0)));
     }
 }

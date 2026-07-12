@@ -10,11 +10,32 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+/**
+ * Thin v0.8 assembler: converts planner-friendly flat component entries into canonical A2UI
+ * adjacency-list component definitions.
+ *
+ * <p>Canonicalization only — no semantic repair. Invalid catalog shapes (missing required props,
+ * unknown aliases like {@code checked}/{@code variant}, Card {@code children}, Button without
+ * {@code child}) must fail validation and retry, never be silently patched.
+ *
+ * <h2>Kept rules</h2>
+ * <ul>
+ *   <li>Flat string component type → {@code {Type: {...}}} wrapping</li>
+ *   <li>BoundValue shorthand: plain string → {@code {literalString}}, number →
+ *       {@code {literalNumber}}, boolean → {@code {literalBoolean}}, leading-slash / {@code {data.X}}
+ *       → {@code {path}}</li>
+ *   <li>{@code children} as bare string list → {@code {explicitList: [...]}}</li>
+ *   <li>Action as bare string → {@code {name: "..."}}</li>
+ *   <li>{@code child}/{@code entryPointChild}/{@code contentChild} string coercion</li>
+ *   <li>Tab item titles, option labels, action context values → BoundValue normalization</li>
+ *   <li>List {@code data} → {@code template.dataBinding} and bare string template → object</li>
+ *   <li>Drop is handled by assembly sanitize (missing id/component)</li>
+ *   <li>Child reference DAG validation (self-references, dangling refs, cycles) — fail, do not invent</li>
+ * </ul>
+ */
 public class A2UiDynamicComponentNormalizer {
 
     private static final Pattern DATA_BINDING_PATTERN = Pattern.compile("^\\{data\\.([^}]+)\\}$");
-
-    private static final Set<String> CONTAINERS_WITH_INLINE_ITEMS = Set.of("List", "Column", "Row", "Card");
 
     private static final Set<String> BOUND_VALUE_PROPERTIES = Set.of(
             "text", "url", "altText", "name", "description", "label", "value", "title", "selections");
@@ -24,12 +45,10 @@ public class A2UiDynamicComponentNormalizer {
             throw new IllegalArgumentException("components must not be empty");
         }
 
-        List<Map<String, Object>> expanded = expandInlineComponents(flatComponents);
-
-        List<ComponentDefinition> normalized = new ArrayList<>(expanded.size());
+        List<ComponentDefinition> normalized = new ArrayList<>(flatComponents.size());
         Set<String> componentIds = new LinkedHashSet<>();
 
-        for (Map<String, Object> entry : expanded) {
+        for (Map<String, Object> entry : flatComponents) {
             ComponentDefinition component = normalizeEntry(entry);
             if (componentIds.contains(component.id())) {
                 throw new IllegalArgumentException("Duplicate component id: " + component.id());
@@ -38,147 +57,29 @@ public class A2UiDynamicComponentNormalizer {
             normalized.add(component);
         }
 
-        List<ComponentDefinition> catalogAdjusted = enforceCatalogConstraints(normalized, componentIds);
-        validateChildReferences(catalogAdjusted);
-        return List.copyOf(catalogAdjusted);
+        List<ComponentDefinition> canonicalized = canonicalizeComponents(normalized);
+        validateChildReferences(canonicalized);
+        return List.copyOf(canonicalized);
     }
 
-    private List<ComponentDefinition> enforceCatalogConstraints(
-            List<ComponentDefinition> components, Set<String> knownIds) {
-        List<ComponentDefinition> adjusted = new ArrayList<>(components.size());
-
+    private List<ComponentDefinition> canonicalizeComponents(List<ComponentDefinition> components) {
+        List<ComponentDefinition> result = new ArrayList<>(components.size());
         for (ComponentDefinition component : components) {
-            switch (component.componentType()) {
-                case "Card" -> {
-                    CardConstraintFix cardFix = fixCardComponent(component, knownIds);
-                    adjusted.add(cardFix.component());
-                    adjusted.addAll(cardFix.added());
-                }
-                case "Button" -> {
-                    ComponentConstraintFix buttonFix = fixButtonComponent(component, knownIds);
-                    adjusted.add(buttonFix.component());
-                    adjusted.addAll(buttonFix.added());
-                }
-                case "List" -> adjusted.add(fixListComponent(component));
-                case "Text" -> adjusted.add(fixTextComponent(component));
-                case "CheckBox" -> adjusted.add(fixCheckBoxComponent(component));
-                default -> adjusted.add(component);
+            if ("List".equals(component.componentType())) {
+                result.add(canonicalizeListComponent(component));
+            } else {
+                result.add(component);
             }
         }
-        return adjusted;
+        return result;
     }
 
+    /**
+     * Promotes List {@code data} + bare string {@code children.template} into the catalog shape
+     * {@code children.template = {componentId, dataBinding}}. Equivalent forms only — does not invent structure.
+     */
     @SuppressWarnings("unchecked")
-    private CardConstraintFix fixCardComponent(ComponentDefinition card, Set<String> knownIds) {
-        Map<String, Object> props = new LinkedHashMap<>(card.componentProperties());
-        Object existingChild = props.get("child");
-        Object children = props.remove("children");
-
-        if (existingChild instanceof String childId && !childId.isBlank()) {
-            return new CardConstraintFix(rebuildComponent(card, "Card", props), List.of());
-        }
-
-        List<String> childIds = extractExplicitChildIds(children);
-        if (childIds.isEmpty()) {
-            return new CardConstraintFix(rebuildComponent(card, "Card", props), List.of());
-        }
-        if (childIds.size() == 1) {
-            props.put("child", childIds.get(0));
-            return new CardConstraintFix(rebuildComponent(card, "Card", props), List.of());
-        }
-
-        String wrapperId = ensureUniqueComponentId(card.id() + "-content", knownIds);
-        knownIds.add(wrapperId);
-        Map<String, Object> columnProps = Map.of("children", Map.of("explicitList", List.copyOf(childIds)));
-        ComponentDefinition wrapper = new ComponentDefinition(wrapperId, Map.of("Column", columnProps));
-        props.put("child", wrapperId);
-        return new CardConstraintFix(rebuildComponent(card, "Card", props), List.of(wrapper));
-    }
-
-    @SuppressWarnings("unchecked")
-    private ComponentConstraintFix fixButtonComponent(ComponentDefinition button, Set<String> knownIds) {
-        Map<String, Object> props = new LinkedHashMap<>(button.componentProperties());
-        Object label = props.remove("label");
-        List<ComponentDefinition> added = new ArrayList<>();
-
-        Object child = props.get("child");
-        if (!(child instanceof String childId) || childId.isBlank()) {
-            String labelChildId = ensureUniqueComponentId(button.id() + "-label", knownIds);
-            knownIds.add(labelChildId);
-            Map<String, Object> textProps = new LinkedHashMap<>();
-            textProps.put("text", labelToBoundText(label, button.id()));
-            added.add(new ComponentDefinition(labelChildId, Map.of("Text", textProps)));
-            props.put("child", labelChildId);
-        }
-
-        if (!(props.get("action") instanceof Map<?, ?>)) {
-            props.put("action", Map.of("name", deriveActionName(button.id(), label)));
-        }
-
-        return new ComponentConstraintFix(rebuildComponent(button, "Button", props), added);
-    }
-
-    @SuppressWarnings("unchecked")
-    private ComponentDefinition fixCheckBoxComponent(ComponentDefinition checkbox) {
-        Map<String, Object> props = new LinkedHashMap<>(checkbox.componentProperties());
-        if (props.containsKey("checked") && !props.containsKey("value")) {
-            props.put("value", normalizeBoundValue(props.remove("checked")));
-        }
-        return rebuildComponent(checkbox, "CheckBox", props);
-    }
-
-    @SuppressWarnings("unchecked")
-    private Object labelToBoundText(Object label, String buttonId) {
-        if (label == null) {
-            return Map.of("literalString", humanizeComponentId(buttonId));
-        }
-        if (isAlreadyBoundValue(label)) {
-            return copyBoundValueMap(label);
-        }
-        if (label instanceof String stringLabel) {
-            return normalizeBoundValue(stringLabel);
-        }
-        return Map.of("literalString", String.valueOf(label));
-    }
-
-    private static String deriveActionName(String buttonId, Object label) {
-        if (buttonId != null && !buttonId.isBlank()) {
-            String fromId = buttonId
-                    .replaceAll("(?i)-?button$", "")
-                    .replaceAll("(?i)-?btn$", "")
-                    .replaceAll("([a-z])([A-Z])", "$1_$2")
-                    .replaceAll("[\\s-]+", "_")
-                    .replaceAll("[^a-zA-Z0-9_]+", "")
-                    .replaceAll("_+", "_")
-                    .replaceAll("^_|_$", "")
-                    .toLowerCase();
-            if (!fromId.isBlank()) {
-                return fromId;
-            }
-        }
-        if (label instanceof Map<?, ?> labelMap && labelMap.get("literalString") instanceof String literal) {
-            return literal.trim()
-                    .replaceAll("[^a-zA-Z0-9]+", "_")
-                    .replaceAll("_+", "_")
-                    .replaceAll("^_|_$", "")
-                    .toLowerCase();
-        }
-        return "button_click";
-    }
-
-    private static String humanizeComponentId(String componentId) {
-        if (componentId == null || componentId.isBlank()) {
-            return "Submit";
-        }
-        String base = componentId.replaceAll("(?i)-?button$", "").replaceAll("(?i)-?btn$", "");
-        if (base.isBlank()) {
-            return "Submit";
-        }
-        return base.substring(0, 1).toUpperCase() + base.substring(1).replaceAll("([a-z])([A-Z])", "$1 $2");
-    }
-
-    @SuppressWarnings("unchecked")
-    private ComponentDefinition fixListComponent(ComponentDefinition list) {
+    private ComponentDefinition canonicalizeListComponent(ComponentDefinition list) {
         Map<String, Object> props = new LinkedHashMap<>(list.componentProperties());
         Object dataBindingSource = props.remove("data");
         Object children = props.get("children");
@@ -223,15 +124,6 @@ public class A2UiDynamicComponentNormalizer {
         return rebuildComponent(list, "List", props);
     }
 
-    private ComponentDefinition fixTextComponent(ComponentDefinition text) {
-        Map<String, Object> props = new LinkedHashMap<>(text.componentProperties());
-        Object variant = props.remove("variant");
-        if (variant != null && !props.containsKey("usageHint")) {
-            props.put("usageHint", variant);
-        }
-        return rebuildComponent(text, "Text", props);
-    }
-
     private static ComponentDefinition rebuildComponent(
             ComponentDefinition source, String componentType, Map<String, Object> props) {
         Map<String, Object> cleaned = new LinkedHashMap<>();
@@ -243,231 +135,12 @@ public class A2UiDynamicComponentNormalizer {
         return new ComponentDefinition(source.id(), Map.of(componentType, cleaned));
     }
 
-    @SuppressWarnings("unchecked")
-    private static List<String> extractExplicitChildIds(Object children) {
-        if (!(children instanceof Map<?, ?> childrenMap)) {
-            return List.of();
-        }
-        Object explicitList = childrenMap.get("explicitList");
-        if (!(explicitList instanceof List<?> ids)) {
-            return List.of();
-        }
-        List<String> childIds = new ArrayList<>(ids.size());
-        for (Object id : ids) {
-            childIds.add(String.valueOf(id));
-        }
-        return childIds;
-    }
-
     private static String resolveDataBindingPath(Object dataBindingSource) {
         if (dataBindingSource instanceof String path && !path.isBlank()) {
             return path.startsWith("/") ? path : "/" + path;
         }
         return "/";
     }
-
-    private record CardConstraintFix(ComponentDefinition component, List<ComponentDefinition> added) {}
-
-    private record ComponentConstraintFix(ComponentDefinition component, List<ComponentDefinition> added) {}
-
-    @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> expandInlineComponents(List<Map<String, Object>> flatComponents) {
-        List<Map<String, Object>> expanded = new ArrayList<>(flatComponents.size());
-        Set<String> knownIds = new LinkedHashSet<>();
-
-        for (Map<String, Object> entry : flatComponents) {
-            expanded.add(copyMap(entry));
-            Object idValue = entry.get("id");
-            if (idValue instanceof String id && !id.isBlank()) {
-                knownIds.add(id);
-            }
-        }
-
-        boolean changed;
-        do {
-            changed = false;
-            List<Map<String, Object>> hoisted = new ArrayList<>();
-            for (int i = 0; i < expanded.size(); i++) {
-                InlineItemsExpansion expansion = extractAndReplaceInlineItems(expanded.get(i), knownIds);
-                if (expansion == null) {
-                    continue;
-                }
-                expanded.set(i, expansion.entry());
-                hoisted.addAll(expansion.hoisted());
-                changed = true;
-            }
-            expanded.addAll(hoisted);
-        } while (changed);
-
-        return expanded;
-    }
-
-    @SuppressWarnings("unchecked")
-    private InlineItemsExpansion extractAndReplaceInlineItems(Map<String, Object> entry, Set<String> knownIds) {
-        Object topLevelItems = entry.get("items");
-        if (isInlineComponentList(topLevelItems)) {
-            return replaceItemsWithChildRefs(copyMap(entry), entry, (List<?>) topLevelItems, null, knownIds);
-        }
-
-        Object componentValue = entry.get("component");
-        if (!(componentValue instanceof Map<?, ?> componentMap) || componentMap.size() != 1) {
-            return null;
-        }
-
-        Map.Entry<?, ?> typeEntry = componentMap.entrySet().iterator().next();
-        String componentType = String.valueOf(typeEntry.getKey());
-        if (!CONTAINERS_WITH_INLINE_ITEMS.contains(componentType)) {
-            return null;
-        }
-
-        if (!(typeEntry.getValue() instanceof Map<?, ?> propsMap)) {
-            return null;
-        }
-
-        Object nestedItems = propsMap.get("items");
-        if (!isInlineComponentList(nestedItems)) {
-            return null;
-        }
-
-        Map<String, Object> updatedEntry = copyMap(entry);
-        Map<String, Object> updatedProps = copyMap(propsMap);
-        updatedProps.remove("items");
-        updatedEntry.put("component", Map.of(componentType, updatedProps));
-
-        return replaceItemsWithChildRefs(updatedEntry, entry, (List<?>) nestedItems, componentType, knownIds);
-    }
-
-    @SuppressWarnings("unchecked")
-    private InlineItemsExpansion replaceItemsWithChildRefs(
-            Map<String, Object> updatedEntry,
-            Map<String, Object> sourceEntry,
-            List<?> inlineItems,
-            String nestedComponentType,
-            Set<String> knownIds) {
-        updatedEntry.remove("items");
-
-        List<Map<String, Object>> hoisted = new ArrayList<>(inlineItems.size());
-        List<String> childIds = new ArrayList<>(inlineItems.size());
-
-        for (Object item : inlineItems) {
-            if (!(item instanceof Map<?, ?> itemMap)) {
-                throw new IllegalArgumentException("Inline items entries must be objects");
-            }
-            Map<String, Object> hoistedEntry = copyMap(itemMap);
-            Object idValue = hoistedEntry.get("id");
-            if (!(idValue instanceof String id) || id.isBlank()) {
-                throw new IllegalArgumentException("Inline item must include a non-blank id");
-            }
-            String uniqueId = ensureUniqueComponentId(id, knownIds);
-            if (!uniqueId.equals(id)) {
-                hoistedEntry.put("id", uniqueId);
-            }
-            knownIds.add(uniqueId);
-            childIds.add(uniqueId);
-            hoisted.add(hoistedEntry);
-        }
-
-        String componentType = nestedComponentType != null
-                ? nestedComponentType
-                : resolveComponentTypeName(sourceEntry);
-
-        applyChildReferences(updatedEntry, componentType, childIds, hoisted, knownIds);
-        return new InlineItemsExpansion(updatedEntry, hoisted);
-    }
-
-    private String resolveComponentTypeName(Map<String, Object> entry) {
-        Object componentValue = entry.get("component");
-        if (componentValue instanceof String typeName) {
-            return typeName;
-        }
-        if (componentValue instanceof Map<?, ?> componentMap && componentMap.size() == 1) {
-            return String.valueOf(componentMap.keySet().iterator().next());
-        }
-        throw new IllegalArgumentException("Cannot resolve component type for inline items expansion");
-    }
-
-    @SuppressWarnings("unchecked")
-    private void applyChildReferences(
-            Map<String, Object> entry,
-            String componentType,
-            List<String> childIds,
-            List<Map<String, Object>> hoisted,
-            Set<String> knownIds) {
-        if ("Card".equals(componentType)) {
-            if (childIds.size() == 1) {
-                putComponentProperty(entry, componentType, "child", childIds.get(0));
-                return;
-            }
-            String parentId = String.valueOf(entry.get("id"));
-            String wrapperId = ensureUniqueComponentId(parentId + "-content", knownIds);
-            knownIds.add(wrapperId);
-            Map<String, Object> wrapper = new LinkedHashMap<>();
-            wrapper.put("id", wrapperId);
-            wrapper.put("component", "Column");
-            wrapper.put("children", List.copyOf(childIds));
-            hoisted.add(0, wrapper);
-            putComponentProperty(entry, componentType, "child", wrapperId);
-            return;
-        }
-
-        putComponentProperty(entry, componentType, "children", List.copyOf(childIds));
-    }
-
-    @SuppressWarnings("unchecked")
-    private void putComponentProperty(
-            Map<String, Object> entry, String componentType, String propertyName, Object propertyValue) {
-        Object componentValue = entry.get("component");
-        if (componentValue instanceof String) {
-            entry.put(propertyName, propertyValue);
-            return;
-        }
-        if (componentValue instanceof Map<?, ?> componentMap && componentMap.size() == 1) {
-            Map<String, Object> updatedComponent = new LinkedHashMap<>();
-            for (Map.Entry<?, ?> typeEntry : componentMap.entrySet()) {
-                String typeName = String.valueOf(typeEntry.getKey());
-                Map<String, Object> props = typeEntry.getValue() instanceof Map<?, ?> propsMap
-                        ? copyMap(propsMap)
-                        : new LinkedHashMap<>();
-                props.put(propertyName, propertyValue);
-                updatedComponent.put(typeName, props);
-            }
-            entry.put("component", updatedComponent);
-        }
-    }
-
-    private static String ensureUniqueComponentId(String baseId, Set<String> knownIds) {
-        if (!knownIds.contains(baseId)) {
-            return baseId;
-        }
-        int suffix = 2;
-        String candidate;
-        do {
-            candidate = baseId + "-" + suffix++;
-        } while (knownIds.contains(candidate));
-        return candidate;
-    }
-
-    private static boolean isInlineComponentList(Object value) {
-        if (!(value instanceof List<?> list) || list.isEmpty()) {
-            return false;
-        }
-        for (Object item : list) {
-            if (!(item instanceof Map<?, ?> itemMap)) {
-                return false;
-            }
-            Object id = itemMap.get("id");
-            Object component = itemMap.get("component");
-            if (!(id instanceof String idString) || idString.isBlank()) {
-                return false;
-            }
-            if (!(component instanceof String) && !(component instanceof Map<?, ?>)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private record InlineItemsExpansion(Map<String, Object> entry, List<Map<String, Object>> hoisted) {}
 
     private ComponentDefinition normalizeEntry(Map<String, Object> entry) {
         if (entry == null) {

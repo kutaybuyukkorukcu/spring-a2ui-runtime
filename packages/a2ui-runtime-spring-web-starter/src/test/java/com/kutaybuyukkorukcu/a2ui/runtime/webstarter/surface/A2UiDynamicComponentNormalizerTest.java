@@ -72,6 +72,24 @@ class A2UiDynamicComponentNormalizerTest {
     }
 
     @Test
+    void shouldNormalizeActionStringToNameObject() {
+        List<ComponentDefinition> components = normalizer.normalize(List.of(
+                Map.of("id", "root", "component", "Column", "children", List.of("saveButton", "saveLabel")),
+                Map.of(
+                        "id", "saveButton",
+                        "component", "Button",
+                        "child", "saveLabel",
+                        "action", "save_prefs"),
+                Map.of("id", "saveLabel", "component", "Text", "text", "Save")));
+
+        ComponentDefinition button = components.stream()
+                .filter(c -> c.id().equals("saveButton"))
+                .findFirst()
+                .orElseThrow();
+        assertThat(button.componentProperties().get("action")).isEqualTo(Map.of("name", "save_prefs"));
+    }
+
+    @Test
     void shouldRejectUnknownChildReference() {
         assertThatThrownBy(() -> normalizer.normalize(List.of(
                 Map.of("id", "root", "component", "Column", "children", List.of("missing")))))
@@ -97,55 +115,6 @@ class A2UiDynamicComponentNormalizerTest {
     }
 
     @Test
-    void shouldHoistListInlineItemsAndConvertDataBindings() {
-        List<ComponentDefinition> components = normalizer.normalize(List.of(
-                Map.of(
-                        "id", "root",
-                        "component", "Column",
-                        "children", List.of("region-summary-list")),
-                Map.of(
-                        "id", "region-summary-list",
-                        "component", Map.of(
-                                "List",
-                                Map.of(
-                                        "items",
-                                        List.of(
-                                                Map.of(
-                                                        "id", "north-summary",
-                                                        "component", "Text",
-                                                        "text", "{data.regionSales.North}"),
-                                                Map.of(
-                                                        "id", "south-summary",
-                                                        "component", "Text",
-                                                        "text", "{data.regionSales.South}")))))));
-
-        assertThat(components).hasSize(4);
-
-        ComponentDefinition list = components.stream()
-                .filter(c -> c.id().equals("region-summary-list"))
-                .findFirst()
-                .orElseThrow();
-        assertThat(list.componentType()).isEqualTo("List");
-        assertThat(list.componentProperties().get("children"))
-                .isEqualTo(Map.of("explicitList", List.of("north-summary", "south-summary")));
-        assertThat(list.componentProperties()).doesNotContainKey("items");
-
-        ComponentDefinition north = components.stream()
-                .filter(c -> c.id().equals("north-summary"))
-                .findFirst()
-                .orElseThrow();
-        assertThat(north.componentProperties().get("text"))
-                .isEqualTo(Map.of("path", "/regionSales/North"));
-
-        ComponentDefinition south = components.stream()
-                .filter(c -> c.id().equals("south-summary"))
-                .findFirst()
-                .orElseThrow();
-        assertThat(south.componentProperties().get("text"))
-                .isEqualTo(Map.of("path", "/regionSales/South"));
-    }
-
-    @Test
     void shouldConvertPureDataBindingStringsOnFlatText() {
         List<ComponentDefinition> components = normalizer.normalize(List.of(
                 Map.of("id", "metric", "component", "Text", "text", "{data.totals.q1}")));
@@ -161,64 +130,6 @@ class A2UiDynamicComponentNormalizerTest {
 
         assertThat(components.get(0).componentProperties().get("text"))
                 .isEqualTo(Map.of("literalString", "North: {data.trends.North}"));
-    }
-
-    @Test
-    void shouldHoistFlatListItemsShorthand() {
-        List<ComponentDefinition> components = normalizer.normalize(List.of(
-                Map.of(
-                        "id", "sales-list",
-                        "component", "List",
-                        "items",
-                        List.of(
-                                Map.of("id", "row-a", "component", "Text", "text", "/a"),
-                                Map.of("id", "row-b", "component", "Text", "text", "/b")))));
-
-        ComponentDefinition list = components.get(0);
-        assertThat(list.componentProperties().get("children"))
-                .isEqualTo(Map.of("explicitList", List.of("row-a", "row-b")));
-        assertThat(components).hasSize(3);
-    }
-
-    @Test
-    void shouldRenameHoistedIdWhenDuplicateExistsInFlatList() {
-        List<ComponentDefinition> components = normalizer.normalize(List.of(
-                Map.of("id", "row-a", "component", "Text", "text", "existing"),
-                Map.of(
-                        "id", "list",
-                        "component", "List",
-                        "items",
-                        List.of(Map.of("id", "row-a", "component", "Text", "text", "duplicate")))));
-
-        assertThat(components).hasSize(3);
-        ComponentDefinition list = components.stream().filter(c -> c.id().equals("list")).findFirst().orElseThrow();
-        @SuppressWarnings("unchecked")
-        List<String> childIds = (List<String>) ((Map<?, ?>) list.componentProperties().get("children")).get("explicitList");
-        assertThat(childIds).containsExactly("row-a-2");
-    }
-
-    @Test
-    void shouldConvertCardChildrenExplicitListToSingleChildOrColumnWrapper() {
-        List<ComponentDefinition> components = normalizer.normalize(List.of(
-                Map.of("id", "root", "component", "Column", "children", List.of("northCard")),
-                Map.of(
-                        "id", "northCard",
-                        "component", "Card",
-                        "children", Map.of("explicitList", List.of("northLabel", "northSales"))),
-                Map.of("id", "northLabel", "component", "Text", "text", "North Region"),
-                Map.of("id", "northSales", "component", "Text", "text", "/regionSales/North")));
-
-        ComponentDefinition card = components.stream().filter(c -> c.id().equals("northCard")).findFirst().orElseThrow();
-        assertThat(card.componentProperties()).containsEntry("child", "northCard-content");
-        assertThat(card.componentProperties()).doesNotContainKey("children");
-
-        ComponentDefinition wrapper = components.stream()
-                .filter(c -> c.id().equals("northCard-content"))
-                .findFirst()
-                .orElseThrow();
-        assertThat(wrapper.componentType()).isEqualTo("Column");
-        assertThat(wrapper.componentProperties().get("children"))
-                .isEqualTo(Map.of("explicitList", List.of("northLabel", "northSales")));
     }
 
     @Test
@@ -242,16 +153,16 @@ class A2UiDynamicComponentNormalizerTest {
     }
 
     @Test
-    void shouldMapTextVariantToUsageHint() {
+    void shouldNotRepairTextVariantToUsageHint() {
         List<ComponentDefinition> components = normalizer.normalize(List.of(
                 Map.of("id", "header", "component", "Text", "text", "Title", "variant", "h4")));
 
-        assertThat(components.get(0).componentProperties()).containsEntry("usageHint", "h4");
-        assertThat(components.get(0).componentProperties()).doesNotContainKey("variant");
+        assertThat(components.get(0).componentProperties()).containsEntry("variant", "h4");
+        assertThat(components.get(0).componentProperties()).doesNotContainKey("usageHint");
     }
 
     @Test
-    void shouldFixButtonLabelIntoTextChildAndDefaultAction() {
+    void shouldNotRepairButtonLabelIntoTextChild() {
         List<ComponentDefinition> components = normalizer.normalize(List.of(
                 Map.of("id", "root", "component", "Column", "children", List.of("saveButton")),
                 Map.of(
@@ -259,26 +170,15 @@ class A2UiDynamicComponentNormalizerTest {
                         "component", "Button",
                         "label", Map.of("literalString", "Save Preferences"))));
 
-        assertThat(components).hasSize(3);
-
+        assertThat(components).hasSize(2);
         ComponentDefinition button = components.stream().filter(c -> c.id().equals("saveButton")).findFirst().orElseThrow();
-        assertThat(button.componentProperties()).containsEntry("child", "saveButton-label");
-        assertThat(button.componentProperties()).doesNotContainKey("label");
-        @SuppressWarnings("unchecked")
-        Map<String, Object> action = (Map<String, Object>) button.componentProperties().get("action");
-        assertThat(action).containsEntry("name", "save");
-
-        ComponentDefinition labelText = components.stream()
-                .filter(c -> c.id().equals("saveButton-label"))
-                .findFirst()
-                .orElseThrow();
-        assertThat(labelText.componentType()).isEqualTo("Text");
-        assertThat(labelText.componentProperties().get("text"))
-                .isEqualTo(Map.of("literalString", "Save Preferences"));
+        assertThat(button.componentProperties()).containsKey("label");
+        assertThat(button.componentProperties()).doesNotContainKey("child");
+        assertThat(button.componentProperties()).doesNotContainKey("action");
     }
 
     @Test
-    void shouldMapCheckBoxCheckedToValueBoundValue() {
+    void shouldNotRepairCheckBoxCheckedToValue() {
         List<ComponentDefinition> components = normalizer.normalize(List.of(
                 Map.of(
                         "id", "emailCheck",
@@ -287,8 +187,41 @@ class A2UiDynamicComponentNormalizerTest {
                         "checked", "/notificationPrefs/email")));
 
         ComponentDefinition checkbox = components.get(0);
-        assertThat(checkbox.componentProperties()).doesNotContainKey("checked");
-        assertThat(checkbox.componentProperties().get("value"))
-                .isEqualTo(Map.of("path", "/notificationPrefs/email"));
+        assertThat(checkbox.componentProperties()).containsEntry("checked", "/notificationPrefs/email");
+        assertThat(checkbox.componentProperties()).doesNotContainKey("value");
+    }
+
+    @Test
+    void shouldNotWrapCardChildrenIntoColumn() {
+        List<ComponentDefinition> components = normalizer.normalize(List.of(
+                Map.of("id", "root", "component", "Column", "children", List.of("northCard")),
+                Map.of(
+                        "id", "northCard",
+                        "component", "Card",
+                        "children", Map.of("explicitList", List.of("northLabel", "northSales"))),
+                Map.of("id", "northLabel", "component", "Text", "text", "North Region"),
+                Map.of("id", "northSales", "component", "Text", "text", "/regionSales/North")));
+
+        ComponentDefinition card = components.stream().filter(c -> c.id().equals("northCard")).findFirst().orElseThrow();
+        assertThat(card.componentProperties()).containsKey("children");
+        assertThat(card.componentProperties()).doesNotContainKey("child");
+        assertThat(components).noneMatch(c -> c.id().equals("northCard-content"));
+    }
+
+    @Test
+    void shouldNotHoistInlineItems() {
+        List<ComponentDefinition> components = normalizer.normalize(List.of(
+                Map.of(
+                        "id", "sales-list",
+                        "component", "List",
+                        "items",
+                        List.of(
+                                Map.of("id", "row-a", "component", "Text", "text", "/a"),
+                                Map.of("id", "row-b", "component", "Text", "text", "/b")))));
+
+        assertThat(components).hasSize(1);
+        ComponentDefinition list = components.get(0);
+        assertThat(list.componentProperties()).containsKey("items");
+        assertThat(list.componentProperties()).doesNotContainKey("children");
     }
 }

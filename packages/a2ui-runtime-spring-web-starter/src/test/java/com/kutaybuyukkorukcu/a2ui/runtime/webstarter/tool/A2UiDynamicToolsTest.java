@@ -1,6 +1,7 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ToolContext;
+import org.springframework.ai.tool.ToolCallback;
 
 import java.util.List;
 import java.util.Map;
@@ -52,7 +54,8 @@ class A2UiDynamicToolsTest {
                 List.of(),
                 new DynamicA2UiPromptProvider(),
                 assemblyService,
-                runtimeMetrics);
+                runtimeMetrics,
+                A2UiCatalogRegistry.shared());
 
         when(builder.clone()).thenReturn(builder);
         when(builder.defaultAdvisors(any(org.springframework.ai.chat.client.advisor.api.Advisor.class)))
@@ -63,6 +66,7 @@ class A2UiDynamicToolsTest {
         when(requestSpec.user(anyString())).thenReturn(requestSpec);
         when(requestSpec.tools(any())).thenReturn(requestSpec);
         when(requestSpec.toolNames(anyString())).thenReturn(requestSpec);
+        when(requestSpec.toolCallbacks(any(org.springframework.ai.tool.ToolCallback[].class))).thenReturn(requestSpec);
         when(requestSpec.toolContext(any())).thenReturn(requestSpec);
         when(requestSpec.options(any())).thenReturn(requestSpec);
         when(callResponseSpec.content()).thenReturn("ok");
@@ -145,5 +149,17 @@ class A2UiDynamicToolsTest {
         assertThat(plannerCalls.get()).isEqualTo(2);
         verify(runtimeMetrics).recordDynamicValidationFailed();
         verify(runtimeMetrics).recordDynamicValidationRetryFailed();
+    }
+
+    @Test
+    void shouldEmbedGeneratedCatalogSchemaInRenderToolCallback() {
+        ToolCallback callback = dynamicTools.buildRenderA2UiToolCallback(A2UiCatalogIds.STANDARD_V0_8);
+        String inputSchema = callback.getToolDefinition().inputSchema();
+
+        assertThat(inputSchema).contains("CheckBox");
+        assertThat(inputSchema).contains("\"value\"");
+        assertThat(inputSchema).contains("\"label\"");
+        assertThat(inputSchema).contains("additionalProperties");
+        assertThat(inputSchema).doesNotContain("\"checked\"");
     }
 }
