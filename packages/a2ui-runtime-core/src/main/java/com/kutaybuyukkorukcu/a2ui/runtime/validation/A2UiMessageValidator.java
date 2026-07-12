@@ -1,6 +1,5 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.validation;
 
-import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiErrorCode;
@@ -21,13 +20,20 @@ public class A2UiMessageValidator {
     private static final String SURFACE_ID_REQUIRED = "surfaceId is required";
 
     private final A2UiCatalogRegistry catalogRegistry;
+    private final A2UiCatalogSchemaValidator catalogSchemaValidator;
 
     public A2UiMessageValidator() {
         this(A2UiCatalogRegistry.shared());
     }
 
     public A2UiMessageValidator(A2UiCatalogRegistry catalogRegistry) {
+        this(catalogRegistry, new A2UiCatalogSchemaValidator(catalogRegistry));
+    }
+
+    public A2UiMessageValidator(A2UiCatalogRegistry catalogRegistry,
+                                 A2UiCatalogSchemaValidator catalogSchemaValidator) {
         this.catalogRegistry = catalogRegistry;
+        this.catalogSchemaValidator = catalogSchemaValidator;
     }
 
     public List<A2UiDiagnostic> validate(List<A2UiMessage> messages) {
@@ -45,7 +51,7 @@ public class A2UiMessageValidator {
         }
 
         for (int i = 0; i < messages.size(); i++) {
-            validateMessage(messages.get(i), "$[" + i + "]", diagnostics);
+            validateMessage(messages.get(i), "$[" + i + "]", context, diagnostics);
         }
 
         validateSequence(messages, diagnostics);
@@ -64,7 +70,7 @@ public class A2UiMessageValidator {
     public List<A2UiDiagnostic> validateSingle(A2UiMessage message, A2UiValidationContext context) {
         List<A2UiDiagnostic> diagnostics = new ArrayList<>();
         validateVersion(context, diagnostics);
-        validateMessage(message, "$[0]", diagnostics);
+        validateMessage(message, "$[0]", context, diagnostics);
         return diagnostics;
     }
 
@@ -82,21 +88,23 @@ public class A2UiMessageValidator {
         }
     }
 
-    private void validateMessage(A2UiMessage message, String path, List<A2UiDiagnostic> diagnostics) {
+    private void validateMessage(A2UiMessage message, String path, A2UiValidationContext context,
+                                  List<A2UiDiagnostic> diagnostics) {
         if (message == null) {
             diagnostics.add(diagnostic(path, A2UiErrorCode.NULL_MESSAGE, "message must not be null"));
             return;
         }
 
         switch (message) {
-            case A2UiMessage.SurfaceUpdate su -> validateSurfaceUpdate(path + ".surfaceUpdate", su, diagnostics);
+            case A2UiMessage.SurfaceUpdate su -> validateSurfaceUpdate(path + ".surfaceUpdate", su, context, diagnostics);
             case A2UiMessage.DataModelUpdate dmu -> validateDataModelUpdate(path + ".dataModelUpdate", dmu, diagnostics);
             case A2UiMessage.BeginRendering br -> validateBeginRendering(path + ".beginRendering", br, diagnostics);
             case A2UiMessage.DeleteSurface ds -> validateDeleteSurface(path + ".deleteSurface", ds, diagnostics);
         }
     }
 
-    private void validateSurfaceUpdate(String path, A2UiMessage.SurfaceUpdate su, List<A2UiDiagnostic> diagnostics) {
+    private void validateSurfaceUpdate(String path, A2UiMessage.SurfaceUpdate su,
+                                        A2UiValidationContext context, List<A2UiDiagnostic> diagnostics) {
         if (isBlank(su.surfaceId())) {
             diagnostics.add(diagnostic(path + SURFACE_ID_SUFFIX, A2UiErrorCode.MISSING_SURFACE_ID, SURFACE_ID_REQUIRED));
         }
@@ -108,11 +116,12 @@ public class A2UiMessageValidator {
         }
 
         for (int i = 0; i < components.size(); i++) {
-            validateComponentDefinition(components.get(i), path + ".components[" + i + "]", diagnostics);
+            validateComponentDefinition(components.get(i), path + ".components[" + i + "]", context, diagnostics);
         }
     }
 
-    private void validateComponentDefinition(A2UiMessage.ComponentDefinition cd, String path, List<A2UiDiagnostic> diagnostics) {
+    private void validateComponentDefinition(A2UiMessage.ComponentDefinition cd, String path,
+                                              A2UiValidationContext context, List<A2UiDiagnostic> diagnostics) {
         if (cd == null) {
             diagnostics.add(diagnostic(path, A2UiErrorCode.INVALID_COMPONENT_DEFINITION, "component definition must not be null"));
             return;
@@ -136,6 +145,14 @@ public class A2UiMessageValidator {
             details.put("supportedCatalogIds", List.copyOf(catalogRegistry.supportedCatalogIds()));
             diagnostics.add(diagnostic(path + ".component." + componentType, A2UiErrorCode.UNKNOWN_COMPONENT_TYPE,
                     "component type is not supported by the published catalog", details));
+            return;
+        }
+
+        if (context != null && context.catalogId() != null && !context.catalogId().isBlank()) {
+            String propsPath = path + ".component." + componentType;
+            List<A2UiDiagnostic> propDiagnostics = catalogSchemaValidator.validateComponentProps(
+                    componentType, context.catalogId(), cd.componentProperties(), propsPath);
+            diagnostics.addAll(propDiagnostics);
         }
     }
 
@@ -227,7 +244,7 @@ public class A2UiMessageValidator {
     }
 
     private void validateBeginRenderingSequence(A2UiMessage.BeginRendering br, String path,
-                                                 Map<String, SurfaceState> surfaces, List<A2UiDiagnostic> diagnostics) {
+                                                  Map<String, SurfaceState> surfaces, List<A2UiDiagnostic> diagnostics) {
         if (isBlank(br.surfaceId()) || isBlank(br.root())) return;
 
         SurfaceState state = surfaces.get(br.surfaceId());

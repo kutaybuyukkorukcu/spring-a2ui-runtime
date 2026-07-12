@@ -132,13 +132,15 @@ public class A2UiWebAutoConfiguration {
             ObjectProvider<List<Advisor>> advisorProvider,
             DynamicA2UiPromptProvider dynamicPromptProvider,
             A2UiDynamicAssemblyService dynamicAssemblyService,
-            A2UiRuntimeMetrics runtimeMetrics) {
+            A2UiRuntimeMetrics runtimeMetrics,
+            A2UiCatalogRegistry catalogRegistry) {
         return new A2UiDynamicTools(
                 chatClientBuilder,
                 advisorProvider.getIfAvailable(List::of),
                 dynamicPromptProvider,
                 dynamicAssemblyService,
-                runtimeMetrics);
+                runtimeMetrics,
+                catalogRegistry);
     }
 
     @Bean

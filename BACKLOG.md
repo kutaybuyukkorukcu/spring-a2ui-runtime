@@ -1,12 +1,12 @@
 # Backlog
 
-Execution order: **Phase 0 (infra)** ✅ → **Phase 1 (Option A MVP)** ✅ → **Phase 2 (Option B dynamic generative UI)** ✅ → **Phase 2.5 (scalable dynamic runtime)** → **Later**.
+Execution order: **Phase 0 (infra)** ✅ → **Phase 1 (Option A MVP)** ✅ → **Phase 2 (Option B dynamic generative UI)** ✅ → **Phase 2.5 (scalable dynamic runtime)** ✅ → **v0.8 release** → **Phase X (migrate to v0.9)** → **Later**.
 
 ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)`
 
-Implementation plans (for agents): `[docs/plans/phase-0-stream-infra.md](docs/plans/phase-0-stream-infra.md)` · `[docs/plans/phase-1-template-mvp.md](docs/plans/phase-1-template-mvp.md)` · `[docs/plans/phase-2-dynamic-generative-ui.md](docs/plans/phase-2-dynamic-generative-ui.md)`
+Implementation plans (for agents): `[docs/plans/phase-0-stream-infra.md](docs/plans/phase-0-stream-infra.md)` · `[docs/plans/phase-1-template-mvp.md](docs/plans/phase-1-template-mvp.md)` · `[docs/plans/phase-2-dynamic-generative-ui.md](docs/plans/phase-2-dynamic-generative-ui.md)` · `[docs/plans/phase-2.5-scalable-dynamic-runtime.md](docs/plans/phase-2.5-scalable-dynamic-runtime.md)` · `[docs/plans/phase-x-migrating-to-v0.9.md](docs/plans/phase-x-migrating-to-v0.9.md)` (post–v0.8 release)
 
-**Branch:** Phase 2 — `feat/dynamic-generative-ui` from `main`.
+**Branch:** Phase 2.5 — `feat/scalable-dynamic-runtime` (or continue on `feat/dynamic-generative-ui` until branched).
 
 ---
 
@@ -108,7 +108,7 @@ Goal: LLM generates UI **from scratch** using only the standard catalog — incr
 
 - ✅ `**A2UiDynamicComponentNormalizer`** — flat planner tool args → v0.8 adjacency
 - ✅ `**A2UiDynamicAssemblyService**` — sanitize, buffer, `surfaceUpdate` + `dataModelUpdate`, runtime `beginRendering`
-- ✅ `**A2UiSurfaceBufferOps**` — shared helper extracted from template assembly (non-breaking)
+- ✅ `**A2UiSurfaceBufferOps`** — shared helper extracted from template assembly (non-breaking)
 - ✅ `**DynamicA2UiPromptProvider**` — planner hard requirements (catalog names, root id, no empty `{}`)
 - ✅ `**responseFormat=NONE**` when `generation-mode=dynamic`
 - ✅ Fix `createClient()` to `**clone()**` builder
@@ -138,41 +138,132 @@ Goal: LLM generates UI **from scratch** using only the standard catalog — incr
 
 ---
 
-## Phase 2.5 — Scalable dynamic runtime (do next)
+## Phase 2.5 — Scalable dynamic runtime ✅ (complete — dynamic GA unblocked)
 
-Phase 2 dynamic mode works end-to-end but relies on a **repair normalizer** that patches LLM shorthand into valid v0.8. This does not scale — every new prompt shape risks a new alias rule. The CheckBox bug illustrates the gap: the server emits `CheckBox` with `label` (path) but missing `value` (required), and neither the normalizer nor the server-side validator catches it. The `@a2ui/react` client rejects it.
+Phase 2 dynamic mode works end-to-end but relied on a **repair normalizer** that patches LLM shorthand into valid v0.8. That does not scale and must not ship as GA.
 
-**Goal:** Make dynamic mode production-grade by constraining the LLM at the source and validating on the server with the same rigor as the client.
+**Goal:** Production-grade dynamic mode = **constrain at source + strict server validation + bounded retry + thin assembler only** (no semantic repair).
+
+**Plan:** `[docs/plans/phase-2.5-scalable-dynamic-runtime.md](docs/plans/phase-2.5-scalable-dynamic-runtime.md)`
+
+### Release policy (v0.8)
+
+| Mode | Ship as GA after 2.5? | Notes |
+|------|----------------------|--------|
+| `generation-mode=template` | Yes (already shippable) | No normalizer; deterministic builders |
+| `generation-mode=dynamic` | **After 2.5a–d ✅** | Catalog validation, strict tool schema, repair deletion, actuator metrics verified |
 
 ### 2.5a — Catalog property validation in `A2UiMessageValidator`
 
-- Extend `A2UiMessageValidator.validateComponentDefinition()` to validate component **properties** against the v0.8 catalog JSON Schema (required fields, BoundValue shapes, child reference patterns), not just type names.
+- Extend validation to component **properties** against the v0.8 catalog JSON Schema (required fields, BoundValue shapes, child reference patterns), not just type names.
 - Catch missing required props (e.g. CheckBox without `value`), wrong BoundValue shapes, unknown props for a component type.
 - Align server validation with `@a2ui/react` client validation so errors are caught before SSE emission.
 
 **Acceptance:** Invalid CheckBox (missing `value`), Text (wrong BoundValue shape), Card (wrong child pattern) all fail fast with diagnostics. No server-emitted envelope that the client would reject.
 
+**Status:** ✅ Done — catalog schema validator + assembly rejection tests (CheckBox label-only, Button label-only, Card `children`).
+
 ### 2.5b — Strict `renderA2Ui` tool JSON Schema
 
-- Generate JSON Schema for the `renderA2Ui` tool `components` parameter from `standard-v0.8.json`, so the LLM is structurally constrained at tool-call time (required fields, allowed component types, prop shapes).
-- This is the upstream fix: fewer invalid tool args means fewer retry cycles and less normalizer pressure.
+- Generate JSON Schema for the `renderA2Ui` tool `components` parameter from `standard-v0.8.json`, so the LLM is structurally constrained at tool-call time.
+- Tighten beyond required-field stubs: prop shapes, `additionalProperties: false`, enums where Spring AI / provider schemas allow.
 
 **Acceptance:** Planner tool call for CheckBox must include `value`; planner cannot emit `checked` if the schema disallows it. Reduces `a2ui.dynamic.validation.failed` metric in practice.
 
-### 2.5c — Freeze normalizer growth
+**Status:** ✅ Done — catalog properties embedded, BoundValue shorthand unions, `additionalProperties: false`, tool callback embedding test.
 
-- Document the current normalizer's allowed alias/shorthand adaptations (these are intentional canonicalization, not repairs).
-- Stop adding structural repair rules to the normalizer. Invalid structure should fail validation and trigger bounded retry — not be silently repaired.
-- Move structural fixes (like Card multi-child wrapping) into the tool schema + validation + retry pipeline.
+### 2.5c — Delete semantic repair; keep thin v0.8 assembler ⚠️ release-critical
 
-**Acceptance:** New component prop issues are resolved via schema + validation + retry, not via normalizer patches. Existing normalizer rules are documented.
+**Not “freeze growth” — delete repair code before dynamic GA.**
+
+Remove from `A2UiDynamicComponentNormalizer` (or successor):
+
+- `fixCardComponent` (multi-child → synthesized Column)
+- `fixButtonComponent` (label → Text child / action synthesis)
+- `fixCheckBoxComponent` (`checked` → `value`)
+- `fixTextComponent` (`variant` → `usageHint`) unless treated as pure alias canonicalization (prefer delete + schema)
+- Inline items hoisting used as structural repair
+
+**Keep (thin assembler / canonicalization — required for v0.8):**
+
+- Flat planner args → `{"Text": {"text": {"literalString": "..."}}}`
+- BoundValue shorthand coercion (string/number/boolean/path)
+- `children` bare list → `{explicitList: [...]}`
+- Drop entries missing `id` / `component`
+- Child DAG validation (fail, do not invent nodes)
+
+Invalid structure → `A2UiMessageValidator` fail → bounded retry diagnostics — **never silent repair**.
+
+**Acceptance:**
+
+- [x] `enforceCatalogConstraints` repair methods removed (or class renamed to assembler with only keep-list)
+- [x] Tests prove invalid LLM shapes (missing CheckBox `value`, Button without `child`, Card with `children` instead of `child`) **fail validation / retry**, not get patched
+- [x] Assembly tests that previously relied on `checked` / Button `label`-only are rewritten to expect failure or provide valid args
+- [x] No new repair rules added after this phase
+
+**Status:** ✅ Done — repair methods deleted; thin assembler only.
 
 ### 2.5d — Metrics-driven validation iteration
 
 - Ensure `a2ui.dynamic.validation.failed`, `a2ui.dynamic.validation.retry.success`, `a2ui.dynamic.validation.retry.failed` counters are wired and emitted.
-- Use these metrics to identify which validation failures dominate and whether strict tool schema (2.5b) reduces retry rates.
+- Use metrics to confirm strict schema (2.5b) + repair removal (2.5c) behave as expected.
 
-**Acceptance:** Counters visible in actuator metrics; baseline measurement taken before and after strict schema introduction.
+**Acceptance:** Counters visible in actuator metrics; baseline measurement taken before and after strict schema + repair removal.
+
+**Status:** ✅ Done (actuator verified) — `A2UiRuntimeMetricsTest` + showcase `GET /actuator/metrics/a2ui.dynamic.validation.failed`.
+
+---
+
+## Phase X — Migrate to A2UI v0.9 (after v0.8 release) 🔴 high priority
+
+**Do not start until v0.8 runtime is released.** Plan exists so we do not lose frontier context.
+
+**Plan:** `[docs/plans/phase-x-migrating-to-v0.9.md](docs/plans/phase-x-migrating-to-v0.9.md)`
+
+Google moved from **structured-output-first (v0.8)** to **prompt-first + validate + retry (v0.9+)**:
+
+> Prompt → Generate → Validate → (if invalid) structured `VALIDATION_FAILED` back to LLM → self-correct
+
+Frontier guardrails to adopt (high priority when migrating):
+
+1. **Prompt-generate-validate-retry loop** as the primary reliability mechanism (aligns with our Phase 2.5 direction; v0.9 makes it the protocol’s own philosophy).
+2. **Syntax-level healing only** (`payload_fixer` / stream parser: truncated JSON, trailing commas, brace closing) — **not** semantic repairs (no Card wrapping, no Button label synthesis).
+3. **Tool-time / catalog validation before client send** (Google `SendA2uiToClientTool` pattern) — we already started this in 2.5a/b; carry forward.
+4. **Wire-format simplification** — v0.9 flat `"component": "Text"`, native JSON values, `createSurface` / `updateComponents` / `updateDataModel` — largely **eliminates** the need for a BoundValue assembler.
+5. **Standard `VALIDATION_FAILED` error shape** (`surfaceId`, `path`, `message`) for agent self-correction.
+
+**Acceptance (when Phase X runs):** v0.9 messages assemble without semantic repair; validation uses catalog + protocol rules; retry uses v0.9 error format; thin sanitization only.
+
+---
+
+## Later — AG-UI / product runtime interaction layer
+
+A2UI is a **UI payload format**. AG-UI is a **general agent↔UI interaction protocol**. They are different layers. Today we deliberately ship **A2UI-native SSE** (surface envelopes only). A shipped *product* runtime will likely need a broader chat/agent pipe without changing generation strategy (two-hop tools + validate + retry).
+
+**Why product needs this later**
+
+App developers integrating generative UI into real apps usually also need:
+
+| Capability | AG-UI offers | Our v0.8 SSE today |
+|------------|--------------|--------------------|
+| Text / token streaming | `TEXT_MESSAGE_*` | Not first-class (surfaces only) |
+| Tool lifecycle visibility | `TOOL_CALL_START` / args / end | Internal; not streamed to clients |
+| Shared agent↔app state | State snapshot / delta events | Data model updates only inside A2UI |
+| Run lifecycle | start / finish / fail / cancel | Partial via SSE error / stream end |
+| Activity / progress | Activity events | Not modeled |
+| Bidirectional UX | First-class user interaction events | `POST /a2ui/actions` (A2UI-native) |
+| Ecosystem clients | CopilotKit / AG-UI React clients | Custom `@a2ui/react` demo wiring |
+| Carry A2UI inside AG-UI | Middleware pattern (CopilotKit) | N/A — we *are* the A2UI pipe |
+
+**Backlog direction (post–v0.8 release; optional parallel to Phase X)**
+
+- Design an **optional AG-UI adapter** that maps our runtime events → AG-UI event vocabulary while still emitting A2UI ops as payloads (or activity snapshots).
+- Do **not** replace A2UI generation strategy — adapter is transport/UX shell only.
+- Decide product packaging: “A2UI-only runtime” vs “A2UI + AG-UI bridge” modules (keep core free of AG-UI deps if possible).
+- Spike: which events we already have equivalents for vs net-new (text streaming, tool progress, cancel).
+- Document for app developers: when to use A2UI-native SSE vs AG-UI bridge.
+
+**Out of scope for v0.8 GA.** Revisit when consumers need CopilotKit-compatible shells or multi-client agent UX.
 
 ---
 
@@ -202,6 +293,5 @@ Phase 2 dynamic mode works end-to-end but relies on a **repair normalizer** that
 | 0     | Stream progressive SSE, error events, sync removal                    |
 | 1     | Template builder unit, orchestrator integration                       |
 | 2     | JSONL partial parse, dynamic stream integration, E2E arbitrary prompt |
-| 2.5   | Catalog prop validation, strict tool schema, normalizer freeze, metrics |
-
-
+| 2.5   | Catalog prop validation, strict tool schema, **repair deletion**, metrics |
+| X     | v0.9 wire format, validation-failed loop, syntax healer (no semantic repair) |

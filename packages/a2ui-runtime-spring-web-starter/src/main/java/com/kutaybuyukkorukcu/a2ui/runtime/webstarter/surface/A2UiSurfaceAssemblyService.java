@@ -1,6 +1,7 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
+import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiValidationContext;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.surface.A2UiSurfaceBuffer;
 import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
@@ -48,7 +49,8 @@ public class A2UiSurfaceAssemblyService {
                 surfaceId, spec.rootComponentId(), catalogId, null);
         messages.add(beginRendering);
 
-        List<A2UiDiagnostic> diagnostics = messageValidator.validate(messages);
+        List<A2UiDiagnostic> diagnostics = messageValidator.validate(
+                messages, A2UiValidationContext.forCatalog(catalogId));
         if (!diagnostics.isEmpty()) {
             throw new SurfaceExecutionException(
                     "Template surface failed validation",

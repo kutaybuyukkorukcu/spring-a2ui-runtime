@@ -64,7 +64,7 @@ If assembled messages fail `A2UiMessageValidator`:
 
 Unrelated errors (e.g. planner never calling `renderA2Ui`, transform failures) are **not** retried.
 
-Micrometer counters:
+Micrometer counters (also via Actuator: `GET /actuator/metrics/<name>` when `metrics` is exposed):
 
 | Metric | When |
 |--------|------|

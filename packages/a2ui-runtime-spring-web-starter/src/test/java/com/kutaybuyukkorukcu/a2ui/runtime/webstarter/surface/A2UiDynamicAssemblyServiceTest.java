@@ -5,12 +5,15 @@ import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage.ComponentDefinition;
 import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class A2UiDynamicAssemblyServiceTest {
 
@@ -90,7 +93,69 @@ class A2UiDynamicAssemblyServiceTest {
     }
 
     @Test
-    void shouldAssembleListWithInlineItemsAndDataBindingsFromLlmShape() {
+    void shouldRejectCheckBoxWithLabelOnlyMissingValue() {
+        RenderA2UiArgs args = new RenderA2UiArgs(
+                "planner-surface",
+                "root",
+                List.of(
+                        Map.of("id", "root", "component", "Column", "children", List.of("optIn")),
+                        Map.of(
+                                "id", "optIn",
+                                "component", "CheckBox",
+                                "label", Map.of("literalString", "Notify me"))),
+                null);
+
+        assertThatThrownBy(() -> assemblyService.assemble(args, A2UiCatalogIds.STANDARD_V0_8, "main"))
+                .isInstanceOf(SurfaceExecutionException.class)
+                .satisfies(ex -> {
+                    SurfaceExecutionException failure = (SurfaceExecutionException) ex;
+                    assertThat(failure.getErrorCode()).isEqualTo(SurfaceErrorCodes.A2UI_VALIDATION_FAILED);
+                    assertThat(failure.getMessage()).contains("validation");
+                });
+    }
+
+    @Test
+    void shouldRejectButtonWithLabelOnlyWithoutChildOrAction() {
+        RenderA2UiArgs args = new RenderA2UiArgs(
+                "planner-surface",
+                "root",
+                List.of(
+                        Map.of("id", "root", "component", "Column", "children", List.of("saveButton")),
+                        Map.of(
+                                "id", "saveButton",
+                                "component", "Button",
+                                "label", Map.of("literalString", "Save Preferences"))),
+                null);
+
+        assertThatThrownBy(() -> assemblyService.assemble(args, A2UiCatalogIds.STANDARD_V0_8, "main"))
+                .isInstanceOf(SurfaceExecutionException.class)
+                .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
+                .isEqualTo(SurfaceErrorCodes.A2UI_VALIDATION_FAILED);
+    }
+
+    @Test
+    void shouldRejectCardWithChildrenInsteadOfChild() {
+        RenderA2UiArgs args = new RenderA2UiArgs(
+                "planner-surface",
+                "root",
+                List.of(
+                        Map.of("id", "root", "component", "Column", "children", List.of("northCard")),
+                        Map.of(
+                                "id", "northCard",
+                                "component", "Card",
+                                "children", Map.of("explicitList", List.of("northLabel", "northSales"))),
+                        Map.of("id", "northLabel", "component", "Text", "text", "North Region"),
+                        Map.of("id", "northSales", "component", "Text", "text", "/regionSales/North")),
+                Map.of("regionSales", Map.of("North", "$120,000")));
+
+        assertThatThrownBy(() -> assemblyService.assemble(args, A2UiCatalogIds.STANDARD_V0_8, "main"))
+                .isInstanceOf(SurfaceExecutionException.class)
+                .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
+                .isEqualTo(SurfaceErrorCodes.A2UI_VALIDATION_FAILED);
+    }
+
+    @Test
+    void shouldAssembleListWithFlatChildrenAndDataBindings() {
         RenderA2UiArgs args = new RenderA2UiArgs(
                 "planner-surface",
                 "root",
@@ -101,19 +166,16 @@ class A2UiDynamicAssemblyServiceTest {
                                 "children", List.of("region-summary-list")),
                         Map.of(
                                 "id", "region-summary-list",
-                                "component", Map.of(
-                                        "List",
-                                        Map.of(
-                                                "items",
-                                                List.of(
-                                                        Map.of(
-                                                                "id", "north-summary",
-                                                                "component", "Text",
-                                                                "text", "{data.regionSales.North}"),
-                                                        Map.of(
-                                                                "id", "south-summary",
-                                                                "component", "Text",
-                                                                "text", "{data.regionSales.South}")))))),
+                                "component", "List",
+                                "children", List.of("north-summary", "south-summary")),
+                        Map.of(
+                                "id", "north-summary",
+                                "component", "Text",
+                                "text", "/regionSales/North"),
+                        Map.of(
+                                "id", "south-summary",
+                                "component", "Text",
+                                "text", "/regionSales/South")),
                 Map.of(
                         "regionSales", Map.of("North", "$1.2M", "South", "$980K")));
 
@@ -146,12 +208,13 @@ class A2UiDynamicAssemblyServiceTest {
                 "root",
                 List.of(
                         Map.of("id", "root", "component", "Column", "children", List.of("northCard", "trendList")),
+                        Map.of("id", "northCard", "component", "Card", "child", "northColumn"),
                         Map.of(
-                                "id", "northCard",
-                                "component", "Card",
-                                "children", Map.of("explicitList", List.of("northLabel", "northSales"))),
-                        Map.of("id", "northLabel", "component", "Text", "text", "North Region", "variant", "h6"),
-                        Map.of("id", "northSales", "component", "Text", "text", "/regionSales/North", "variant", "h6"),
+                                "id", "northColumn",
+                                "component", "Column",
+                                "children", List.of("northLabel", "northSales")),
+                        Map.of("id", "northLabel", "component", "Text", "text", "North Region", "usageHint", "h5"),
+                        Map.of("id", "northSales", "component", "Text", "text", "/regionSales/North", "usageHint", "h5"),
                         Map.of(
                                 "id", "trendList",
                                 "component", "List",
@@ -175,7 +238,7 @@ class A2UiDynamicAssemblyServiceTest {
                 .filter(c -> c.id().equals("northCard"))
                 .findFirst()
                 .orElseThrow();
-        assertThat(card.componentProperties()).containsEntry("child", "northCard-content");
+        assertThat(card.componentProperties()).containsEntry("child", "northColumn");
         assertThat(card.componentProperties()).doesNotContainKey("children");
 
         ComponentDefinition list = surfaceUpdate.components().stream()
@@ -225,7 +288,7 @@ class A2UiDynamicAssemblyServiceTest {
     }
 
     @Test
-    void shouldAssembleSettingsPanelWithButtonAndCheckBoxes() {
+    void shouldAssembleSettingsPanelWithValidButtonAndCheckBoxes() {
         RenderA2UiArgs args = new RenderA2UiArgs(
                 "planner-surface",
                 "root",
@@ -243,11 +306,16 @@ class A2UiDynamicAssemblyServiceTest {
                                 "id", "emailCheck",
                                 "component", "CheckBox",
                                 "label", Map.of("literalString", "Enabled"),
-                                "checked", "/notificationPrefs/email"),
+                                "value", "/notificationPrefs/email"),
                         Map.of(
                                 "id", "saveButton",
                                 "component", "Button",
-                                "label", Map.of("literalString", "Save Preferences"))),
+                                "child", "saveLabel",
+                                "action", Map.of("name", "save")),
+                        Map.of(
+                                "id", "saveLabel",
+                                "component", "Text",
+                                "text", "Save Preferences")),
                 Map.of("notificationPrefs", Map.of("email", true)));
 
         List<A2UiMessage> messages = assemblyService.assemble(args, A2UiCatalogIds.STANDARD_V0_8, "main");
@@ -259,7 +327,7 @@ class A2UiDynamicAssemblyServiceTest {
                 .filter(c -> c.id().equals("saveButton"))
                 .findFirst()
                 .orElseThrow();
-        assertThat(button.componentProperties()).containsEntry("child", "saveButton-label");
+        assertThat(button.componentProperties()).containsEntry("child", "saveLabel");
         assertThat(button.componentProperties().get("action")).isEqualTo(Map.of("name", "save"));
 
         ComponentDefinition checkbox = surfaceUpdate.components().stream()

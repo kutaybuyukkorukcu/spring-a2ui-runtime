@@ -1,6 +1,7 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.A2UiSurfaceRequest;
@@ -49,7 +50,8 @@ class DynamicSurfaceOrchestratorTest {
                 builder,
                 List.of(),
                 new DynamicA2UiPromptProvider(),
-                assemblyService);
+                assemblyService,
+                A2UiCatalogRegistry.shared());
         orchestrator = new DynamicSurfaceOrchestrator(
                 builder,
                 List.of(),
@@ -65,6 +67,7 @@ class DynamicSurfaceOrchestratorTest {
         when(requestSpec.user(anyString())).thenReturn(requestSpec);
         when(requestSpec.tools(any())).thenReturn(requestSpec);
         when(requestSpec.toolNames(anyString())).thenReturn(requestSpec);
+        when(requestSpec.toolCallbacks(any(org.springframework.ai.tool.ToolCallback[].class))).thenReturn(requestSpec);
         when(requestSpec.toolContext(any())).thenReturn(requestSpec);
         when(requestSpec.options(any())).thenReturn(requestSpec);
         when(callResponseSpec.content()).thenReturn("ok");

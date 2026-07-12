@@ -1,5 +1,6 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool;
 
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
@@ -12,10 +13,13 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.RenderA2UiArgs;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.model.ToolContext;
-import org.springframework.ai.chat.prompt.ChatOptions;
+import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.ai.tool.definition.ToolDefinition;
+import org.springframework.ai.tool.method.MethodToolCallback;
 
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 
@@ -28,13 +32,16 @@ public class A2UiDynamicTools {
     private final DynamicA2UiPromptProvider promptProvider;
     private final A2UiDynamicAssemblyService assemblyService;
     private final A2UiRuntimeMetrics runtimeMetrics;
+    private final A2UiToolSchemaGenerator toolSchemaGenerator;
 
     public A2UiDynamicTools(
             ChatClient.Builder chatClientBuilder,
             List<Advisor> advisors,
             DynamicA2UiPromptProvider promptProvider,
-            A2UiDynamicAssemblyService assemblyService) {
-        this(chatClientBuilder, advisors, promptProvider, assemblyService, A2UiRuntimeMetrics.noop());
+            A2UiDynamicAssemblyService assemblyService,
+            A2UiCatalogRegistry catalogRegistry) {
+        this(chatClientBuilder, advisors, promptProvider, assemblyService,
+                A2UiRuntimeMetrics.noop(), catalogRegistry);
     }
 
     public A2UiDynamicTools(
@@ -42,12 +49,14 @@ public class A2UiDynamicTools {
             List<Advisor> advisors,
             DynamicA2UiPromptProvider promptProvider,
             A2UiDynamicAssemblyService assemblyService,
-            A2UiRuntimeMetrics runtimeMetrics) {
+            A2UiRuntimeMetrics runtimeMetrics,
+            A2UiCatalogRegistry catalogRegistry) {
         this.chatClientBuilder = chatClientBuilder;
         this.advisors = advisors == null ? List.of() : advisors;
         this.promptProvider = promptProvider;
         this.assemblyService = assemblyService;
         this.runtimeMetrics = runtimeMetrics == null ? A2UiRuntimeMetrics.noop() : runtimeMetrics;
+        this.toolSchemaGenerator = new A2UiToolSchemaGenerator(catalogRegistry);
     }
 
     @Tool(description = "Generate a rich A2UI visual surface when a visual UI would help the user.")
@@ -124,16 +133,38 @@ public class A2UiDynamicTools {
             List<A2UiDiagnostic> validationDiagnostics) {
         ChatClient plannerClient = createPlannerClient();
         Map<String, Object> plannerToolContext = Map.of(SESSION_CONTEXT_KEY, session);
+        ToolCallback renderToolCallback = buildRenderA2UiToolCallback(session.catalogId());
 
         plannerClient.prompt()
                 .system(promptProvider.createPlannerSystemPrompt(session.catalogId()))
                 .user(promptProvider.createPlannerUserPrompt(promptContext, validationDiagnostics))
-                .toolNames(A2UiPlannerChatOptionsFactory.renderToolName())
-                .tools(this)
+                .toolCallbacks(renderToolCallback)
                 .toolContext(plannerToolContext)
                 .options(A2UiPlannerChatOptionsFactory.forcedRenderA2UiToolChoice())
                 .call()
                 .content();
+    }
+
+    ToolCallback buildRenderA2UiToolCallback(String catalogId) {
+        try {
+            Method renderMethod = A2UiDynamicTools.class.getDeclaredMethod(
+                    "renderA2Ui", String.class, String.class, List.class, Map.class, ToolContext.class);
+
+            String inputSchema = toolSchemaGenerator.renderA2UiInputSchema(catalogId);
+            ToolDefinition toolDef = ToolDefinition.builder()
+                    .name(A2UiPlannerChatOptionsFactory.renderToolName())
+                    .description("Planner-only: emit structured A2UI layout components and optional data model values.")
+                    .inputSchema(inputSchema)
+                    .build();
+
+            return MethodToolCallback.builder()
+                    .toolDefinition(toolDef)
+                    .toolMethod(renderMethod)
+                    .toolObject(this)
+                    .build();
+        } catch (NoSuchMethodException e) {
+            throw new IllegalStateException("renderA2Ui method not found on A2UiDynamicTools", e);
+        }
     }
 
     private ChatClient createPlannerClient() {
