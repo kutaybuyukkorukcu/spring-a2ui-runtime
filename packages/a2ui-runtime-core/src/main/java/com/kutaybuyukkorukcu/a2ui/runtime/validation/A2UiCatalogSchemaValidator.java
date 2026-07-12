@@ -77,17 +77,21 @@ public final class A2UiCatalogSchemaValidator {
 
     private JsonSchema resolveSchema(String catalogId, String componentType) {
         String cacheKey = catalogId + "::" + componentType;
-        return schemaCache.computeIfAbsent(cacheKey, key -> {
-            Map<String, Object> schemaMap = catalogRegistry.componentSchema(catalogId, componentType);
-            if (schemaMap == null || schemaMap.isEmpty()) {
-                return null;
-            }
-            JsonNode schemaNode = objectMapper.valueToTree(schemaMap);
-            JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
-            SchemaValidatorsConfig config = SchemaValidatorsConfig.builder()
-                    .build();
-            return factory.getSchema(schemaNode, config);
-        });
+        JsonSchema cached = schemaCache.get(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
+        Map<String, Object> schemaMap = catalogRegistry.componentSchema(catalogId, componentType);
+        if (schemaMap == null || schemaMap.isEmpty()) {
+            return null;
+        }
+        JsonNode schemaNode = objectMapper.valueToTree(schemaMap);
+        JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
+        SchemaValidatorsConfig config = SchemaValidatorsConfig.builder()
+                .build();
+        JsonSchema schema = factory.getSchema(schemaNode, config);
+        schemaCache.put(cacheKey, schema);
+        return schema;
     }
 
     private A2UiDiagnostic toDiagnostic(ValidationMessage error, String componentType, String pathPrefix) {

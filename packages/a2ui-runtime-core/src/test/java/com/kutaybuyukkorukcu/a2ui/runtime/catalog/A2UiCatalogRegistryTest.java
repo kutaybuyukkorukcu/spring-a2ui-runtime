@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class A2UiCatalogRegistryTest {
 
@@ -72,6 +73,14 @@ class A2UiCatalogRegistryTest {
         assertThat(schema).isNotEmpty();
         assertThat(schema.get("type")).isEqualTo("object");
         assertThat(schema.get("additionalProperties")).isEqualTo(false);
+    }
+
+    @Test
+    void shouldRejectMutationOfReturnedComponentSchema() {
+        A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
+        Map<String, Object> schema = registry.componentSchema(A2UiCatalogIds.STANDARD_V0_8, "CheckBox");
+        assertThatThrownBy(() -> schema.put("injected", "value"))
+                .isInstanceOf(UnsupportedOperationException.class);
     }
 
     @Test

@@ -189,7 +189,7 @@ public final class A2UiCatalogRegistry {
             Map<String, Map<String, Object>> componentsCopy = new LinkedHashMap<>();
             for (Map.Entry<String, Map<String, Object>> componentEntry : catalogEntry.getValue().entrySet()) {
                 componentsCopy.put(componentEntry.getKey(),
-                        new LinkedHashMap<>(componentEntry.getValue()));
+                        Collections.unmodifiableMap(new LinkedHashMap<>(componentEntry.getValue())));
             }
             copy.put(catalogEntry.getKey(), Collections.unmodifiableMap(componentsCopy));
         }
