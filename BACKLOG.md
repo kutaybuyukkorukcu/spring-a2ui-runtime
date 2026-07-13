@@ -1,50 +1,69 @@
 # Backlog
 
-Execution order: **Phase 0 (infra)** ✅ → **Phase 1 (Option A MVP)** ✅ → **Phase 2 (Option B dynamic generative UI)** ✅ → **Phase 2.5 (scalable dynamic runtime)** ✅ → **v0.8 release** ← current → **Phase X (migrate to v0.9)** → **Later**.
+Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ← in flight → **Phase X (A2UI v0.9.1)** → **utilization layer (our SSE vocabulary)** → **optional AG-UI adapter (demand-gated)** → **Later**.
 
 ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)`
 
-Implementation plans (for agents): `[docs/plans/phase-0-stream-infra.md](docs/plans/phase-0-stream-infra.md)` · `[docs/plans/phase-1-template-mvp.md](docs/plans/phase-1-template-mvp.md)` · `[docs/plans/phase-2-dynamic-generative-ui.md](docs/plans/phase-2-dynamic-generative-ui.md)` · `[docs/plans/phase-2.5-scalable-dynamic-runtime.md](docs/plans/phase-2.5-scalable-dynamic-runtime.md)` · `[docs/plans/phase-release-v0.8.md](docs/plans/phase-release-v0.8.md)` · `[docs/plans/phase-x-migrating-to-v0.9.md](docs/plans/phase-x-migrating-to-v0.9.md)` (post–v0.8 release)
+Implementation plans (for agents): `[docs/plans/phase-0-stream-infra.md](docs/plans/phase-0-stream-infra.md)` · `[docs/plans/phase-1-template-mvp.md](docs/plans/phase-1-template-mvp.md)` · `[docs/plans/phase-2-dynamic-generative-ui.md](docs/plans/phase-2-dynamic-generative-ui.md)` · `[docs/plans/phase-2.5-scalable-dynamic-runtime.md](docs/plans/phase-2.5-scalable-dynamic-runtime.md)` · `[docs/plans/phase-release-v0.8.md](docs/plans/phase-release-v0.8.md)` · `[docs/plans/phase-x-migrating-to-v0.9.md](docs/plans/phase-x-migrating-to-v0.9.md)` · `[docs/plans/phase-product-runtime-interaction.md](docs/plans/phase-product-runtime-interaction.md)`
 
-**Branch:** v0.8 release — `chore/v0.8-release` from `main` (or slice PRs to `main`).
+**Branches:** `fix/dynamic-primary-tool-failfast` (patch) · `docs/genui-platform-vision` (this doc alignment).
 
 ---
 
 ## Product direction
 
+### Vision
+
+Be the **backend GenUI platform for OSS / Spring product builders**: teams keep their design system and frontend; spring-a2ui owns generation, catalog validation, streaming, fail-fast errors, and the hard reliability path — so generative UI is a dependency, not a research project.
+
+Analogy: Supabase abstracts database complexity for builders. We abstract **GenUI backend** complexity (compose → validate → stream → actions) on the JVM.
+
+### Mission
+
+Ship a Maven Central Spring Boot runtime that turns prompts/intents into **validated A2UI surfaces** (plus a small set of utilization events around them), with dual **template + dynamic** modes, A2UI-native SSE by default, and FE-agnostic delivery — without forcing teams onto a foreign chat protocol or FE shell.
+
+### What we are / are not
+
+| We are | We are not |
+|--------|------------|
+| Spring-native **A2UI generation runtime + platform** | The A2UI grammar owner (Google / [a2ui.org](https://a2ui.org/)) |
+| Fail-fast, catalog-bounded surface producer | An AG-UI protocol implementation as core identity |
+| Backend abstraction for GenUI product teams | A React/chat product shell (CopilotKit’s race) |
+
+**Race we run:** Spring GenUI backend platform.  
+**Race we do not chase:** AG-UI feature parity / CopilotKit FE. Optional AG-UI **adapter** later is HDMI-out, not the OS (Plan B).
+
 ### Primary persona
 
-**App developers** building generative UI A2UI applications with real design/UI expectations. Teams should prefer spring-a2ui over rolling their own prompts + parsers.
+**OSS / Spring app developers** embedding generative UI with real design expectations. They prefer spring-a2ui over hand-rolled prompts, parsers, and fail-open demos. They bring (or choose) their own FE / design-system renderer.
 
-### Long-term product (Option B)
+### Generation product (shipped)
 
-**True generative UI:** LLM composes surfaces from the [standard v0.8 catalog](packages/a2ui-runtime-core/src/main/resources/META-INF/a2ui/catalogs/standard-v0.8.json) alone — adjacency-list structure, data model, and lifecycle envelopes — without pre-authored page templates. This is the **end-state** and matches the original project vision.
-
-The catalog defines **component vocabulary and prop shapes**, not page templates. Dynamic generation is valid A2UI; the previous approach failed on **delivery** (monolithic DTO, sync, buffered stream, silent fallback), not on the goal.
-
-### Near-term tactic (Option A)
-
-**Template-driven MVP** to prove streaming, validation, and fail-fast error handling quickly (~days, not weeks). Option A bootstraps trust; it is **not** the permanent definition of the product.
+- **Dynamic (long-term GenUI):** LLM composes from the standard catalog alone — adjacency lists, data model, lifecycle envelopes — without page templates.
+- **Template (controlled GenUI):** Registered surface specs for predictable layouts; MVP bootstrap that remains GA.
+- Catalog defines **component vocabulary and prop shapes**, not page templates.
 
 ### Transport & errors (decided)
 
-- **A2UI-native SSE only.**
-- **Stream-only.** Remove sync `POST /a2ui/surface`.
+- **A2UI-native SSE** is the default product pipe (ADR 001).
+- **Stream-only.** Sync `POST /a2ui/surface` removed.
 - **Fail-fast.** SSE `event: error` + diagnostics. **No demo fallback surface.**
+- **AG-UI / other chat pipes:** optional **bridge module only**, demand-gated; never replace native SSE as core identity. AG-UI is CopilotKit-stewarded (open MIT), not a Google peer of A2A/A2UI.
 
 ### Tool API (decided)
 
-- **Hybrid:** fluent builder / template registry (`A2UiSurfaceTemplates`, `A2UiSurfaceSpec`) + thin runtime-owned `@Tool` adapters (`renderTemplate`, `fillTemplate`).
+- **Hybrid:** fluent builder / template registry (`A2UiSurfaceTemplates`, `A2UiSurfaceSpec`) + thin runtime-owned `@Tool` adapters.
 - Do **not** expose `@Tool → List<A2UiMessage>` as the primary consumer API.
 
 ### Resolved
 
 - ~~Failure policy~~ → **Fail-fast only**
-- ~~Integration model~~ → **A2UI-native SSE**
+- ~~Integration model~~ → **A2UI-native SSE** (optional foreign bridges later)
 - ~~Tool API shape~~ → **Builder + runtime `@Tool` adapters**
-- ~~Is dynamic A2UI in scope?~~ → **Yes — Phase 2 (Option B)**
+- ~~Is dynamic A2UI in scope?~~ → **Yes — Phase 2 (shipped)**
 - ~~Provider scope~~ → **OpenAI-first for MVP**; Anthropic / Gemini / Groq later
-
+- ~~Platform vs AG-UI parity~~ → **Platform (Plan B)**; no AG-UI-as-core
+- ~~v0.8 / Central `1.1.0`~~ → **Published**
 ---
 
 ## Phase 0 — Stream infra (do first)
@@ -214,43 +233,30 @@ Invalid structure → `A2UiMessageValidator` fail → bounded retry diagnostics 
 
 ---
 
-## v0.8 release — Official OSS publish ⬜ current
+## v0.8 release — Official OSS publish ✅
 
-Runtime GA criteria are met (Phases 0–2.5). This phase is **release engineering + docs**, not new generative features.
+Runtime GA criteria are met (Phases 0–2.5). Release engineering complete.
 
 **Plan:** `[docs/plans/phase-release-v0.8.md](docs/plans/phase-release-v0.8.md)`
 
-**Version:** `1.1.0` (tag `v1.1.0`) — Maven line after existing Central `1.0.0`; protocol remains A2UI v0.8.
+**Version:** `1.1.0` on [Maven Central](https://repo1.maven.org/maven2/com/kutaybuyukkorukcu/a2ui/runtime/) — protocol remains A2UI v0.8 (Legacy on a2ui.org; Phase X moves to v0.9.1).
 
-### Slices (do in order)
+### Slices
 
 | Slice | Goal | Status |
 |-------|------|--------|
-| **R.1** | OSS foundation: `LICENSE`, `CONTRIBUTING`, `SECURITY`, `CODE_OF_CONDUCT` | ✅ |
-| **R.2** | Root `README` + `docs/guides/getting-started.md` | ✅ |
-| **R.3** | Doc freshness: ADR Accepted; remove stale sync endpoint docs; SCM URL align | ✅ |
-| **R.4** | Set `revision=1.1.0` + `CHANGELOG.md` | ✅ |
-| **R.5** | CI/CD secrets + publish workflow verification | ✅ |
-| **R.6** | Freeze: `mvn verify` + template/dynamic smoke; repair-path grep clean | ✅ |
-| **R.7** | GitHub Release `v1.1.0` → Maven Central (3 packages) | ⬜ |
+| **R.1–R.6** | OSS foundation, docs, version, CI, freeze | ✅ |
+| **R.7** | GitHub Release `v1.1.0` → Maven Central | ✅ |
 
-### Release claims
+### Next ship — patch `1.1.1`
 
-- `generation-mode=template` → **GA**
-- `generation-mode=dynamic` → **GA** (no semantic repair)
-- Broader chat/agent pipes / v0.9 / custom template SPI → **not** in this release
-
-### Acceptance
-
-- [ ] Artifacts on Maven Central at `1.1.0`
-- [ ] README sufficient for first external Spring integrator
-- [ ] Phase X still unstarted
+Branch `fix/dynamic-primary-tool-failfast`: force primary `generateA2Ui`, planner-only `renderA2Ui`, fail-fast tool exceptions, advisor aggregation fix. Land before building more on dynamic mode.
 
 ---
 
-## Phase X — Migrate to A2UI v0.9 (after v0.8 release) 🔴 high priority
+## Phase X — Migrate to A2UI v0.9.1 🔴 next (after patch)
 
-**Do not start until v0.8 runtime is released.** Plan exists so we do not lose frontier context.
+**Prerequisite:** `1.1.0` released ✅; prefer landing `1.1.1` patch first. a2ui.org marks **v0.8 = Legacy**, **v0.9.1 = Current** — protocol currency is a platform credibility gate before a large utilization investment on Legacy.
 
 **Plan:** `[docs/plans/phase-x-migrating-to-v0.9.md](docs/plans/phase-x-migrating-to-v0.9.md)`
 
@@ -270,47 +276,36 @@ Frontier guardrails to adopt (high priority when migrating):
 
 ---
 
-## Later — product runtime interaction / utilization layer
+## After Phase X — product runtime utilization layer
 
-A2UI is a **UI payload format**. Product apps often also want text, progress, and run lifecycle *around* surfaces. Today we deliberately ship **A2UI-native SSE** (surface envelopes only). A shipped *product* runtime will likely need broader utilization events **in our vocabulary**, without changing generation strategy (two-hop tools + validate + retry).
+A2UI is a **UI payload format**. A GenUI **platform** also needs text, progress, and run lifecycle *around* surfaces — in **our** vocabulary on A2UI-native SSE — without changing generation strategy (two-hop tools + validate + retry).
 
 **Plan:** `[docs/plans/phase-product-runtime-interaction.md](docs/plans/phase-product-runtime-interaction.md)` · **Agent:** `.cursor/agents/product-runtime-architect.md`
 
-**Why product needs this later**
+| Capability | Product need | Our SSE today |
+|------------|--------------|---------------|
+| Text / token streaming | Prose beside surfaces | Surfaces only |
+| Tool lifecycle visibility | Client-visible steps | Internal / metrics |
+| Run lifecycle | start / finish / fail / cancel | Partial (`error` / `done`) |
+| Bidirectional UX | User → agent UI actions | ✅ `POST /a2ui/actions` |
+| Third-party AG-UI clients | Optional harness | ❌ — Plan B adapter later |
 
-App developers integrating generative UI into real apps usually also need:
+**Sequencing (locked)**
 
-| Capability | Product need | Our v0.8 SSE today |
-|------------|--------------|--------------------|
-| Text / token streaming | Prose beside surfaces | Not first-class (surfaces only) |
-| Tool lifecycle visibility | Client-visible steps | Internal; not streamed to clients |
-| Shared agent↔app state | Collaborative structured state | Data model updates only inside A2UI |
-| Run lifecycle | start / finish / fail / cancel | Partial via SSE error / stream end |
-| Activity / progress | Long-run / HITL affordances | Not modeled |
-| Bidirectional UX | User → agent UI actions | `POST /a2ui/actions` (A2UI-native) |
-| Ecosystem chat clients | Optional third-party shells | Custom `@a2ui/react` demo wiring |
-
-**Backlog direction (post–v0.8 release; optional parallel to Phase X)**
-
-- **P0 packaging first** (v0.8 release) — discovery is the first product API.
-- **P1** consumer template SPI + **native SSE lifecycle enrichment** (our run/text/tool-progress events), designed so an optional bridge can project later.
-- **P2** optional **interoperability adapter** only if demand — keep core free of foreign protocol deps.
-- Do **not** replace A2UI generation strategy — adapter is transport/UX shell only.
-- Document for app developers: when to use A2UI-native SSE vs optional bridge.
-- **Non-goals:** open HTML / sandboxed applet GenUI; foreign event enums in core.
-
-**Out of scope for v0.8 GA.** Revisit utilization after packaging ships; bridge only when consumers need third-party chat shells.
+1. **Phase X (v0.9.1)** — protocol currency  
+2. **Utilization on native SSE** — `run*` / optional `assistantText` / `toolProgress` (our names)  
+3. **Optional AG-UI adapter module** — demand-gated translation only; zero AG-UI types in core  
+4. **Non-goals:** AG-UI feature parity; open HTML / MCP Apps GenUI; foreign enums in core  
 
 ---
 
-## Later — consumer extensibility
+## Later — consumer extensibility (low priority)
 
-- `A2UiTemplateRegistry` SPI: app developers register custom templates (Option A path)
-- Custom catalog registration beyond standard v0.8 (catalog negotiation already exists)
+Template SPI so apps register custom controlled layouts. Useful, **not** a gate for platform ambition (design systems primarily map A2UI catalog → native widgets on the FE).
+
+- `A2UiTemplateRegistry` SPI + authoring docs  
+- Custom catalog registration beyond standard  
 - Per-template slot schema validation
-- Documentation: “Authoring a custom surface template”
-- Optional: expose consumer templates as `@Tool` beans
-
 ---
 
 ## Reliability and observability (ongoing)

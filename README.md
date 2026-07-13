@@ -6,14 +6,16 @@
 
 Canonical GitHub repository: [`kutaybuyukkorukcu/spring-a2ui-runtime`](https://github.com/kutaybuyukkorukcu/spring-a2ui-runtime).
 
-A Spring Boot runtime for [A2UI](https://a2ui.org/) **v0.8**: validate catalog components, assemble surfaces, and stream them to clients over native SSE.
+A Spring Boot **GenUI backend runtime** for [A2UI](https://a2ui.org/): validate catalog components, assemble surfaces, and stream them to clients over native SSE.
 
-The goal is straightforward — if you are building generative UI on the JVM, you should not have to hand-roll prompts, JSONL parsing, and fail-open demos. This runtime owns the A2UI wire path so your app can focus on product behavior.
+**Vision:** be the backend GenUI platform for OSS / Spring product builders — you keep your design system and FE; we own compose → validate → stream → fail-fast (Supabase-shaped abstraction for generative UI on the JVM). We are **not** a React chat shell and **not** an AG-UI-core product; optional foreign-client bridges are demand-gated later.
+
+If you are building generative UI on Spring, you should not have to hand-roll prompts, parsers, and fail-open demos. This runtime owns the A2UI wire path so your app can focus on product behavior.
 
 ## Status
 
-Library version **1.1.0** is the A2UI **v0.8** GA line (template + dynamic).
-`1.0.0` on Maven Central was an earlier drop of this same project; prefer **1.1.0**.
+Library version **1.1.0** is published on Maven Central as the A2UI **v0.8** GA line (template + dynamic).
+`1.0.0` was an earlier drop; prefer **1.1.0**. A patch (`1.1.1`) and A2UI **v0.9.1** migration are next on the roadmap.
 Both generation modes ship as GA:
 
 | Mode | Property | When to use it |
