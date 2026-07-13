@@ -7,9 +7,11 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionExcep
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiPromptContext;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.DynamicA2UiPromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.A2UiDynamicTools;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.A2UiForcedToolChoiceFactory;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.DynamicRenderSession;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
+import org.springframework.ai.tool.ToolCallback;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -20,7 +22,7 @@ import java.util.Map;
 public class DynamicSurfaceOrchestrator {
 
     public static final String DEFAULT_SURFACE_ID = "main";
-    public static final String GENERATE_TOOL_NAME = "generateA2Ui";
+    public static final String GENERATE_TOOL_NAME = A2UiForcedToolChoiceFactory.GENERATE_TOOL_NAME;
 
     private final ChatClient.Builder chatClientBuilder;
     private final List<Advisor> advisors;
@@ -52,13 +54,14 @@ public class DynamicSurfaceOrchestrator {
                     catalogId,
                     extractSupportedCatalogIds(request));
 
+            ToolCallback generateToolCallback = dynamicTools.buildGenerateA2UiToolCallback();
             ChatClient chatClient = createClient();
             chatClient.prompt()
                     .system(promptProvider.createPrimarySystemPrompt())
                     .user(promptProvider.createPrimaryUserPrompt(promptContext))
-                    .toolNames(GENERATE_TOOL_NAME)
-                    .tools(dynamicTools)
+                    .toolCallbacks(generateToolCallback)
                     .toolContext(Map.of(A2UiDynamicTools.SESSION_CONTEXT_KEY, session))
+                    .options(A2UiForcedToolChoiceFactory.forcedGenerateA2UiToolChoice())
                     .call()
                     .content();
 

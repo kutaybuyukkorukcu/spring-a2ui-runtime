@@ -11,10 +11,14 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.DynamicA2UiPromptPro
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiDynamicAssemblyService;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiDynamicComponentNormalizer;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.A2UiDynamicTools;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.A2UiForcedToolChoiceFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ToolContext;
+import org.springframework.ai.chat.prompt.ChatOptions;
+import org.springframework.ai.tool.ToolCallback;
 import reactor.test.StepVerifier;
 
 import java.util.List;
@@ -25,6 +29,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DynamicSurfaceOrchestratorTest {
@@ -65,9 +71,8 @@ class DynamicSurfaceOrchestratorTest {
         when(chatClient.prompt()).thenReturn(requestSpec);
         when(requestSpec.system(anyString())).thenReturn(requestSpec);
         when(requestSpec.user(anyString())).thenReturn(requestSpec);
-        when(requestSpec.tools(any())).thenReturn(requestSpec);
-        when(requestSpec.toolNames(anyString())).thenReturn(requestSpec);
-        when(requestSpec.toolCallbacks(any(org.springframework.ai.tool.ToolCallback[].class))).thenReturn(requestSpec);
+        when(requestSpec.toolCallbacks(any(ToolCallback.class))).thenReturn(requestSpec);
+        when(requestSpec.toolCallbacks(any(ToolCallback[].class))).thenReturn(requestSpec);
         when(requestSpec.toolContext(any())).thenReturn(requestSpec);
         when(requestSpec.options(any())).thenReturn(requestSpec);
         when(callResponseSpec.content()).thenReturn("ok");
@@ -99,6 +104,14 @@ class DynamicSurfaceOrchestratorTest {
                 .assertNext(message -> assertThat(message).isInstanceOf(A2UiMessage.DataModelUpdate.class))
                 .assertNext(message -> assertThat(message).isInstanceOf(A2UiMessage.BeginRendering.class))
                 .verifyComplete();
+
+        ArgumentCaptor<ToolCallback> toolCallbackCaptor = ArgumentCaptor.forClass(ToolCallback.class);
+        verify(requestSpec).toolCallbacks(toolCallbackCaptor.capture());
+        assertThat(toolCallbackCaptor.getValue().getToolDefinition().name())
+                .isEqualTo(A2UiForcedToolChoiceFactory.GENERATE_TOOL_NAME);
+        verify(requestSpec).options(any(ChatOptions.class));
+        verify(requestSpec, never()).tools(any());
+        verify(requestSpec, never()).toolNames(anyString());
     }
 
     @Test
@@ -112,6 +125,27 @@ class DynamicSurfaceOrchestratorTest {
                     assertThat(error).isInstanceOf(SurfaceExecutionException.class);
                     assertThat(((SurfaceExecutionException) error).getErrorCode())
                             .isEqualTo(SurfaceErrorCodes.TRANSFORM_FAILED);
+                })
+                .verify();
+    }
+
+    @Test
+    void shouldSurfaceValidationFailureFromPrimaryHop() {
+        when(requestSpec.call()).thenAnswer(invocation -> {
+            throw new SurfaceExecutionException(
+                    "A2UI validation failed",
+                    SurfaceErrorCodes.A2UI_VALIDATION_FAILED,
+                    List.of());
+        });
+
+        A2UiSurfaceRequest request = new A2UiSurfaceRequest("show a dashboard", null, null);
+
+        StepVerifier.create(orchestrator.stream(request, "req-1", A2UiCatalogIds.STANDARD_V0_8))
+                .expectErrorSatisfies(error -> {
+                    assertThat(error).isInstanceOf(SurfaceExecutionException.class);
+                    SurfaceExecutionException failure = (SurfaceExecutionException) error;
+                    assertThat(failure.getErrorCode()).isEqualTo(SurfaceErrorCodes.A2UI_VALIDATION_FAILED);
+                    assertThat(failure.getMessage()).isEqualTo("A2UI validation failed");
                 })
                 .verify();
     }
