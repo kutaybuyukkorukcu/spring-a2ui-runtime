@@ -27,7 +27,7 @@ Option A does not replace Option B. Phase 1 builds trust; Phase 2 delivers the g
 
 ## Context
 
-spring-a2ui is an OSS Spring **GenUI backend runtime / platform** for [A2UI](https://a2ui.org/). The end goal is to be the preferred backend for OSS product builders embedding generative UI — they keep design systems and FE; we own validated surface generation over A2UI-native SSE (not AG-UI feature parity, not a chat product shell).
+spring-a2ui is an OSS Spring **GenUI backend runtime / platform** for [A2UI](https://a2ui.org/). The end goal is to be the preferred backend for OSS product builders embedding generative UI — they keep design systems and FE; we own validated surface generation over A2UI-native SSE.
 
 We failed to ship reliable UI generation with a **monolithic LLM contract** (`A2UiLlmOutput` + `.entity()` / full-response buffering). Sync `/a2ui/surface` is being removed; **A2UI-native SSE** is the only generation transport.
 

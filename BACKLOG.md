@@ -1,6 +1,6 @@
 # Backlog
 
-Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ← in flight → **Phase X (A2UI v0.9.1)** → **utilization layer (our SSE vocabulary)** → **optional AG-UI adapter (demand-gated)** → **Later**.
+Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ← in flight → **Phase X (A2UI v0.9.1)** → **utilization layer (our SSE vocabulary)** → **optional foreign-client bridge (demand-gated)** → **Later**.
 
 ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)`
 
@@ -16,7 +16,7 @@ Implementation plans (for agents): `[docs/plans/phase-0-stream-infra.md](docs/pl
 
 Be the **backend GenUI platform for OSS / Spring product builders**: teams keep their design system and frontend; spring-a2ui owns generation, catalog validation, streaming, fail-fast errors, and the hard reliability path — so generative UI is a dependency, not a research project.
 
-Analogy: Supabase abstracts database complexity for builders. We abstract **GenUI backend** complexity (compose → validate → stream → actions) on the JVM.
+We abstract **GenUI backend** complexity (compose → validate → stream → actions) on the JVM the way a solid platform abstracts infrastructure so builders can focus on product.
 
 ### Mission
 
@@ -27,11 +27,11 @@ Ship a Maven Central Spring Boot runtime that turns prompts/intents into **valid
 | We are | We are not |
 |--------|------------|
 | Spring-native **A2UI generation runtime + platform** | The A2UI grammar owner (Google / [a2ui.org](https://a2ui.org/)) |
-| Fail-fast, catalog-bounded surface producer | An AG-UI protocol implementation as core identity |
-| Backend abstraction for GenUI product teams | A React/chat product shell (CopilotKit’s race) |
+| Fail-fast, catalog-bounded surface producer | A foreign agent↔app interaction protocol as core identity |
+| Backend abstraction for GenUI product teams | A React/chat product shell |
 
-**Race we run:** Spring GenUI backend platform.  
-**Race we do not chase:** AG-UI feature parity / CopilotKit FE. Optional AG-UI **adapter** later is HDMI-out, not the OS (Plan B).
+**We run** the Spring GenUI backend platform race.  
+**We do not** rebuild our core around third-party chat/agent-UI protocols. Optional **interop bridges** later are adapters only — not the product identity.
 
 ### Primary persona
 
@@ -48,7 +48,7 @@ Ship a Maven Central Spring Boot runtime that turns prompts/intents into **valid
 - **A2UI-native SSE** is the default product pipe (ADR 001).
 - **Stream-only.** Sync `POST /a2ui/surface` removed.
 - **Fail-fast.** SSE `event: error` + diagnostics. **No demo fallback surface.**
-- **AG-UI / other chat pipes:** optional **bridge module only**, demand-gated; never replace native SSE as core identity. AG-UI is CopilotKit-stewarded (open MIT), not a Google peer of A2A/A2UI.
+- **Foreign chat / agent-UI pipes:** optional **bridge module only**, demand-gated; never replace native SSE as core identity.
 
 ### Tool API (decided)
 
@@ -62,7 +62,7 @@ Ship a Maven Central Spring Boot runtime that turns prompts/intents into **valid
 - ~~Tool API shape~~ → **Builder + runtime `@Tool` adapters**
 - ~~Is dynamic A2UI in scope?~~ → **Yes — Phase 2 (shipped)**
 - ~~Provider scope~~ → **OpenAI-first for MVP**; Anthropic / Gemini / Groq later
-- ~~Platform vs AG-UI parity~~ → **Platform (Plan B)**; no AG-UI-as-core
+- ~~Platform vs foreign protocol-as-core~~ → **Platform**; native SSE remains identity
 - ~~v0.8 / Central `1.1.0`~~ → **Published**
 ---
 
@@ -288,14 +288,14 @@ A2UI is a **UI payload format**. A GenUI **platform** also needs text, progress,
 | Tool lifecycle visibility | Client-visible steps | Internal / metrics |
 | Run lifecycle | start / finish / fail / cancel | Partial (`error` / `done`) |
 | Bidirectional UX | User → agent UI actions | ✅ `POST /a2ui/actions` |
-| Third-party AG-UI clients | Optional harness | ❌ — Plan B adapter later |
+| Third-party chat / agent-UI clients | Optional harness | ❌ — bridge later if demand |
 
 **Sequencing (locked)**
 
 1. **Phase X (v0.9.1)** — protocol currency  
 2. **Utilization on native SSE** — `run*` / optional `assistantText` / `toolProgress` (our names)  
-3. **Optional AG-UI adapter module** — demand-gated translation only; zero AG-UI types in core  
-4. **Non-goals:** AG-UI feature parity; open HTML / MCP Apps GenUI; foreign enums in core  
+3. **Optional foreign-client bridge module** — demand-gated translation only; zero foreign protocol types in core  
+4. **Non-goals:** rebuilding core around third-party chat protocols; open HTML GenUI; foreign enums in core  
 
 ---
 

@@ -8,7 +8,7 @@ Canonical GitHub repository: [`kutaybuyukkorukcu/spring-a2ui-runtime`](https://g
 
 A Spring Boot **GenUI backend runtime** for [A2UI](https://a2ui.org/): validate catalog components, assemble surfaces, and stream them to clients over native SSE.
 
-**Vision:** be the backend GenUI platform for OSS / Spring product builders — you keep your design system and FE; we own compose → validate → stream → fail-fast (Supabase-shaped abstraction for generative UI on the JVM). We are **not** a React chat shell and **not** an AG-UI-core product; optional foreign-client bridges are demand-gated later.
+**Vision:** be the backend GenUI platform for OSS / Spring product builders — you keep your design system and FE; we own compose → validate → stream → fail-fast so generative UI is infrastructure you depend on, not something you invent. We ship A2UI-native SSE as the product pipe; optional bridges to other client ecosystems are demand-gated later.
 
 If you are building generative UI on Spring, you should not have to hand-roll prompts, parsers, and fail-open demos. This runtime owns the A2UI wire path so your app can focus on product behavior.
 

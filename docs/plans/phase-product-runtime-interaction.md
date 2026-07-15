@@ -2,31 +2,30 @@
 
 **Status:** Plan / product decision (not started)  
 **Depends on:** Maven Central `1.1.0` ✅ · prefer `1.1.1` dynamic fail-fast patch · **Phase X (A2UI v0.9.1) before large utilization investment**  
-**Related:** `BACKLOG.md` → Vision / Mission · utilization · optional AG-UI adapter  
+**Related:** `BACKLOG.md` → Vision / Mission · utilization · optional foreign-client bridge  
 **Agent:** `.cursor/agents/product-runtime-architect.md`
 
 ## Goal
 
-Grow spring-a2ui from an A2UI **generation runtime** into a **GenUI backend platform** for OSS / Spring product builders — without chasing AG-UI feature parity or becoming a React chat shell.
+Grow spring-a2ui from an A2UI **generation runtime** into a **GenUI backend platform** for OSS / Spring product builders.
 
-Builders keep their design system and FE. We own compose → validate → stream → fail-fast → actions (and a thin utilization layer around surfaces).
+Builders keep their design system and FE. We own compose → validate → stream → fail-fast → actions (and a thin utilization layer around surfaces) so generative UI is infrastructure they depend on, not something they invent.
 
-**Analogy:** Supabase abstracts database complexity. We abstract GenUI backend complexity on the JVM.
-
-Priorities: A2UI-native SSE, Maven Central packaging, fail-fast catalog validation, dual template + dynamic modes. Optional bridges (including AG-UI) are demand-gated — **Plan B**, never core identity.
+Priorities: A2UI-native SSE, Maven Central packaging, fail-fast catalog validation, dual template + dynamic modes. Optional bridges to other client ecosystems are demand-gated — never core identity.
 
 ---
 
-## Race map (do not confuse)
+## Layer map (ours)
 
-| Player | Race | Our stance |
-|--------|------|------------|
-| **A2UI (Google)** | UI payload / GenUI grammar | Implement & stay current (Phase X → v0.9.1) |
-| **AG-UI (CopilotKit-stewarded)** | Agent ↔ app interaction pipe | **Optional adapter later** — not Google-official peer of A2A/A2UI |
-| **CopilotKit** | FE / product agent shell | Not our race |
-| **spring-a2ui** | Spring GenUI **backend platform** | Race we run |
+| Layer | What | Our stance |
+|-------|------|------------|
+| **UI payload / GenUI grammar** | Declarative catalog surfaces (A2UI) | Implement & stay current (Phase X → v0.9.1) |
+| **Generation runtime** | Prompt/tools → validate → stream | **Our core** (template + dynamic) |
+| **Utilization around surfaces** | Run / text / tool progress on native SSE | **Build in our vocabulary** |
+| **Foreign chat / agent-UI pipes** | Third-party client event protocols | **Optional bridge only** |
+| **FE product shells** | Full chat chrome / design systems | Builders bring their own |
 
-Chasing AG-UI parity would mean rewriting core around foreign event enums and competing as a thinner AG-UI server. That is the wrong race for this ambition.
+We do not rebuild core around third-party interaction protocols. Interop adapters, if any, sit beside the product pipe — they are not the product.
 
 ---
 
@@ -61,7 +60,7 @@ Chasing AG-UI parity would mean rewriting core around foreign event enums and co
 | Run start / finish / cancel | Explicit run lifecycle | Partial (`error` / `done`) |
 | Bidirectional actions | User → agent UI actions | ✅ `POST /a2ui/actions` |
 | Controlled template SPI | Register own templates | Low priority (FE design systems map catalog → widgets) |
-| AG-UI / third-party shells | Optional harness | ❌ Plan B adapter only |
+| Third-party chat clients | Optional harness | ❌ bridge later if demand |
 
 ---
 
@@ -71,7 +70,7 @@ Chasing AG-UI parity would mean rewriting core around foreign event enums and co
 
 - **Runtime (generation):** Shipped GA at `1.1.0`; patch `1.1.1` for dynamic fail-fast.  
 - **Platform altitude:** Not yet — need v0.9.1 currency + utilization on native SSE.  
-- **Do not** make AG-UI the default pipe or put foreign protocol types in core.
+- **Do not** make a foreign interaction protocol the default pipe or put foreign protocol types in core.
 
 ### Continue with (ordered)
 
@@ -79,16 +78,16 @@ Chasing AG-UI parity would mean rewriting core around foreign event enums and co
 |----------|-------|-----|
 | **P0** | Patch `1.1.1` (forced `generateA2Ui`, fail-fast tools) | Dynamic reliability baseline |
 | **P0** | **Phase X → A2UI v0.9.1** | Protocol currency before big utilization on Legacy |
-| **P1** | **Native SSE lifecycle enrichment** (our event vocabulary) | Chat-quality GenUI without AG-UI |
-| **P2** | **Optional AG-UI adapter module** | Demand-gated HDMI-out for AG-UI clients |
+| **P1** | **Native SSE lifecycle enrichment** (our event vocabulary) | Chat-quality GenUI on our pipe |
+| **P2** | **Optional foreign-client bridge module** | Demand-gated adapter for external client ecosystems |
 | **Later** | Template SPI, multi-provider, reliability deep-dive | Not gates for platform identity |
 
 ### Explicit non-goals
 
-- AG-UI **feature parity** as a roadmap  
-- Open HTML / sandboxed applet / MCP Apps GenUI  
+- Rebuilding core for third-party chat/agent-UI **feature parity**  
+- Open HTML / sandboxed applet GenUI  
 - Replacing A2UI-native SSE as the default pipe  
-- Putting AG-UI (or similar) types into `a2ui-runtime-core`  
+- Putting foreign interaction-protocol types into `a2ui-runtime-core`  
 - Changing two-hop dynamic generation or reintroducing semantic repair  
 - Shipping a second declarative UI payload format beside A2UI  
 
@@ -100,9 +99,9 @@ Chasing AG-UI parity would mean rewriting core around foreign event enums and co
 ┌─────────────────────────────────────────────────────────────┐
 │  Product app (Spring Boot host)                              │
 │  ┌──────────────────┐  ┌──────────────────────────────────┐ │
-│  │ web-starter      │  │ optional AG-UI (or other) bridge │ │
+│  │ web-starter      │  │ optional foreign-client bridge   │ │
 │  │ A2UI-native SSE  │──│ maps our runtime events →        │ │
-│  │ /surface/stream  │  │ foreign wire; A2UI as payload    │ │
+│  │ /surface/stream  │  │ external wire; A2UI as payload   │ │
 │  │ /actions         │  │ (separate module, demand-gated)  │ │
 │  └────────┬─────────┘  └──────────────────────────────────┘ │
 │           │                                                  │
@@ -113,7 +112,7 @@ Chasing AG-UI parity would mean rewriting core around foreign event enums and co
 └─────────────────────────────────────────────────────────────┘
          │ SSE (primary)                 │ optional bridge
          ▼                               ▼
-   design-system FE / @a2ui/*      AG-UI-capable clients
+   design-system FE / @a2ui/*      third-party chat clients
 ```
 
 **Design rule:** Enrich the **internal event model** first (run id, text deltas, tool steps) so both native SSE and any future adapter project from one source. Avoid two divergent orchestrators.
@@ -152,18 +151,18 @@ Config flag: `a2ui.web.stream.lifecycle-events=true` (default TBD for backward c
 
 **Acceptance:** Single event source; stream controller is a thin mapper.
 
-### Slice 3 — Optional AG-UI adapter module (Plan B)
+### Slice 3 — Optional foreign-client bridge module
 
-- New module **only if** product demand for AG-UI / CopilotKit-style clients  
+- New module **only if** product demand for third-party chat / agent-UI clients  
 - Foreign deps **only in this module**  
-- Map `A2UiRuntimeEvent` → AG-UI wire events; A2UI envelopes remain the UI payload  
-- Smoke: one AG-UI client consumes one dynamic surface  
+- Map `A2UiRuntimeEvent` → external wire events; A2UI envelopes remain the UI payload  
+- Smoke: one external client consumes one dynamic surface  
 
-**Acceptance:** Core jars have zero AG-UI refs; docs explain `/surface/stream` vs bridge.
+**Acceptance:** Core jars have zero foreign interaction-protocol refs; docs explain `/surface/stream` vs bridge.
 
 ### Slice 4 — Product docs + decision record
 
-- Guide: “A2UI-native SSE vs optional AG-UI adapter”  
+- Guide: “A2UI-native SSE vs optional foreign-client bridge”  
 - ADR addendum if needed (does not overturn ADR 001)  
 - Update `BACKLOG.md` as slices complete  
 
@@ -177,8 +176,8 @@ Config flag: `a2ui.web.stream.lifecycle-events=true` (default TBD for backward c
 
 ## Spike checklist (before Slice 3)
 
-- [ ] Confirm whether consumers need AG-UI bridge vs native SSE + our lifecycle events  
-- [ ] If yes: how A2UI envelopes are carried as AG-UI payload  
+- [ ] Confirm whether consumers need a foreign bridge vs native SSE + our lifecycle events  
+- [ ] If yes: how A2UI envelopes are carried as external payload  
 - [ ] Cancel/steer: native endpoint vs bridge-only input  
 - [ ] Lifecycle events vs `@a2ui/react` demo (ignore-unknown vs stream profile)  
 - [ ] Packaging: one starter vs two Central artifacts  
@@ -192,8 +191,8 @@ Config flag: `a2ui.web.stream.lifecycle-events=true` (default TBD for backward c
 | Time-to-first-surface for new Spring app | &lt; 15 minutes with README alone |
 | Protocol currency | A2UI v0.9.1 (Phase X) |
 | Chat-quality demo (text + surface + action) | Supported on **native SSE** (Slices 1–2) |
-| AG-UI client path | Optional module (Slice 3) — only if demand |
-| Core dependency surface | No AG-UI types in core/web-starter |
+| Third-party chat-client path | Optional module (Slice 3) — only if demand |
+| Core dependency surface | No foreign interaction-protocol types in core/web-starter |
 
 ---
 
@@ -202,5 +201,5 @@ Config flag: `a2ui.web.stream.lifecycle-events=true` (default TBD for backward c
 1. Patch `1.1.1`  
 2. Phase X (v0.9.1)  
 3. Slices 1–2 (utilization on native SSE)  
-4. Slice 3 (optional AG-UI adapter) — demand-gated  
+4. Slice 3 (optional foreign-client bridge) — demand-gated  
 5. Slice 4 (docs) · template SPI anytime as low-prio parallel  
