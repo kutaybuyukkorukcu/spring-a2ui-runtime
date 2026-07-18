@@ -7,11 +7,13 @@
 
 ## Goal
 
-Grow spring-a2ui from an A2UI **generation runtime** into a **GenUI backend platform** for OSS / Spring product builders.
+Grow spring-a2ui from an A2UI **generation runtime** into a **GenUI backend platform** for OSS / Spring product builders — abstracting GenUI infrastructure so they can focus on product.
 
-Builders keep their design system and FE. We own compose → validate → stream → fail-fast → actions (and a thin utilization layer around surfaces) so generative UI is infrastructure they depend on, not something they invent.
+Builders keep their design system and FE. We own compose → validate → stream → fail-fast → actions (and a thin utilization layer around surfaces) so generative UI is a Maven Central dependency, not a research project.
 
 Priorities: A2UI-native SSE, Maven Central packaging, fail-fast catalog validation, dual template + dynamic modes. Optional bridges to other client ecosystems are demand-gated — never core identity.
+
+Positioning home: [`docs/platform.md`](../platform.md) · Later themes (builder DX, ops, SPI): [`BACKLOG.md`](../../BACKLOG.md) Later section.
 
 ---
 
@@ -171,6 +173,8 @@ Config flag: `a2ui.web.stream.lifecycle-events=true` (default TBD for backward c
 - Public SPI to register custom `A2UiSurfaceSpec` templates  
 - Doc: “Authoring a custom surface template”  
 - Not a platform gate — FE design systems primarily bind catalog components  
+
+Additional **Later** platform-maturity themes (builder DX, multi-provider, ops, demand-gated interop) live in [`BACKLOG.md`](../../BACKLOG.md) under **Later — platform maturity & builder focus**. They do not change this plan’s sequencing.
 
 ---
 

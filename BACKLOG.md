@@ -16,7 +16,7 @@ Implementation plans (for agents): `[docs/plans/phase-0-stream-infra.md](docs/pl
 
 Be the **backend GenUI platform for OSS / Spring product builders**: teams keep their design system and frontend; spring-a2ui owns generation, catalog validation, streaming, fail-fast errors, and the hard reliability path — so generative UI is a dependency, not a research project.
 
-We abstract **GenUI backend** complexity (compose → validate → stream → actions) on the JVM the way a solid platform abstracts infrastructure so builders can focus on product.
+We abstract **GenUI backend** complexity (compose → validate → stream → actions) on the JVM so builders can focus on product. Positioning home: [`docs/platform.md`](docs/platform.md).
 
 ### Mission
 
@@ -30,7 +30,7 @@ Ship a Maven Central Spring Boot runtime that turns prompts/intents into **valid
 | Fail-fast, catalog-bounded surface producer | A foreign agent↔app interaction protocol as core identity |
 | Backend abstraction for GenUI product teams | A React/chat product shell |
 
-**We run** the Spring GenUI backend platform race.  
+**Identity:** Spring GenUI backend platform.  
 **We do not** rebuild our core around third-party chat/agent-UI protocols. Optional **interop bridges** later are adapters only — not the product identity.
 
 ### Primary persona
@@ -64,6 +64,19 @@ Ship a Maven Central Spring Boot runtime that turns prompts/intents into **valid
 - ~~Provider scope~~ → **OpenAI-first for MVP**; Anthropic / Gemini / Groq later
 - ~~Platform vs foreign protocol-as-core~~ → **Platform**; native SSE remains identity
 - ~~v0.8 / Central `1.1.0`~~ → **Published**
+
+### Roadmap narrative (product view)
+
+Near-term **execution order stays locked** (see header). This section only explains outcomes for product builders:
+
+| Stage | Builder outcome |
+|-------|-----------------|
+| **Patch `1.1.1`** | Dynamic GenUI is trustworthy infrastructure (forced primary tool, fail-fast tools) |
+| **Phase X (v0.9.1)** | Protocol currency — builders are not stuck on Legacy wire |
+| **Utilization on native SSE** | Text / progress / run lifecycle *around* surfaces — product UX without a second pipe |
+| **Optional foreign-client bridge** | Demand-gated adapter for third-party chat clients; never core identity |
+| **Later (below)** | SPI, multi-provider, builder DX, ops maturity — deepen the platform without blocking the path above |
+
 ---
 
 ## Phase 0 — Stream infra (do first)
@@ -299,13 +312,35 @@ A2UI is a **UI payload format**. A GenUI **platform** also needs text, progress,
 
 ---
 
-## Later — consumer extensibility (low priority)
+## Later — platform maturity & builder focus (low priority)
+
+Items below are **not** near-term gates and **do not** reshuffle the locked order (patch → Phase X → utilization → optional foreign-client bridge). They deepen the platform so product builders spend less time on GenUI plumbing and more on product behavior.
+
+### Consumer extensibility
 
 Template SPI so apps register custom controlled layouts. Useful, **not** a gate for platform ambition (design systems primarily map A2UI catalog → native widgets on the FE).
 
 - `A2UiTemplateRegistry` SPI + authoring docs  
 - Custom catalog registration beyond standard  
 - Per-template slot schema validation
+
+### Builder focus (product DX)
+
+- Golden-path cookbook: Boot + web starter → first validated surface in one sitting (README alone stays the 15-minute bar)
+- FE design-system binding guide (catalog component → native widget map) — we do **not** ship FE product shells
+- Multi-provider Spring AI parity beyond OpenAI-first (Anthropic / Gemini / Groq)
+- Host-app patterns: `POST /a2ui/actions` → product services, session/context handoff, multi-surface apps
+
+### Platform ops & reliability (beyond ongoing metrics)
+
+- GenUI-oriented ops guide (stream diagnostics, redaction, actuator dashboards for generation/validation)
+- Latency / caching patterns for dynamic composition (without weakening fail-fast or reintroducing semantic repair)
+- Catalog / protocol upgrade helpers when bumping A2UI wire versions (builder migration notes)
+
+### Demand-gated interop (adapters only)
+
+- Optional **foreign-client bridge** module (see utilization sequencing) — translation beside A2UI-native SSE
+- Optional **A2A / MCP** adjacency for agent discovery — never replaces native SSE as product identity
 ---
 
 ## Reliability and observability (ongoing)

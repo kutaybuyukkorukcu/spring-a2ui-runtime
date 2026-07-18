@@ -6,11 +6,11 @@
 
 Canonical GitHub repository: [`kutaybuyukkorukcu/spring-a2ui-runtime`](https://github.com/kutaybuyukkorukcu/spring-a2ui-runtime).
 
-A Spring Boot **GenUI backend runtime** for [A2UI](https://a2ui.org/): validate catalog components, assemble surfaces, and stream them to clients over native SSE.
+A Spring Boot **GenUI backend runtime / platform** for [A2UI](https://a2ui.org/): validate catalog components, assemble surfaces, and stream them to clients over native SSE.
 
-**Vision:** be the backend GenUI platform for OSS / Spring product builders — you keep your design system and FE; we own compose → validate → stream → fail-fast so generative UI is infrastructure you depend on, not something you invent. We ship A2UI-native SSE as the product pipe; optional bridges to other client ecosystems are demand-gated later.
+**Vision:** abstract GenUI backend infrastructure so OSS / Spring product builders can focus on product. You keep your design system and frontend; we own compose → validate → stream → fail-fast → actions. Generative UI becomes a Maven Central dependency, not a research project. The product pipe is **A2UI-native SSE**; optional foreign-client bridges are demand-gated later and never core identity.
 
-If you are building generative UI on Spring, you should not have to hand-roll prompts, parsers, and fail-open demos. This runtime owns the A2UI wire path so your app can focus on product behavior.
+If you are building generative UI on Spring, you should not have to hand-roll prompts, parsers, and fail-open demos. This platform owns the hard reliability path so your app can ship product behavior.
 
 ## Status
 
@@ -118,12 +118,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for layout, PR expectations, and formatti
 
 ## Documentation
 
+* [Platform positioning](docs/platform.md) — what we are, what builders keep, roadmap stages
 * [Getting started](docs/guides/getting-started.md)
 * [REST API](docs/rest-api.md)
 * [Dynamic generative UI](docs/guides/dynamic-generative-ui.md)
 * [Changelog](CHANGELOG.md)
+* [Backlog](BACKLOG.md) — execution order (near-term priority is locked)
 
-See also [CONTRIBUTING.md](CONTRIBUTING.md) for backlog, ADRs, and phase plans.
+See also [CONTRIBUTING.md](CONTRIBUTING.md) for ADRs and phase plans.
 
 ## Contributing
 

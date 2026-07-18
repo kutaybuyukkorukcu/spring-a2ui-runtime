@@ -1,5 +1,7 @@
 # A2UI Runtime REST API Reference
 
+Public HTTP surface for the spring-a2ui **GenUI backend platform**: catalog negotiation, validated surface streaming over A2UI-native SSE, and UI actions. Positioning: [Platform](platform.md).
+
 ## Base Path
 
 All endpoints are under `/a2ui` by default. Configurable via `a2ui.web.base-path`.
