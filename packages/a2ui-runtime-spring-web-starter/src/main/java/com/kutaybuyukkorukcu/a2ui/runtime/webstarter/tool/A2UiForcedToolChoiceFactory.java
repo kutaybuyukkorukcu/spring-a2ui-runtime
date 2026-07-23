@@ -45,9 +45,18 @@ public final class A2UiForcedToolChoiceFactory {
 
         static ChatOptions create(String toolName) {
             try {
+                ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                if (cl == null) {
+                    cl = A2UiForcedToolChoiceFactory.class.getClassLoader();
+                }
                 Class<?> toolChoiceBuilderClass = Class.forName(
-                        "org.springframework.ai.openai.api.OpenAiApi$ChatCompletionRequest$ToolChoiceBuilder");
-                Class<?> openAiOptionsClass = Class.forName("org.springframework.ai.openai.OpenAiChatOptions");
+                        "org.springframework.ai.openai.api.OpenAiApi$ChatCompletionRequest$ToolChoiceBuilder",
+                        true,
+                        cl);
+                Class<?> openAiOptionsClass = Class.forName(
+                        "org.springframework.ai.openai.OpenAiChatOptions",
+                        true,
+                        cl);
                 Object toolChoice = toolChoiceBuilderClass
                         .getMethod("FUNCTION", String.class)
                         .invoke(null, toolName);

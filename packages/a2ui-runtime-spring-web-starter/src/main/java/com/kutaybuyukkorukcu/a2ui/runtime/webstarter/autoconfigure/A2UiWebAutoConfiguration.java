@@ -210,7 +210,7 @@ public class A2UiWebAutoConfiguration {
     }
 
     private static List<Advisor> resolveAdvisors(ObjectProvider<Advisor> advisors) {
-        return advisors.orderedStream().toList();
+        return advisors == null ? List.of() : advisors.orderedStream().toList();
     }
 
     @Bean
