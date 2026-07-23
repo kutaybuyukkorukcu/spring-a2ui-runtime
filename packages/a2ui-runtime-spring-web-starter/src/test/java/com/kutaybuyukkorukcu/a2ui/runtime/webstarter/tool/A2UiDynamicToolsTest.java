@@ -64,8 +64,7 @@ class A2UiDynamicToolsTest {
         when(chatClient.prompt()).thenReturn(requestSpec);
         when(requestSpec.system(anyString())).thenReturn(requestSpec);
         when(requestSpec.user(anyString())).thenReturn(requestSpec);
-        when(requestSpec.tools(any())).thenReturn(requestSpec);
-        when(requestSpec.toolNames(anyString())).thenReturn(requestSpec);
+        when(requestSpec.toolCallbacks(any(org.springframework.ai.tool.ToolCallback.class))).thenReturn(requestSpec);
         when(requestSpec.toolCallbacks(any(org.springframework.ai.tool.ToolCallback[].class))).thenReturn(requestSpec);
         when(requestSpec.toolContext(any())).thenReturn(requestSpec);
         when(requestSpec.options(any())).thenReturn(requestSpec);
@@ -161,5 +160,13 @@ class A2UiDynamicToolsTest {
         assertThat(inputSchema).contains("\"label\"");
         assertThat(inputSchema).contains("additionalProperties");
         assertThat(inputSchema).doesNotContain("\"checked\"");
+    }
+
+    @Test
+    void shouldBuildGenerateA2UiToolCallbackWithoutPlannerTool() {
+        ToolCallback callback = dynamicTools.buildGenerateA2UiToolCallback();
+
+        assertThat(callback.getToolDefinition().name()).isEqualTo("generateA2Ui");
+        assertThat(callback.getToolDefinition().inputSchema()).contains("\"type\":\"object\"");
     }
 }

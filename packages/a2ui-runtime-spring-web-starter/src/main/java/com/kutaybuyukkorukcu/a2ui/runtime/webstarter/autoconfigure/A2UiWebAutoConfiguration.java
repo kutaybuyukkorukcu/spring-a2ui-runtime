@@ -24,11 +24,14 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiDynamicAssembly
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiDynamicComponentNormalizer;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiSurfaceAssemblyService;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiTemplateRegistry;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.A2UiDynamicTools;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.A2UiTemplateTools;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
+import org.springframework.ai.tool.execution.DefaultToolExecutionExceptionProcessor;
+import org.springframework.ai.tool.execution.ToolExecutionExceptionProcessor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -42,7 +45,9 @@ import jakarta.annotation.PostConstruct;
 
 import java.util.List;
 
-@AutoConfiguration(afterName = "com.kutaybuyukkorukcu.a2ui.runtime.starter.A2UiRuntimeAutoConfiguration")
+@AutoConfiguration(
+        afterName = "com.kutaybuyukkorukcu.a2ui.runtime.starter.A2UiRuntimeAutoConfiguration",
+        beforeName = "org.springframework.ai.model.tool.autoconfigure.ToolCallingAutoConfiguration")
 @ConditionalOnProperty(prefix = "a2ui.web", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(A2UiWebProperties.class)
 public class A2UiWebAutoConfiguration {
@@ -125,18 +130,33 @@ public class A2UiWebAutoConfiguration {
         return new A2UiTemplateTools(templateRegistry, assemblyService, runtimeMetrics);
     }
 
+    /**
+     * Fail-fast tool errors: unwrap {@link SurfaceExecutionException} to the caller and
+     * rethrow other tool failures instead of returning them as model-visible strings.
+     * Registered before Spring AI's ToolCallingAutoConfiguration so it wins
+     * {@code @ConditionalOnMissingBean}.
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public ToolExecutionExceptionProcessor toolExecutionExceptionProcessor() {
+        return DefaultToolExecutionExceptionProcessor.builder()
+                .rethrowExceptions(List.of(SurfaceExecutionException.class))
+                .alwaysThrow(true)
+                .build();
+    }
+
     @Bean
     @ConditionalOnMissingBean
     public A2UiDynamicTools a2UiDynamicTools(
             ChatClient.Builder chatClientBuilder,
-            ObjectProvider<List<Advisor>> advisorProvider,
+            ObjectProvider<Advisor> advisors,
             DynamicA2UiPromptProvider dynamicPromptProvider,
             A2UiDynamicAssemblyService dynamicAssemblyService,
             A2UiRuntimeMetrics runtimeMetrics,
             A2UiCatalogRegistry catalogRegistry) {
         return new A2UiDynamicTools(
                 chatClientBuilder,
-                advisorProvider.getIfAvailable(List::of),
+                resolveAdvisors(advisors),
                 dynamicPromptProvider,
                 dynamicAssemblyService,
                 runtimeMetrics,
@@ -147,12 +167,12 @@ public class A2UiWebAutoConfiguration {
     @ConditionalOnMissingBean
     public DynamicSurfaceOrchestrator dynamicSurfaceOrchestrator(
             ChatClient.Builder chatClientBuilder,
-            ObjectProvider<List<Advisor>> advisorProvider,
+            ObjectProvider<Advisor> advisors,
             DynamicA2UiPromptProvider dynamicPromptProvider,
             A2UiDynamicTools dynamicTools) {
         return new DynamicSurfaceOrchestrator(
                 chatClientBuilder,
-                advisorProvider.getIfAvailable(List::of),
+                resolveAdvisors(advisors),
                 dynamicPromptProvider,
                 dynamicTools);
     }
@@ -161,12 +181,12 @@ public class A2UiWebAutoConfiguration {
     @ConditionalOnMissingBean
     public TemplateSurfaceOrchestrator templateSurfaceOrchestrator(
             ChatClient.Builder chatClientBuilder,
-            ObjectProvider<List<Advisor>> advisorProvider,
+            ObjectProvider<Advisor> advisors,
             TemplateModePromptProvider templateModePromptProvider,
             A2UiTemplateTools templateTools) {
         return new TemplateSurfaceOrchestrator(
                 chatClientBuilder,
-                advisorProvider.getIfAvailable(List::of),
+                resolveAdvisors(advisors),
                 templateModePromptProvider,
                 templateTools);
     }
@@ -175,18 +195,22 @@ public class A2UiWebAutoConfiguration {
     @ConditionalOnMissingBean
     public A2UiSurfaceRuntime a2UiSurfaceRuntime(
             ObjectProvider<ChatClient.Builder> chatClientBuilderProvider,
-            ObjectProvider<List<Advisor>> advisorProvider,
+            ObjectProvider<Advisor> advisors,
             Environment environment,
             A2UiWebProperties properties,
             TemplateSurfaceOrchestrator templateOrchestrator,
             DynamicSurfaceOrchestrator dynamicOrchestrator) {
         return new SpringAiSurfaceRuntime(
                 chatClientBuilderProvider,
-                advisorProvider.getIfAvailable(List::of),
+                resolveAdvisors(advisors),
                 environment,
                 properties,
                 templateOrchestrator,
                 dynamicOrchestrator);
+    }
+
+    private static List<Advisor> resolveAdvisors(ObjectProvider<Advisor> advisors) {
+        return advisors == null ? List.of() : advisors.orderedStream().toList();
     }
 
     @Bean

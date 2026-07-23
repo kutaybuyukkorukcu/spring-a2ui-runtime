@@ -140,9 +140,31 @@ public class A2UiDynamicTools {
                 .user(promptProvider.createPlannerUserPrompt(promptContext, validationDiagnostics))
                 .toolCallbacks(renderToolCallback)
                 .toolContext(plannerToolContext)
-                .options(A2UiPlannerChatOptionsFactory.forcedRenderA2UiToolChoice())
+                .options(A2UiForcedToolChoiceFactory.forcedRenderA2UiToolChoice())
                 .call()
                 .content();
+    }
+
+    /**
+     * Primary-hop callback: exposes only {@code generateA2Ui} (not planner-only {@code renderA2Ui}).
+     */
+    public ToolCallback buildGenerateA2UiToolCallback() {
+        try {
+            Method generateMethod = A2UiDynamicTools.class.getDeclaredMethod("generateA2Ui", ToolContext.class);
+            ToolDefinition toolDef = ToolDefinition.builder()
+                    .name(A2UiForcedToolChoiceFactory.generateToolName())
+                    .description("Generate a rich A2UI visual surface when a visual UI would help the user.")
+                    .inputSchema("{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}")
+                    .build();
+
+            return MethodToolCallback.builder()
+                    .toolDefinition(toolDef)
+                    .toolMethod(generateMethod)
+                    .toolObject(this)
+                    .build();
+        } catch (NoSuchMethodException e) {
+            throw new IllegalStateException("generateA2Ui method not found on A2UiDynamicTools", e);
+        }
     }
 
     ToolCallback buildRenderA2UiToolCallback(String catalogId) {
@@ -152,7 +174,7 @@ public class A2UiDynamicTools {
 
             String inputSchema = toolSchemaGenerator.renderA2UiInputSchema(catalogId);
             ToolDefinition toolDef = ToolDefinition.builder()
-                    .name(A2UiPlannerChatOptionsFactory.renderToolName())
+                    .name(A2UiForcedToolChoiceFactory.renderToolName())
                     .description("Planner-only: emit structured A2UI layout components and optional data model values.")
                     .inputSchema(inputSchema)
                     .build();
