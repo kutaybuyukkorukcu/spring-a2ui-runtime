@@ -1,6 +1,6 @@
 # Dynamic Generative UI (Phase 2)
 
-spring-a2ui supports two surface generation modes. Both emit **A2UI v0.8 wire envelopes** over the same SSE endpoint (`POST /a2ui/surface/stream`).
+spring-a2ui supports two surface generation modes so product builders can choose controlled vs open-ended GenUI without inventing their own compose → validate → stream path. Both emit **A2UI v0.8 wire envelopes** over the same SSE endpoint (`POST /a2ui/surface/stream`).
 
 ## Template vs dynamic
 

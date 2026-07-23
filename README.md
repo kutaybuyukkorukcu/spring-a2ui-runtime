@@ -6,14 +6,16 @@
 
 Canonical GitHub repository: [`kutaybuyukkorukcu/spring-a2ui-runtime`](https://github.com/kutaybuyukkorukcu/spring-a2ui-runtime).
 
-A Spring Boot runtime for [A2UI](https://a2ui.org/) **v0.8**: validate catalog components, assemble surfaces, and stream them to clients over native SSE.
+A Spring Boot **GenUI backend runtime / platform** for [A2UI](https://a2ui.org/): validate catalog components, assemble surfaces, and stream them to clients over native SSE.
 
-The goal is straightforward — if you are building generative UI on the JVM, you should not have to hand-roll prompts, JSONL parsing, and fail-open demos. This runtime owns the A2UI wire path so your app can focus on product behavior.
+**Vision:** abstract GenUI backend infrastructure so OSS / Spring product builders can focus on product. You keep your design system and frontend; we own compose → validate → stream → fail-fast → actions. Generative UI becomes a Maven Central dependency, not a research project. The product pipe is **A2UI-native SSE**; optional foreign-client bridges are demand-gated later and never core identity.
+
+If you are building generative UI on Spring, you should not have to hand-roll prompts, parsers, and fail-open demos. This platform owns the hard reliability path so your app can ship product behavior.
 
 ## Status
 
-Library version **1.1.0** is the A2UI **v0.8** GA line (template + dynamic).
-`1.0.0` on Maven Central was an earlier drop of this same project; prefer **1.1.0**.
+Library version **1.1.0** is published on Maven Central as the A2UI **v0.8** GA line (template + dynamic).
+`1.0.0` was an earlier drop; prefer **1.1.0**. A patch (`1.1.1`) and A2UI **v0.9.1** migration are next on the roadmap.
 Both generation modes ship as GA:
 
 | Mode | Property | When to use it |
@@ -116,12 +118,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for layout, PR expectations, and formatti
 
 ## Documentation
 
+* [Platform positioning](docs/platform.md) — what we are, what builders keep, roadmap stages
 * [Getting started](docs/guides/getting-started.md)
 * [REST API](docs/rest-api.md)
 * [Dynamic generative UI](docs/guides/dynamic-generative-ui.md)
 * [Changelog](CHANGELOG.md)
+* [Backlog](BACKLOG.md) — execution order (near-term priority is locked)
 
-See also [CONTRIBUTING.md](CONTRIBUTING.md) for backlog, ADRs, and phase plans.
+See also [CONTRIBUTING.md](CONTRIBUTING.md) for ADRs and phase plans.
 
 ## Contributing
 

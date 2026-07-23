@@ -3,6 +3,10 @@
 This guide walks a Spring Boot app from dependency to a first A2UI SSE stream
 using **spring-a2ui-runtime** (A2UI v0.8).
 
+The runtime owns **compose → validate → stream → fail-fast → actions**. Your app
+keeps product logic, design system, and FE renderer. For positioning and roadmap
+stages, see [Platform positioning](../platform.md).
+
 For endpoint shapes and error codes, see [REST API](../rest-api.md).
 For dynamic-mode internals, see [Dynamic generative UI](dynamic-generative-ui.md).
 
