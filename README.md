@@ -14,8 +14,8 @@ If you are building generative UI on Spring, you should not have to hand-roll pr
 
 ## Status
 
-Library version **1.1.0** is published on Maven Central as the A2UI **v0.8** GA line (template + dynamic).
-`1.0.0` was an earlier drop; prefer **1.1.0**. A patch (`1.1.1`) and A2UI **v0.9.1** migration are next on the roadmap.
+Library version **1.1.1** is published on Maven Central as the A2UI **v0.8** GA line (template + dynamic).
+Prefer **1.1.1** over `1.1.0` / `1.0.0`. A2UI **v0.9.1** migration is next on the roadmap.
 Both generation modes ship as GA:
 
 | Mode | Property | When to use it |
@@ -33,7 +33,7 @@ You do not need to build this repository to use the runtime. Add the web starter
 <dependency>
   <groupId>com.kutaybuyukkorukcu.a2ui.runtime</groupId>
   <artifactId>a2ui-runtime-spring-web-starter</artifactId>
-  <version>1.1.0</version>
+  <version>1.1.1</version>
 </dependency>
 ```
 

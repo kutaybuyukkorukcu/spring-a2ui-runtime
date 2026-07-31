@@ -1,12 +1,12 @@
 # Backlog
 
-Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ← in flight → **Phase X (A2UI v0.9.1)** → **utilization layer (our SSE vocabulary)** → **optional foreign-client bridge (demand-gated)** → **Later**.
+Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1)** ← next → **utilization layer (our SSE vocabulary)** → **optional foreign-client bridge (demand-gated)** → **Later**.
 
 ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)`
 
 Implementation plans (for agents): `[docs/plans/phase-0-stream-infra.md](docs/plans/phase-0-stream-infra.md)` · `[docs/plans/phase-1-template-mvp.md](docs/plans/phase-1-template-mvp.md)` · `[docs/plans/phase-2-dynamic-generative-ui.md](docs/plans/phase-2-dynamic-generative-ui.md)` · `[docs/plans/phase-2.5-scalable-dynamic-runtime.md](docs/plans/phase-2.5-scalable-dynamic-runtime.md)` · `[docs/plans/phase-release-v0.8.md](docs/plans/phase-release-v0.8.md)` · `[docs/plans/phase-x-migrating-to-v0.9.md](docs/plans/phase-x-migrating-to-v0.9.md)` · `[docs/plans/phase-product-runtime-interaction.md](docs/plans/phase-product-runtime-interaction.md)`
 
-**Branches:** `fix/dynamic-primary-tool-failfast` (patch) · `docs/genui-platform-vision` (this doc alignment).
+**Branches:** `chore/release-1.1.1` (this patch publish) · next: Phase X / v0.9.1.
 
 ---
 
@@ -64,6 +64,7 @@ Ship a Maven Central Spring Boot runtime that turns prompts/intents into **valid
 - ~~Provider scope~~ → **OpenAI-first for MVP**; Anthropic / Gemini / Groq later
 - ~~Platform vs foreign protocol-as-core~~ → **Platform**; native SSE remains identity
 - ~~v0.8 / Central `1.1.0`~~ → **Published**
+- ~~Patch `1.1.1` dynamic fail-fast~~ → **Published**
 
 ### Roadmap narrative (product view)
 
@@ -71,7 +72,7 @@ Near-term **execution order stays locked** (see header). This section only expla
 
 | Stage | Builder outcome |
 |-------|-----------------|
-| **Patch `1.1.1`** | Dynamic GenUI is trustworthy infrastructure (forced primary tool, fail-fast tools) |
+| **Patch `1.1.1`** ✅ | Dynamic GenUI is trustworthy infrastructure (forced primary tool, fail-fast tools) |
 | **Phase X (v0.9.1)** | Protocol currency — builders are not stuck on Legacy wire |
 | **Utilization on native SSE** | Text / progress / run lifecycle *around* surfaces — product UX without a second pipe |
 | **Optional foreign-client bridge** | Demand-gated adapter for third-party chat clients; never core identity |
@@ -261,15 +262,15 @@ Runtime GA criteria are met (Phases 0–2.5). Release engineering complete.
 | **R.1–R.6** | OSS foundation, docs, version, CI, freeze | ✅ |
 | **R.7** | GitHub Release `v1.1.0` → Maven Central | ✅ |
 
-### Next ship — patch `1.1.1`
+### Patch `1.1.1` ✅
 
-Branch `fix/dynamic-primary-tool-failfast`: force primary `generateA2Ui`, planner-only `renderA2Ui`, fail-fast tool exceptions, advisor aggregation fix. Land before building more on dynamic mode.
+Merged `fix/dynamic-primary-tool-failfast` (forced primary `generateA2Ui`, planner-only `renderA2Ui`, fail-fast tool exceptions, advisor aggregation). Published as Maven Central **`1.1.1`**.
 
 ---
 
-## Phase X — Migrate to A2UI v0.9.1 🔴 next (after patch)
+## Phase X — Migrate to A2UI v0.9.1 🔴 next
 
-**Prerequisite:** `1.1.0` released ✅; prefer landing `1.1.1` patch first. a2ui.org marks **v0.8 = Legacy**, **v0.9.1 = Current** — protocol currency is a platform credibility gate before a large utilization investment on Legacy.
+**Prerequisite:** `1.1.0` ✅ and patch `1.1.1` ✅. a2ui.org marks **v0.8 = Legacy**, **v0.9.1 = Current** — protocol currency is a platform credibility gate before a large utilization investment on Legacy.
 
 **Plan:** `[docs/plans/phase-x-migrating-to-v0.9.md](docs/plans/phase-x-migrating-to-v0.9.md)`
 

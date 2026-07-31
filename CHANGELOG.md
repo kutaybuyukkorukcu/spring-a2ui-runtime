@@ -7,10 +7,28 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 
 Library versions (`1.x`) are independent of the A2UI **protocol** version (v0.8 for this line).
 
+## [1.1.1] — 2026-07-31
+
+Patch for dynamic-mode reliability on the A2UI **v0.8** GA line.
+
+### Fixed
+
+- Force primary-hop `generateA2Ui` via `MethodToolCallback` + forced tool choice so dynamic mode cannot skip surface generation or call planner-only `renderA2Ui`
+- Fail-fast tool errors: `ToolExecutionExceptionProcessor` rethrows `SurfaceExecutionException` instead of swallowing them into model-visible tool results
+- Aggregate Spring AI `Advisor` beans via `orderedStream` so ordering stays deterministic under auto-config
+
+### Packages
+
+Published to Maven Central:
+
+- `com.kutaybuyukkorukcu.a2ui.runtime:a2ui-runtime-core:1.1.1`
+- `com.kutaybuyukkorukcu.a2ui.runtime:a2ui-runtime-spring-starter:1.1.1`
+- `com.kutaybuyukkorukcu.a2ui.runtime:a2ui-runtime-spring-web-starter:1.1.1`
+
 ## [1.1.0] — TBD
 
 First **A2UI v0.8 GA** of this runtime after the early Central `1.0.0` drop.
-Prefer **1.1.0** for new integrations.
+Prefer **1.1.1** for new integrations.
 
 **Verified:** `mvn verify -B -ntp` green on release branch; semantic-repair APIs absent from `packages/`.
 
@@ -46,7 +64,8 @@ Published to Maven Central:
 ## [1.0.0] — 2026-05
 
 Early publish of this repository to Maven Central (pre–Phase 0–2.5 GA).
-Kept for history; use **1.1.0** instead.
+Kept for history; use **1.1.1** instead.
 
-[1.1.0]: https://github.com/kutaybuyukkorukcu/spring-a2ui-runtime/releases/tag/v1.1.0
+[1.1.1]: https://github.com/kutaybuyukkorukcu/spring-a2ui-runtime/releases/tag/1.1.1
+[1.1.0]: https://github.com/kutaybuyukkorukcu/spring-a2ui-runtime/releases/tag/1.1.0
 [1.0.0]: https://repo1.maven.org/maven2/com/kutaybuyukkorukcu/a2ui/runtime/

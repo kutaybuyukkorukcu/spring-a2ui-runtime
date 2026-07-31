@@ -23,7 +23,7 @@ For dynamic-mode internals, see [Dynamic generative UI](dynamic-generative-ui.md
 <dependency>
   <groupId>com.kutaybuyukkorukcu.a2ui.runtime</groupId>
   <artifactId>a2ui-runtime-spring-web-starter</artifactId>
-  <version>1.1.0</version>
+  <version>1.1.1</version>
 </dependency>
 ```
 

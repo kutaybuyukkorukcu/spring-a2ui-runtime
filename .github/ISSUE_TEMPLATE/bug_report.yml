@@ -27,7 +27,7 @@ body:
     id: versions
     attributes:
       label: Versions
-      description: "e.g. spring-a2ui 1.1.0, Spring Boot 3.4.1, Spring AI 1.1.0-M2"
+      description: "e.g. spring-a2ui 1.1.1, Spring Boot 3.4.1, Spring AI 1.1.0-M2"
     validations:
       required: true
   - type: textarea
