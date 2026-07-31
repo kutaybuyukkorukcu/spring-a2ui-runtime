@@ -1,7 +1,7 @@
 # Phase — Product runtime utilization layer (platform track)
 
 **Status:** Plan / product decision (not started)  
-**Depends on:** Maven Central `1.1.0` ✅ · prefer `1.1.1` dynamic fail-fast patch · **Phase X (A2UI v0.9.1) before large utilization investment**  
+**Depends on:** Maven Central `1.1.0` ✅ · patch `1.1.1` ✅ · **Phase X (A2UI v0.9.1) before large utilization investment**  
 **Related:** `BACKLOG.md` → Vision / Mission · utilization · optional foreign-client bridge  
 **Agent:** `.cursor/agents/product-runtime-architect.md`
 
@@ -54,7 +54,7 @@ We do not rebuild core around third-party interaction protocols. Interop adapter
 
 | Need | Product expectation | Our surface today |
 |------|---------------------|-------------------|
-| Install + 15-min Boot path | README + Central | ✅ `1.1.0` |
+| Install + 15-min Boot path | README + Central | ✅ `1.1.1` |
 | Declarative GenUI | Validated A2UI envelopes | ✅ template + dynamic |
 | Protocol currency | Current A2UI (v0.9.1) | ❌ still on Legacy v0.8 → **Phase X** |
 | Chat text + surfaces | Prose beside surfaces | ❌ surfaces only → utilization |
@@ -70,7 +70,7 @@ We do not rebuild core around third-party interaction protocols. Interop adapter
 
 ### Verdict
 
-- **Runtime (generation):** Shipped GA at `1.1.0`; patch `1.1.1` for dynamic fail-fast.  
+- **Runtime (generation):** Shipped GA at `1.1.0`; patch `1.1.1` dynamic fail-fast ✅.  
 - **Platform altitude:** Not yet — need v0.9.1 currency + utilization on native SSE.  
 - **Do not** make a foreign interaction protocol the default pipe or put foreign protocol types in core.
 
@@ -78,7 +78,7 @@ We do not rebuild core around third-party interaction protocols. Interop adapter
 
 | Priority | Track | Why |
 |----------|-------|-----|
-| **P0** | Patch `1.1.1` (forced `generateA2Ui`, fail-fast tools) | Dynamic reliability baseline |
+| **P0** | Patch `1.1.1` ✅ | Dynamic reliability baseline |
 | **P0** | **Phase X → A2UI v0.9.1** | Protocol currency before big utilization on Legacy |
 | **P1** | **Native SSE lifecycle enrichment** (our event vocabulary) | Chat-quality GenUI on our pipe |
 | **P2** | **Optional foreign-client bridge module** | Demand-gated adapter for external client ecosystems |
@@ -126,7 +126,7 @@ We do not rebuild core around third-party interaction protocols. Interop adapter
 ### Slice 0 — Prerequisites
 
 - [x] v0.8 / `1.1.0` on Maven Central  
-- [ ] Land `1.1.1` dynamic fail-fast patch  
+- [x] Land `1.1.1` dynamic fail-fast patch  
 - [ ] Phase X (v0.9.1) — see `phase-x-migrating-to-v0.9.md`
 
 ### Slice 1 — Native run / progress vocabulary
@@ -202,7 +202,7 @@ Additional **Later** platform-maturity themes (builder DX, multi-provider, ops, 
 
 ## Suggested execution order
 
-1. Patch `1.1.1`  
+1. Patch `1.1.1` ✅  
 2. Phase X (v0.9.1)  
 3. Slices 1–2 (utilization on native SSE)  
 4. Slice 3 (optional foreign-client bridge) — demand-gated  

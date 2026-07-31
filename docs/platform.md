@@ -38,7 +38,7 @@ Open-ended GenUI (arbitrary HTML / remote applets) is out of scope unless we exp
 
 Near-term **execution order is locked** in [`BACKLOG.md`](../BACKLOG.md). Do not reshuffle it. Outcomes for builders:
 
-1. **Patch `1.1.1`** — dynamic path is trustworthy infrastructure  
+1. **Patch `1.1.1`** ✅ — dynamic path is trustworthy infrastructure  
 2. **Phase X (A2UI v0.9.1)** — protocol currency on Current wire  
 3. **Utilization on native SSE** — text / progress / run lifecycle around surfaces ([plan](plans/phase-product-runtime-interaction.md))  
 4. **Optional foreign-client bridge** — demand-gated adapter only  
