@@ -1,5 +1,6 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service;
 
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.A2UiSurfaceRequest;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
@@ -16,25 +17,23 @@ class A2UiRequestCatalogNegotiatorTest {
     void shouldReturnDefaultWhenNoCapabilities() {
         String catalogId = A2UiRequestCatalogNegotiator.negotiateCatalogId(
                 new A2UiSurfaceRequest("test", null, null));
-        assertThat(catalogId).isEqualTo("https://a2ui.org/specification/v0_8/standard_catalog_definition.json");
+        assertThat(catalogId).isEqualTo(A2UiCatalogIds.BASIC_V0_9);
     }
 
     @Test
     void shouldReturnDefaultWhenCapabilitiesNull() {
-        A2UiSurfaceRequest.ClientCapabilities caps = null;
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("test", null,
                 new A2UiSurfaceRequest.ClientCapabilities(null));
         String catalogId = A2UiRequestCatalogNegotiator.negotiateCatalogId(request);
-        assertThat(catalogId).isEqualTo("https://a2ui.org/specification/v0_8/standard_catalog_definition.json");
+        assertThat(catalogId).isEqualTo(A2UiCatalogIds.BASIC_V0_9);
     }
 
     @Test
     void shouldReturnMatchingSupportedCatalogId() {
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("test", null,
-                new A2UiSurfaceRequest.ClientCapabilities(
-                        List.of("https://a2ui.org/specification/v0_8/standard_catalog_definition.json")));
+                new A2UiSurfaceRequest.ClientCapabilities(List.of(A2UiCatalogIds.BASIC_V0_9)));
         String catalogId = A2UiRequestCatalogNegotiator.negotiateCatalogId(request);
-        assertThat(catalogId).isEqualTo("https://a2ui.org/specification/v0_8/standard_catalog_definition.json");
+        assertThat(catalogId).isEqualTo(A2UiCatalogIds.BASIC_V0_9);
     }
 
     @Test

@@ -45,18 +45,18 @@ public class A2UiActionService {
             return acknowledgeRendererError(event.error(), requestId);
         }
 
-        A2UiUserAction userAction = validateUserAction(event.userAction());
-        String routeKey = routeKey(userAction);
+        A2UiUserAction action = validateAction(event.action());
+        String routeKey = routeKey(action);
 
         A2UiActionHandler handler = actionHandlers.stream()
-                .filter(candidate -> candidate.supports(userAction))
+                .filter(candidate -> candidate.supports(action))
                 .findFirst()
                 .orElseThrow(() -> new A2UiActionException(
                         "No action handler registered for route " + routeKey,
                         A2UiActionErrorCodes.ACTION_NOT_HANDLED,
-                        Map.of("routeKey", routeKey, "surfaceId", userAction.surfaceId(), "actionName", userAction.name())));
+                        Map.of("routeKey", routeKey, "surfaceId", action.surfaceId(), "actionName", action.name())));
 
-        List<A2UiMessage> messages = handler.handle(userAction, requestId);
+        List<A2UiMessage> messages = handler.handle(action, requestId);
         if (messages == null) {
             messages = List.of();
         }
@@ -69,9 +69,9 @@ public class A2UiActionService {
                     Map.of("routeKey", routeKey, "diagnostics", diagnostics));
         }
 
-        runtimeMetrics.recordActionEvent("userAction");
+        runtimeMetrics.recordActionEvent("action");
 
-        return A2UiActionResponse.accepted(userAction.name(), userAction.surfaceId(), userAction.sourceComponentId(), messages);
+        return A2UiActionResponse.accepted(action.name(), action.surfaceId(), action.sourceComponentId(), messages);
     }
 
     private void validateClientEvent(A2UiClientEvent event) {
@@ -80,11 +80,11 @@ public class A2UiActionService {
         }
     }
 
-    private A2UiUserAction validateUserAction(A2UiUserAction userAction) {
-        if (userAction == null) {
-            throw new A2UiActionException("userAction payload is required", A2UiActionErrorCodes.INVALID_USER_ACTION, Map.of("reason", "missing_user_action"));
+    private A2UiUserAction validateAction(A2UiUserAction action) {
+        if (action == null) {
+            throw new A2UiActionException("action payload is required", A2UiActionErrorCodes.INVALID_USER_ACTION, Map.of("reason", "missing_action"));
         }
-        return userAction;
+        return action;
     }
 
     private A2UiActionResponse acknowledgeRendererError(A2UiClientError error, String requestId) {

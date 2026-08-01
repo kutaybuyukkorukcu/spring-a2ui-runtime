@@ -1,5 +1,6 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.integration;
 
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,12 +18,12 @@ class A2UiCatalogEndpointIntegrationTest {
     private TestRestTemplate restTemplate;
 
     @Test
-    void shouldServeStandardCatalog() {
-        ResponseEntity<Map> response = restTemplate.getForEntity("/a2ui/catalogs/standard-v0.8", Map.class);
+    void shouldServeBasicCatalog() {
+        ResponseEntity<Map> response = restTemplate.getForEntity("/a2ui/catalogs/basic-v0.9", Map.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().get("catalogId")).isEqualTo("https://a2ui.org/specification/v0_8/standard_catalog_definition.json");
+        assertThat(response.getBody().get("catalogId")).isEqualTo(A2UiCatalogIds.BASIC_V0_9);
         assertThat(response.getBody()).containsKey("components");
     }
 
@@ -33,7 +34,7 @@ class A2UiCatalogEndpointIntegrationTest {
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
         ResponseEntity<String> response = restTemplate.exchange(
-                "/a2ui/catalogs/standard-v0.8", HttpMethod.GET, entity, String.class);
+                "/a2ui/catalogs/basic-v0.9", HttpMethod.GET, entity, String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getHeaders().getContentType()).isNotNull();

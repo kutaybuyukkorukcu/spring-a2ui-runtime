@@ -11,33 +11,19 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Thin v0.8 assembler: converts planner-friendly flat component entries into canonical A2UI
- * adjacency-list component definitions.
+ * Thin v0.9.1 sanitizer: converts planner-friendly flat component entries into
+ * {@link ComponentDefinition} records. No BoundValue wrapping, no explicitList wrapping,
+ * no nested {@code {Type:{}}} wrapping.
  *
- * <p>Canonicalization only — no semantic repair. Invalid catalog shapes (missing required props,
- * unknown aliases like {@code checked}/{@code variant}, Card {@code children}, Button without
- * {@code child}) must fail validation and retry, never be silently patched.
- *
- * <h2>Kept rules</h2>
- * <ul>
- *   <li>Flat string component type → {@code {Type: {...}}} wrapping</li>
- *   <li>BoundValue shorthand: plain string → {@code {literalString}}, number →
- *       {@code {literalNumber}}, boolean → {@code {literalBoolean}}, leading-slash / {@code {data.X}}
- *       → {@code {path}}</li>
- *   <li>{@code children} as bare string list → {@code {explicitList: [...]}}</li>
- *   <li>Action as bare string → {@code {name: "..."}}</li>
- *   <li>{@code child}/{@code entryPointChild}/{@code contentChild} string coercion</li>
- *   <li>Tab item titles, option labels, action context values → BoundValue normalization</li>
- *   <li>List {@code data} → {@code template.dataBinding} and bare string template → object</li>
- *   <li>Drop is handled by assembly sanitize (missing id/component)</li>
- *   <li>Child reference DAG validation (self-references, dangling refs, cycles) — fail, do not invent</li>
- * </ul>
+ * <p>Canonicalization only — no semantic repair. DAG validation fails rather than inventing
+ * missing children.
  */
 public class A2UiDynamicComponentNormalizer {
 
     private static final Pattern DATA_BINDING_PATTERN = Pattern.compile("^\\{data\\.([^}]+)\\}$");
 
-    private static final Set<String> BOUND_VALUE_PROPERTIES = Set.of(
+    /** Props that accept DynamicString / Dynamic* and may use path shorthand. */
+    private static final Set<String> BINDABLE_PROPERTIES = Set.of(
             "text", "url", "altText", "name", "description", "label", "value", "title", "selections");
 
     public List<ComponentDefinition> normalize(List<Map<String, Object>> flatComponents) {
@@ -75,8 +61,8 @@ public class A2UiDynamicComponentNormalizer {
     }
 
     /**
-     * Promotes List {@code data} + bare string {@code children.template} into the catalog shape
-     * {@code children.template = {componentId, dataBinding}}. Equivalent forms only — does not invent structure.
+     * Promotes List {@code data} + bare string template into catalog shape
+     * {@code children = {componentId, path}}.
      */
     @SuppressWarnings("unchecked")
     private ComponentDefinition canonicalizeListComponent(ComponentDefinition list) {
@@ -84,55 +70,73 @@ public class A2UiDynamicComponentNormalizer {
         Object dataBindingSource = props.remove("data");
         Object children = props.get("children");
 
+        if (children instanceof String templateId) {
+            props.put("children", Map.of(
+                    "componentId", templateId,
+                    "path", resolveDataBindingPath(dataBindingSource)));
+            return rebuild(list, props);
+        }
+
         if (!(children instanceof Map<?, ?> childrenMap)) {
             return list;
         }
 
-        Map<String, Object> fixedChildren = new LinkedHashMap<>();
-        for (Map.Entry<?, ?> entry : childrenMap.entrySet()) {
-            fixedChildren.put(String.valueOf(entry.getKey()), entry.getValue());
-        }
-
-        Object template = fixedChildren.get("template");
-        if (template instanceof String componentId) {
-            fixedChildren.put("template", Map.of(
-                    "componentId", componentId,
-                    "dataBinding", resolveDataBindingPath(dataBindingSource)));
-        } else if (template instanceof Map<?, ?> templateMap) {
-            Map<String, Object> fixedTemplate = new LinkedHashMap<>();
-            for (Map.Entry<?, ?> entry : templateMap.entrySet()) {
-                fixedTemplate.put(String.valueOf(entry.getKey()), entry.getValue());
-            }
-            if (!fixedTemplate.containsKey("dataBinding") && dataBindingSource != null) {
-                fixedTemplate.put("dataBinding", resolveDataBindingPath(dataBindingSource));
-            }
-            if (fixedTemplate.get("dataBinding") instanceof String binding && !binding.startsWith("/")) {
-                fixedTemplate.put("dataBinding", "/" + binding);
-            }
-            fixedChildren.put("template", fixedTemplate);
-        }
-
-        if (fixedChildren.containsKey("explicitList") && fixedChildren.get("explicitList") instanceof List<?> listIds) {
+        // Legacy explicitList → bare array
+        if (childrenMap.containsKey("explicitList") && childrenMap.get("explicitList") instanceof List<?> listIds) {
             List<String> ids = new ArrayList<>(listIds.size());
             for (Object id : listIds) {
                 ids.add(String.valueOf(id));
             }
-            fixedChildren.put("explicitList", ids);
+            props.put("children", ids);
+            return rebuild(list, props);
         }
 
-        props.put("children", fixedChildren);
-        return rebuildComponent(list, "List", props);
+        // Template object: prefer path; accept legacy dataBinding
+        if (childrenMap.containsKey("componentId") || childrenMap.containsKey("template")) {
+            Map<String, Object> template = new LinkedHashMap<>();
+            Object templateNode = childrenMap.get("template");
+            if (templateNode instanceof String componentId) {
+                template.put("componentId", componentId);
+            } else if (templateNode instanceof Map<?, ?> templateMap) {
+                for (Map.Entry<?, ?> entry : templateMap.entrySet()) {
+                    template.put(String.valueOf(entry.getKey()), entry.getValue());
+                }
+            } else {
+                for (Map.Entry<?, ?> entry : childrenMap.entrySet()) {
+                    template.put(String.valueOf(entry.getKey()), entry.getValue());
+                }
+            }
+
+            Object path = template.get("path");
+            if (path == null) {
+                Object dataBinding = template.remove("dataBinding");
+                if (dataBinding != null) {
+                    path = dataBinding;
+                } else if (dataBindingSource != null) {
+                    path = dataBindingSource;
+                }
+            }
+            template.put("path", resolveDataBindingPath(path));
+            if (!(template.get("componentId") instanceof String)) {
+                return list;
+            }
+            props.put("children", Map.of(
+                    "componentId", template.get("componentId"),
+                    "path", template.get("path")));
+            return rebuild(list, props);
+        }
+
+        return list;
     }
 
-    private static ComponentDefinition rebuildComponent(
-            ComponentDefinition source, String componentType, Map<String, Object> props) {
+    private static ComponentDefinition rebuild(ComponentDefinition source, Map<String, Object> props) {
         Map<String, Object> cleaned = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : props.entrySet()) {
             if (entry.getValue() != null) {
                 cleaned.put(entry.getKey(), entry.getValue());
             }
         }
-        return new ComponentDefinition(source.id(), Map.of(componentType, cleaned));
+        return new ComponentDefinition(source.id(), source.componentType(), cleaned);
     }
 
     private static String resolveDataBindingPath(Object dataBindingSource) {
@@ -147,48 +151,49 @@ public class A2UiDynamicComponentNormalizer {
             throw new IllegalArgumentException("Component entry must not be null");
         }
 
-        Object idValue = entry.get("id");
-        if (!(idValue instanceof String id) || id.isBlank()) {
-            throw new IllegalArgumentException("Component entry must include a non-blank id");
-        }
-
         Object componentValue = entry.get("component");
-        String componentType;
-        Map<String, Object> rawProps;
+        Map<String, Object> flat = new LinkedHashMap<>();
 
         if (componentValue instanceof String typeName) {
             if (typeName.isBlank()) {
-                throw new IllegalArgumentException("Component type must not be blank for id: " + id);
+                throw new IllegalArgumentException("Component type must not be blank");
             }
-            componentType = typeName;
-            rawProps = new LinkedHashMap<>();
             for (Map.Entry<String, Object> field : entry.entrySet()) {
-                if ("id".equals(field.getKey()) || "component".equals(field.getKey())) {
-                    continue;
-                }
-                rawProps.put(field.getKey(), field.getValue());
+                flat.put(field.getKey(), field.getValue());
             }
         } else if (componentValue instanceof Map<?, ?> componentMap && componentMap.size() == 1) {
+            // Accept legacy nested {Type:{...}} only to unwrap — do not re-wrap.
             Map.Entry<?, ?> typeEntry = componentMap.entrySet().iterator().next();
-            componentType = String.valueOf(typeEntry.getKey());
-            Object props = typeEntry.getValue();
-            rawProps = props instanceof Map<?, ?> propsMap
-                    ? copyMap(propsMap)
-                    : new LinkedHashMap<>();
+            flat.put("id", entry.get("id"));
+            flat.put("component", String.valueOf(typeEntry.getKey()));
+            if (typeEntry.getValue() instanceof Map<?, ?> propsMap) {
+                for (Map.Entry<?, ?> prop : propsMap.entrySet()) {
+                    flat.put(String.valueOf(prop.getKey()), prop.getValue());
+                }
+            }
+            for (Map.Entry<String, Object> field : entry.entrySet()) {
+                if (!"id".equals(field.getKey()) && !"component".equals(field.getKey())) {
+                    flat.putIfAbsent(field.getKey(), field.getValue());
+                }
+            }
         } else {
-            throw new IllegalArgumentException("Component entry must include component type for id: " + id);
+            throw new IllegalArgumentException("Component entry must include component type as a string");
         }
 
-        Map<String, Object> normalizedProps = normalizeProperties(rawProps);
-        return new ComponentDefinition(id, Map.of(componentType, normalizedProps));
-    }
-
-    private Map<String, Object> normalizeProperties(Map<String, Object> props) {
-        Map<String, Object> normalized = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : props.entrySet()) {
-            normalized.put(entry.getKey(), normalizeProperty(entry.getKey(), entry.getValue()));
+        Map<String, Object> sanitizedProps = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> field : flat.entrySet()) {
+            String key = field.getKey();
+            if ("id".equals(key) || "component".equals(key)) {
+                continue;
+            }
+            sanitizedProps.put(key, normalizeProperty(key, field.getValue()));
         }
-        return normalized;
+
+        Map<String, Object> forFromFlat = new LinkedHashMap<>();
+        forFromFlat.put("id", flat.get("id"));
+        forFromFlat.put("component", flat.get("component"));
+        forFromFlat.putAll(sanitizedProps);
+        return ComponentDefinition.fromFlatMap(forFromFlat);
     }
 
     @SuppressWarnings("unchecked")
@@ -199,11 +204,13 @@ public class A2UiDynamicComponentNormalizer {
 
         return switch (name) {
             case "children" -> normalizeChildren(value);
-            case "child", "entryPointChild", "contentChild" -> String.valueOf(value);
-            case "tabItems" -> normalizeTabItems(value);
-            case "options" -> normalizeMultipleChoiceOptions(value);
+            case "child", "trigger", "content" -> String.valueOf(value);
+            // Legacy v0.8 names — keep as-is so catalog validation fails (no semantic repair rename)
+            case "entryPointChild", "contentChild" -> String.valueOf(value);
+            case "tabs", "tabItems" -> normalizeTabItems(name, value);
+            case "options" -> normalizeOptions(value);
             case "action" -> normalizeAction(value);
-            default -> normalizeBoundOrPlain(name, value);
+            default -> normalizeBindableOrPlain(name, value);
         };
     }
 
@@ -214,40 +221,44 @@ public class A2UiDynamicComponentNormalizer {
             for (Object childId : childIds) {
                 ids.add(String.valueOf(childId));
             }
-            return Map.of("explicitList", ids);
+            return ids;
         }
         if (value instanceof Map<?, ?> childrenMap) {
-            Map<String, Object> normalized = new LinkedHashMap<>();
+            // Pass through template / legacy shapes for canonicalizeListComponent
+            Map<String, Object> copied = new LinkedHashMap<>();
             for (Map.Entry<?, ?> entry : childrenMap.entrySet()) {
-                normalized.put(String.valueOf(entry.getKey()), entry.getValue());
+                copied.put(String.valueOf(entry.getKey()), entry.getValue());
             }
-            if (normalized.containsKey("explicitList") && normalized.get("explicitList") instanceof List<?> list) {
+            if (copied.containsKey("explicitList") && copied.get("explicitList") instanceof List<?> list) {
                 List<String> ids = new ArrayList<>(list.size());
                 for (Object childId : list) {
                     ids.add(String.valueOf(childId));
                 }
-                normalized.put("explicitList", ids);
+                return ids;
             }
-            return normalized;
+            return copied;
         }
-        throw new IllegalArgumentException("children must be an explicitList or template object");
+        if (value instanceof String templateId) {
+            return templateId;
+        }
+        throw new IllegalArgumentException("children must be an id array or template object");
     }
 
     @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> normalizeTabItems(Object value) {
+    private List<Map<String, Object>> normalizeTabItems(String name, Object value) {
         if (!(value instanceof List<?> items)) {
-            throw new IllegalArgumentException("tabItems must be an array");
+            throw new IllegalArgumentException(name + " must be an array");
         }
         List<Map<String, Object>> normalizedItems = new ArrayList<>(items.size());
         for (Object item : items) {
             if (!(item instanceof Map<?, ?> itemMap)) {
-                throw new IllegalArgumentException("tabItems entries must be objects");
+                throw new IllegalArgumentException(name + " entries must be objects");
             }
             Map<String, Object> normalizedItem = new LinkedHashMap<>();
             for (Map.Entry<?, ?> entry : itemMap.entrySet()) {
                 String key = String.valueOf(entry.getKey());
                 if ("title".equals(key)) {
-                    normalizedItem.put(key, normalizeBoundValue(entry.getValue()));
+                    normalizedItem.put(key, coercePathShorthand(entry.getValue()));
                 } else if ("child".equals(key)) {
                     normalizedItem.put(key, String.valueOf(entry.getValue()));
                 } else {
@@ -260,7 +271,7 @@ public class A2UiDynamicComponentNormalizer {
     }
 
     @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> normalizeMultipleChoiceOptions(Object value) {
+    private List<Map<String, Object>> normalizeOptions(Object value) {
         if (!(value instanceof List<?> options)) {
             throw new IllegalArgumentException("options must be an array");
         }
@@ -273,7 +284,7 @@ public class A2UiDynamicComponentNormalizer {
             for (Map.Entry<?, ?> entry : optionMap.entrySet()) {
                 String key = String.valueOf(entry.getKey());
                 if ("label".equals(key)) {
-                    normalizedOption.put(key, normalizeBoundValue(entry.getValue()));
+                    normalizedOption.put(key, coercePathShorthand(entry.getValue()));
                 } else {
                     normalizedOption.put(key, entry.getValue());
                 }
@@ -286,56 +297,111 @@ public class A2UiDynamicComponentNormalizer {
     @SuppressWarnings("unchecked")
     private Map<String, Object> normalizeAction(Object value) {
         if (value instanceof String stringValue) {
-            return Map.of("name", stringValue);
+            return Map.of("event", Map.of("name", stringValue));
         }
         if (!(value instanceof Map<?, ?> actionMap)) {
             throw new IllegalArgumentException("action must be an object or string");
         }
-        Map<String, Object> normalizedAction = new LinkedHashMap<>();
-        for (Map.Entry<?, ?> entry : actionMap.entrySet()) {
-            String key = String.valueOf(entry.getKey());
-            if ("context".equals(key) && entry.getValue() instanceof List<?> contextItems) {
-                List<Map<String, Object>> normalizedContext = new ArrayList<>(contextItems.size());
-                for (Object contextItem : contextItems) {
-                    if (!(contextItem instanceof Map<?, ?> contextMap)) {
-                        throw new IllegalArgumentException("action.context entries must be objects");
-                    }
-                    Map<String, Object> normalizedContextItem = new LinkedHashMap<>();
-                    for (Map.Entry<?, ?> contextEntry : contextMap.entrySet()) {
-                        String contextKey = String.valueOf(contextEntry.getKey());
-                        if ("value".equals(contextKey)) {
-                            normalizedContextItem.put(contextKey, normalizeBoundValue(contextEntry.getValue()));
-                        } else {
-                            normalizedContextItem.put(contextKey, contextEntry.getValue());
-                        }
-                    }
-                    normalizedContext.add(normalizedContextItem);
-                }
-                normalizedAction.put(key, normalizedContext);
-            } else {
-                normalizedAction.put(key, entry.getValue());
+
+        // Already v0.9 shape
+        if (actionMap.containsKey("event") || actionMap.containsKey("functionCall")) {
+            Map<String, Object> copied = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : actionMap.entrySet()) {
+                copied.put(String.valueOf(entry.getKey()), entry.getValue());
             }
+            return copied;
         }
-        return normalizedAction;
+
+        // Legacy {name, context} → {event:{name, context}}
+        if (actionMap.containsKey("name")) {
+            Map<String, Object> event = new LinkedHashMap<>();
+            event.put("name", String.valueOf(actionMap.get("name")));
+            Object context = actionMap.get("context");
+            if (context != null) {
+                event.put("context", normalizeActionContext(context));
+            }
+            return Map.of("event", event);
+        }
+
+        Map<String, Object> copied = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : actionMap.entrySet()) {
+            copied.put(String.valueOf(entry.getKey()), entry.getValue());
+        }
+        return copied;
     }
 
-    private Object normalizeBoundOrPlain(String name, Object value) {
-        if (BOUND_VALUE_PROPERTIES.contains(name)) {
-            return normalizeBoundValue(value);
+    @SuppressWarnings("unchecked")
+    private Object normalizeActionContext(Object context) {
+        if (context instanceof Map<?, ?>) {
+            return context;
         }
-        if (isAlreadyBoundValue(value)) {
-            return copyBoundValueMap(value);
+        // Legacy list of {key, value} → object map
+        if (context instanceof List<?> contextItems) {
+            Map<String, Object> asMap = new LinkedHashMap<>();
+            for (Object contextItem : contextItems) {
+                if (contextItem instanceof Map<?, ?> contextMap) {
+                    Object key = contextMap.get("key");
+                    Object value = contextMap.get("value");
+                    if (key != null) {
+                        asMap.put(String.valueOf(key), coercePathShorthand(value));
+                    }
+                }
+            }
+            return asMap;
+        }
+        return context;
+    }
+
+    private Object normalizeBindableOrPlain(String name, Object value) {
+        if (BINDABLE_PROPERTIES.contains(name)) {
+            return coercePathShorthand(value);
+        }
+        // Already a path object — leave alone
+        if (value instanceof Map<?, ?> map && map.containsKey("path") && map.size() == 1) {
+            return copyMap(map);
+        }
+        // Strip legacy BoundValue wrappers if planner still emits them
+        if (value instanceof Map<?, ?> map) {
+            if (map.containsKey("literalString")) {
+                return map.get("literalString");
+            }
+            if (map.containsKey("literalNumber")) {
+                return map.get("literalNumber");
+            }
+            if (map.containsKey("literalBoolean")) {
+                return map.get("literalBoolean");
+            }
+            if (map.containsKey("literalArray")) {
+                return map.get("literalArray");
+            }
         }
         return value;
     }
 
-    @SuppressWarnings("unchecked")
-    private Object normalizeBoundValue(Object value) {
+    /**
+     * Coerce path shorthand only: leading {@code /} or {@code {data.X}} → {@code {path}}.
+     * Plain strings stay as native DynamicString literals.
+     */
+    private Object coercePathShorthand(Object value) {
         if (value == null) {
             return null;
         }
-        if (isAlreadyBoundValue(value)) {
-            return copyBoundValueMap(value);
+        if (value instanceof Map<?, ?> map) {
+            if (map.containsKey("path")) {
+                return copyMap(map);
+            }
+            if (map.containsKey("literalString")) {
+                return map.get("literalString");
+            }
+            if (map.containsKey("literalNumber")) {
+                return map.get("literalNumber");
+            }
+            if (map.containsKey("literalBoolean")) {
+                return map.get("literalBoolean");
+            }
+            if (map.containsKey("literalArray")) {
+                return map.get("literalArray");
+            }
         }
         if (value instanceof String stringValue) {
             if (stringValue.startsWith("/")) {
@@ -345,43 +411,9 @@ public class A2UiDynamicComponentNormalizer {
             if (dataBinding.matches()) {
                 return Map.of("path", dataPathFromBinding(dataBinding.group(1)));
             }
-            return Map.of("literalString", stringValue);
+            return stringValue;
         }
-        if (value instanceof Number numberValue) {
-            return Map.of("literalNumber", numberValue);
-        }
-        if (value instanceof Boolean booleanValue) {
-            return Map.of("literalBoolean", booleanValue);
-        }
-        if (value instanceof List<?> arrayValue) {
-            List<String> literalArray = new ArrayList<>(arrayValue.size());
-            for (Object item : arrayValue) {
-                literalArray.add(String.valueOf(item));
-            }
-            return Map.of("literalArray", literalArray);
-        }
-        throw new IllegalArgumentException("Unsupported bound value type: " + value.getClass().getName());
-    }
-
-    @SuppressWarnings("unchecked")
-    private boolean isAlreadyBoundValue(Object value) {
-        if (!(value instanceof Map<?, ?> map)) {
-            return false;
-        }
-        return map.containsKey("literalString")
-                || map.containsKey("literalNumber")
-                || map.containsKey("literalBoolean")
-                || map.containsKey("literalArray")
-                || map.containsKey("path");
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> copyBoundValueMap(Object value) {
-        Map<String, Object> copied = new LinkedHashMap<>();
-        for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
-            copied.put(String.valueOf(entry.getKey()), entry.getValue());
-        }
-        return copied;
+        return value;
     }
 
     private void validateChildReferences(List<ComponentDefinition> components) {
@@ -418,18 +450,28 @@ public class A2UiDynamicComponentNormalizer {
         Set<String> childIds = new LinkedHashSet<>();
         Map<String, Object> props = component.componentProperties();
 
-        Object child = props.get("child");
-        if (child instanceof String childId) {
-            childIds.add(childId);
+        for (String singleChildKey : List.of("child", "trigger", "content", "entryPointChild", "contentChild")) {
+            Object child = props.get(singleChildKey);
+            if (child instanceof String childId) {
+                childIds.add(childId);
+            }
         }
 
         Object children = props.get("children");
-        if (children instanceof Map<?, ?> childrenMap) {
+        if (children instanceof List<?> ids) {
+            for (Object id : ids) {
+                childIds.add(String.valueOf(id));
+            }
+        } else if (children instanceof Map<?, ?> childrenMap) {
             Object explicitList = childrenMap.get("explicitList");
             if (explicitList instanceof List<?> ids) {
                 for (Object id : ids) {
                     childIds.add(String.valueOf(id));
                 }
+            }
+            Object componentId = childrenMap.get("componentId");
+            if (componentId != null) {
+                childIds.add(String.valueOf(componentId));
             }
             Object template = childrenMap.get("template");
             if (template instanceof Map<?, ?> templateMap && templateMap.get("componentId") != null) {
@@ -437,24 +479,19 @@ public class A2UiDynamicComponentNormalizer {
             } else if (template instanceof String templateId) {
                 childIds.add(templateId);
             }
+        } else if (children instanceof String templateId) {
+            childIds.add(templateId);
         }
 
-        Object tabItems = props.get("tabItems");
-        if (tabItems instanceof List<?> items) {
-            for (Object item : items) {
-                if (item instanceof Map<?, ?> itemMap && itemMap.get("child") != null) {
-                    childIds.add(String.valueOf(itemMap.get("child")));
+        for (String tabsKey : List.of("tabs", "tabItems")) {
+            Object tabs = props.get(tabsKey);
+            if (tabs instanceof List<?> items) {
+                for (Object item : items) {
+                    if (item instanceof Map<?, ?> itemMap && itemMap.get("child") != null) {
+                        childIds.add(String.valueOf(itemMap.get("child")));
+                    }
                 }
             }
-        }
-
-        Object entryPointChild = props.get("entryPointChild");
-        if (entryPointChild instanceof String entryPointChildId) {
-            childIds.add(entryPointChildId);
-        }
-        Object contentChild = props.get("contentChild");
-        if (contentChild instanceof String contentChildId) {
-            childIds.add(contentChildId);
         }
 
         return childIds;

@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 
 class A2UiCatalogServiceTest {
 
@@ -20,15 +19,15 @@ class A2UiCatalogServiceTest {
     }
 
     @Test
-    void shouldLoadStandardCatalog() {
-        Map<String, Object> catalog = catalogService.getStandardCatalog();
+    void shouldLoadBasicCatalog() {
+        Map<String, Object> catalog = catalogService.getBasicCatalog();
         assertThat(catalog).isNotEmpty();
-        assertThat(catalog.get("catalogId")).isEqualTo(A2UiCatalogIds.STANDARD_V0_8);
+        assertThat(catalog.get("catalogId")).isEqualTo(A2UiCatalogIds.BASIC_V0_9);
     }
 
     @Test
     void shouldContainComponentTypes() {
-        Map<String, Object> catalog = catalogService.getStandardCatalog();
+        Map<String, Object> catalog = catalogService.getBasicCatalog();
         assertThat(catalog).containsKey("components");
     }
 }

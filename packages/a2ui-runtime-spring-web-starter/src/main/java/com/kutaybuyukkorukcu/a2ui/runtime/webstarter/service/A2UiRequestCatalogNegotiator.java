@@ -13,7 +13,7 @@ import java.util.Map;
 public final class A2UiRequestCatalogNegotiator {
 
     private static final A2UiCatalogRegistry CATALOG_REGISTRY = A2UiCatalogRegistry.shared();
-    private static final String DEFAULT_CATALOG_ID = A2UiCatalogIds.STANDARD_V0_8;
+    private static final String DEFAULT_CATALOG_ID = A2UiCatalogIds.BASIC_V0_9;
 
     private A2UiRequestCatalogNegotiator() {}
 

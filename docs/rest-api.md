@@ -27,18 +27,18 @@ X-A2UI-Request-Id: <optional-client-request-id>
     "instructions": "Use dark theme"
   },
   "a2uiClientCapabilities": {
-    "supportedCatalogIds": ["https://a2ui.org/specification/v0_8/standard_catalog_definition.json"]
+    "supportedCatalogIds": ["https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"]
   }
 }
 ```
 
 **Response (200):** Server-Sent Events stream:
 ```
-event: surfaceUpdate
-data: {"surfaceUpdate":{"surfaceId":"main","components":[...]}}
+event: createSurface
+data: {"version":"v0.9.1","createSurface":{"surfaceId":"main","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}}
 
-event: beginRendering
-data: {"beginRendering":{"surfaceId":"main","root":"root-1","catalogId":"..."}}
+event: updateComponents
+data: {"version":"v0.9.1","updateComponents":{"surfaceId":"main","components":[{"id":"root","component":"Text","text":"Hello"}]}}
 
 event: done
 data: [DONE]
@@ -68,10 +68,10 @@ Content-Type: application/json
 X-A2UI-Request-Id: <optional-client-request-id>
 ```
 
-**Request (user action):**
+**Request (action):**
 ```json
 {
-  "userAction": {
+  "action": {
     "name": "submit",
     "surfaceId": "main",
     "sourceComponentId": "btn-1",
@@ -108,14 +108,16 @@ X-A2UI-Request-Id: <optional-client-request-id>
 
 ---
 
-### Get Standard Catalog
+### Get Basic Catalog
 
 ```
-GET /a2ui/catalogs/standard-v0.8
+GET /a2ui/catalogs/basic-v0.9
 Accept: application/json
 ```
 
-**Response (200):** The official A2UI v0.8 standard catalog as a JSON Schema document.
+**Response (200):** The vendored A2UI basic catalog (v0.9 / v0.9.1) as a JSON Schema document.
+
+Optional `createSurface.sendDataModel` (default `false`): when `true`, clients should attach the surface data model as transport metadata on subsequent `POST /a2ui/actions` requests. MVP apps can leave this unset.
 
 ---
 

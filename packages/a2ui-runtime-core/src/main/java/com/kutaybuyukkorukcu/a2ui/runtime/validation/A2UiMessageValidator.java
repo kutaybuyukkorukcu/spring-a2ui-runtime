@@ -6,7 +6,6 @@ import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiErrorCode;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiValidationContext;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiProtocol;
-import com.kutaybuyukkorukcu.a2ui.runtime.protocol.DataEntry;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -18,6 +17,7 @@ public class A2UiMessageValidator {
 
     private static final String SURFACE_ID_SUFFIX = ".surfaceId";
     private static final String SURFACE_ID_REQUIRED = "surfaceId is required";
+    private static final String ROOT_COMPONENT_ID = "root";
 
     private final A2UiCatalogRegistry catalogRegistry;
     private final A2UiCatalogSchemaValidator catalogSchemaValidator;
@@ -78,7 +78,7 @@ public class A2UiMessageValidator {
         if (context == null || context.requestedVersion() == null || context.requestedVersion().isBlank()) {
             return;
         }
-        if (!A2UiProtocol.SUPPORTED_VERSION.equals(context.requestedVersion())) {
+        if (!A2UiProtocol.isSupportedVersion(context.requestedVersion())) {
             Map<String, Object> details = new LinkedHashMap<>();
             details.put("requestedVersion", context.requestedVersion());
             details.put("supportedVersion", A2UiProtocol.SUPPORTED_VERSION);
@@ -96,22 +96,40 @@ public class A2UiMessageValidator {
         }
 
         switch (message) {
-            case A2UiMessage.SurfaceUpdate su -> validateSurfaceUpdate(path + ".surfaceUpdate", su, context, diagnostics);
-            case A2UiMessage.DataModelUpdate dmu -> validateDataModelUpdate(path + ".dataModelUpdate", dmu, diagnostics);
-            case A2UiMessage.BeginRendering br -> validateBeginRendering(path + ".beginRendering", br, diagnostics);
+            case A2UiMessage.CreateSurface cs -> validateCreateSurface(path + ".createSurface", cs, diagnostics);
+            case A2UiMessage.UpdateComponents uc ->
+                    validateUpdateComponents(path + ".updateComponents", uc, context, diagnostics);
+            case A2UiMessage.UpdateDataModel udm ->
+                    validateUpdateDataModel(path + ".updateDataModel", udm, diagnostics);
             case A2UiMessage.DeleteSurface ds -> validateDeleteSurface(path + ".deleteSurface", ds, diagnostics);
         }
     }
 
-    private void validateSurfaceUpdate(String path, A2UiMessage.SurfaceUpdate su,
-                                        A2UiValidationContext context, List<A2UiDiagnostic> diagnostics) {
-        if (isBlank(su.surfaceId())) {
+    private void validateCreateSurface(String path, A2UiMessage.CreateSurface cs, List<A2UiDiagnostic> diagnostics) {
+        if (isBlank(cs.surfaceId())) {
+            diagnostics.add(diagnostic(path + SURFACE_ID_SUFFIX, A2UiErrorCode.MISSING_SURFACE_ID, SURFACE_ID_REQUIRED));
+        }
+        if (isBlank(cs.catalogId())) {
+            diagnostics.add(diagnostic(path + ".catalogId", A2UiErrorCode.MISSING_CATALOG_ID, "catalogId is required"));
+        } else if (!catalogRegistry.isSupportedCatalogId(cs.catalogId())) {
+            Map<String, Object> details = new LinkedHashMap<>();
+            details.put("catalogId", cs.catalogId());
+            details.put("supportedCatalogIds", List.copyOf(catalogRegistry.supportedCatalogIds()));
+            diagnostics.add(diagnostic(path + ".catalogId", A2UiErrorCode.UNSUPPORTED_CATALOG_ID,
+                    "catalogId is not supported by this runtime", details));
+        }
+    }
+
+    private void validateUpdateComponents(String path, A2UiMessage.UpdateComponents uc,
+                                          A2UiValidationContext context, List<A2UiDiagnostic> diagnostics) {
+        if (isBlank(uc.surfaceId())) {
             diagnostics.add(diagnostic(path + SURFACE_ID_SUFFIX, A2UiErrorCode.MISSING_SURFACE_ID, SURFACE_ID_REQUIRED));
         }
 
-        List<A2UiMessage.ComponentDefinition> components = su.components();
+        List<A2UiMessage.ComponentDefinition> components = uc.components();
         if (components == null) {
-            diagnostics.add(diagnostic(path + ".components", A2UiErrorCode.INVALID_COMPONENT_DEFINITION, "components must be an array"));
+            diagnostics.add(diagnostic(path + ".components", A2UiErrorCode.INVALID_COMPONENT_DEFINITION,
+                    "components must be an array"));
             return;
         }
 
@@ -123,7 +141,8 @@ public class A2UiMessageValidator {
     private void validateComponentDefinition(A2UiMessage.ComponentDefinition cd, String path,
                                               A2UiValidationContext context, List<A2UiDiagnostic> diagnostics) {
         if (cd == null) {
-            diagnostics.add(diagnostic(path, A2UiErrorCode.INVALID_COMPONENT_DEFINITION, "component definition must not be null"));
+            diagnostics.add(diagnostic(path, A2UiErrorCode.INVALID_COMPONENT_DEFINITION,
+                    "component definition must not be null"));
             return;
         }
 
@@ -131,78 +150,37 @@ public class A2UiMessageValidator {
             diagnostics.add(diagnostic(path + ".id", A2UiErrorCode.MISSING_COMPONENT_ID, "component id is required"));
         }
 
-        Map<String, Object> component = cd.component();
-        if (component == null || component.isEmpty() || component.size() != 1) {
+        String componentType = cd.componentType();
+        if (isBlank(componentType)) {
             diagnostics.add(diagnostic(path + ".component", A2UiErrorCode.INVALID_COMPONENT_PAYLOAD,
-                    "component payload must contain exactly one component definition"));
+                    "component type string is required"));
             return;
         }
 
-        String componentType = cd.componentType();
         if (!catalogRegistry.supportsComponentType(componentType)) {
             Map<String, Object> details = new LinkedHashMap<>();
             details.put("componentType", componentType);
             details.put("supportedCatalogIds", List.copyOf(catalogRegistry.supportedCatalogIds()));
-            diagnostics.add(diagnostic(path + ".component." + componentType, A2UiErrorCode.UNKNOWN_COMPONENT_TYPE,
+            diagnostics.add(diagnostic(path + ".component", A2UiErrorCode.UNKNOWN_COMPONENT_TYPE,
                     "component type is not supported by the published catalog", details));
             return;
         }
 
         if (context != null && context.catalogId() != null && !context.catalogId().isBlank()) {
-            String propsPath = path + ".component." + componentType;
             List<A2UiDiagnostic> propDiagnostics = catalogSchemaValidator.validateComponentProps(
-                    componentType, context.catalogId(), cd.componentProperties(), propsPath);
+                    componentType, context.catalogId(), cd.componentProperties(), path);
             diagnostics.addAll(propDiagnostics);
         }
     }
 
-    private void validateDataModelUpdate(String path, A2UiMessage.DataModelUpdate dmu, List<A2UiDiagnostic> diagnostics) {
-        if (isBlank(dmu.surfaceId())) {
+    private void validateUpdateDataModel(String path, A2UiMessage.UpdateDataModel udm,
+                                         List<A2UiDiagnostic> diagnostics) {
+        if (isBlank(udm.surfaceId())) {
             diagnostics.add(diagnostic(path + SURFACE_ID_SUFFIX, A2UiErrorCode.MISSING_SURFACE_ID, SURFACE_ID_REQUIRED));
         }
-        if (dmu.path() != null && dmu.path().isBlank()) {
-            diagnostics.add(diagnostic(path + ".path", A2UiErrorCode.INVALID_DATA_UPDATE, "path must not be blank if present"));
-        }
-        List<DataEntry> contents = dmu.contents();
-        if (contents == null) {
-            diagnostics.add(diagnostic(path + ".contents", A2UiErrorCode.INVALID_DATA_UPDATE, "contents must be an array"));
-            return;
-        }
-        for (int i = 0; i < contents.size(); i++) {
-            validateDataEntry(contents.get(i), path + ".contents[" + i + "]", diagnostics);
-        }
-    }
-
-    private void validateDataEntry(DataEntry entry, String path, List<A2UiDiagnostic> diagnostics) {
-        if (entry == null) {
-            diagnostics.add(diagnostic(path, A2UiErrorCode.INVALID_DATA_ENTRY, "data entry must not be null"));
-            return;
-        }
-        if (isBlank(entry.key())) {
-            diagnostics.add(diagnostic(path + ".key", A2UiErrorCode.INVALID_DATA_ENTRY, "data entry key is required"));
-        }
-        if (entry.valueMap() != null) {
-            for (int i = 0; i < entry.valueMap().size(); i++) {
-                validateDataEntry(entry.valueMap().get(i), path + ".valueMap[" + i + "]", diagnostics);
-            }
-        }
-    }
-
-    private void validateBeginRendering(String path, A2UiMessage.BeginRendering br, List<A2UiDiagnostic> diagnostics) {
-        if (isBlank(br.surfaceId())) {
-            diagnostics.add(diagnostic(path + SURFACE_ID_SUFFIX, A2UiErrorCode.MISSING_SURFACE_ID, SURFACE_ID_REQUIRED));
-        }
-        if (isBlank(br.root())) {
-            diagnostics.add(diagnostic(path + ".root", A2UiErrorCode.MISSING_ROOT, "root is required"));
-        }
-        if (isBlank(br.catalogId())) {
-            diagnostics.add(diagnostic(path + ".catalogId", A2UiErrorCode.MISSING_CATALOG_ID, "catalogId is required"));
-        } else if (!catalogRegistry.isSupportedCatalogId(br.catalogId())) {
-            Map<String, Object> details = new LinkedHashMap<>();
-            details.put("catalogId", br.catalogId());
-            details.put("supportedCatalogIds", List.copyOf(catalogRegistry.supportedCatalogIds()));
-            diagnostics.add(diagnostic(path + ".catalogId", A2UiErrorCode.UNSUPPORTED_CATALOG_ID,
-                    "catalogId is not supported by this runtime", details));
+        if (udm.path() != null && udm.path().isBlank()) {
+            diagnostics.add(diagnostic(path + ".path", A2UiErrorCode.INVALID_DATA_UPDATE,
+                    "path must not be blank if present"));
         }
     }
 
@@ -217,13 +195,32 @@ public class A2UiMessageValidator {
 
         for (int i = 0; i < messages.size(); i++) {
             A2UiMessage message = messages.get(i);
-            if (message == null) continue;
+            if (message == null) {
+                continue;
+            }
 
             switch (message) {
-                case A2UiMessage.SurfaceUpdate su -> registerSurfaceUpdate(su, surfaces);
-                case A2UiMessage.DataModelUpdate dmu -> { /* no sequence constraint */ }
-                case A2UiMessage.BeginRendering br ->
-                    validateBeginRenderingSequence(br, "$[" + i + "].beginRendering", surfaces, diagnostics);
+                case A2UiMessage.CreateSurface cs -> {
+                    if (!isBlank(cs.surfaceId())) {
+                        SurfaceState existing = surfaces.get(cs.surfaceId());
+                        if (existing != null && existing.created) {
+                            Map<String, Object> details = new LinkedHashMap<>();
+                            details.put("surfaceId", cs.surfaceId());
+                            diagnostics.add(diagnostic(
+                                    "$[" + i + "].createSurface",
+                                    A2UiErrorCode.INVALID_MESSAGE_SEQUENCE,
+                                    "createSurface must not target an already created surface without deleteSurface",
+                                    details));
+                        } else {
+                            surfaces.put(cs.surfaceId(), new SurfaceState(true));
+                        }
+                    }
+                }
+                case A2UiMessage.UpdateComponents uc ->
+                        validateUpdateAgainstCreated(uc.surfaceId(), uc.components(),
+                                "$[" + i + "].updateComponents", surfaces, diagnostics);
+                case A2UiMessage.UpdateDataModel udm ->
+                        validateSurfaceCreated(udm.surfaceId(), "$[" + i + "].updateDataModel", surfaces, diagnostics);
                 case A2UiMessage.DeleteSurface ds -> {
                     if (!isBlank(ds.surfaceId())) {
                         surfaces.remove(ds.surfaceId());
@@ -231,39 +228,57 @@ public class A2UiMessageValidator {
                 }
             }
         }
+
+        for (Map.Entry<String, SurfaceState> entry : surfaces.entrySet()) {
+            SurfaceState state = entry.getValue();
+            if (state.created && !state.componentIds.contains(ROOT_COMPONENT_ID)) {
+                Map<String, Object> details = new LinkedHashMap<>();
+                details.put("surfaceId", entry.getKey());
+                details.put("knownComponentIds", List.copyOf(state.componentIds));
+                diagnostics.add(diagnostic(
+                        "$",
+                        A2UiErrorCode.UNKNOWN_ROOT_COMPONENT,
+                        "surface must define a component with id \"root\"",
+                        details));
+            }
+        }
     }
 
-    private void registerSurfaceUpdate(A2UiMessage.SurfaceUpdate su, Map<String, SurfaceState> surfaces) {
-        if (isBlank(su.surfaceId()) || su.components() == null) return;
-        SurfaceState state = surfaces.computeIfAbsent(su.surfaceId(), k -> new SurfaceState());
-        for (A2UiMessage.ComponentDefinition cd : su.components()) {
+    private void validateUpdateAgainstCreated(
+            String surfaceId,
+            List<A2UiMessage.ComponentDefinition> components,
+            String path,
+            Map<String, SurfaceState> surfaces,
+            List<A2UiDiagnostic> diagnostics) {
+        validateSurfaceCreated(surfaceId, path, surfaces, diagnostics);
+        if (isBlank(surfaceId) || components == null) {
+            return;
+        }
+        SurfaceState state = surfaces.computeIfAbsent(surfaceId, k -> new SurfaceState(false));
+        for (A2UiMessage.ComponentDefinition cd : components) {
             if (cd != null && !isBlank(cd.id())) {
                 state.componentIds.add(cd.id());
             }
         }
     }
 
-    private void validateBeginRenderingSequence(A2UiMessage.BeginRendering br, String path,
-                                                  Map<String, SurfaceState> surfaces, List<A2UiDiagnostic> diagnostics) {
-        if (isBlank(br.surfaceId()) || isBlank(br.root())) return;
-
-        SurfaceState state = surfaces.get(br.surfaceId());
-        if (state == null || state.componentIds.isEmpty()) {
-            Map<String, Object> details = new LinkedHashMap<>();
-            details.put("surfaceId", br.surfaceId());
-            details.put("root", br.root());
-            diagnostics.add(diagnostic(path, A2UiErrorCode.INVALID_MESSAGE_SEQUENCE,
-                    "beginRendering must follow at least one surfaceUpdate for the same surface", details));
+    private void validateSurfaceCreated(
+            String surfaceId,
+            String path,
+            Map<String, SurfaceState> surfaces,
+            List<A2UiDiagnostic> diagnostics) {
+        if (isBlank(surfaceId)) {
             return;
         }
-
-        if (!state.componentIds.contains(br.root())) {
+        SurfaceState state = surfaces.get(surfaceId);
+        if (state == null || !state.created) {
             Map<String, Object> details = new LinkedHashMap<>();
-            details.put("surfaceId", br.surfaceId());
-            details.put("root", br.root());
-            details.put("knownComponentIds", List.copyOf(state.componentIds));
-            diagnostics.add(diagnostic(path + ".root", A2UiErrorCode.UNKNOWN_ROOT_COMPONENT,
-                    "beginRendering.root must reference a previously defined component on the same surface", details));
+            details.put("surfaceId", surfaceId);
+            diagnostics.add(diagnostic(
+                    path,
+                    A2UiErrorCode.INVALID_MESSAGE_SEQUENCE,
+                    "update messages require a prior createSurface for the same surfaceId",
+                    details));
         }
     }
 
@@ -279,9 +294,12 @@ public class A2UiMessageValidator {
         return value == null || value.isBlank();
     }
 
-    private record SurfaceState(Set<String> componentIds) {
-        SurfaceState() {
-            this(new LinkedHashSet<>());
+    private static final class SurfaceState {
+        private final boolean created;
+        private final Set<String> componentIds = new LinkedHashSet<>();
+
+        private SurfaceState(boolean created) {
+            this.created = created;
         }
     }
 }

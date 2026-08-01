@@ -14,7 +14,12 @@ import java.util.Set;
 
 public final class A2UiCatalogRegistry {
 
-    public static final String STANDARD_CATALOG_RESOURCE = "META-INF/a2ui/catalogs/standard-v0.8.json";
+    public static final String BASIC_CATALOG_RESOURCE = "META-INF/a2ui/catalogs/basic/catalog.json";
+    public static final String BASIC_CATALOG_RULES_RESOURCE = "META-INF/a2ui/catalogs/basic/rules.txt";
+
+    /** @deprecated use {@link #BASIC_CATALOG_RESOURCE} */
+    @Deprecated
+    public static final String STANDARD_CATALOG_RESOURCE = BASIC_CATALOG_RESOURCE;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final A2UiCatalogRegistry SHARED = new A2UiCatalogRegistry(loadCatalogDefinitions());
@@ -23,6 +28,7 @@ public final class A2UiCatalogRegistry {
     private final Map<String, Set<String>> componentTypesByCatalogId;
     private final Set<String> supportedCatalogIds;
     private final Set<String> supportedComponentTypes;
+    private final String catalogRulesText;
 
     private A2UiCatalogRegistry(Map<String, Map<String, Map<String, Object>>> componentSchemasByCatalogId) {
         this.componentSchemasByCatalogId = Collections.unmodifiableMap(deepCopy(componentSchemasByCatalogId));
@@ -36,6 +42,7 @@ public final class A2UiCatalogRegistry {
         this.componentTypesByCatalogId = Collections.unmodifiableMap(typesByCatalog);
         this.supportedCatalogIds = Collections.unmodifiableSet(new LinkedHashSet<>(this.componentSchemasByCatalogId.keySet()));
         this.supportedComponentTypes = Collections.unmodifiableSet(allTypes);
+        this.catalogRulesText = loadRulesText();
     }
 
     public static A2UiCatalogRegistry shared() {
@@ -65,6 +72,10 @@ public final class A2UiCatalogRegistry {
         return componentTypesByCatalogId.getOrDefault(catalogId, Set.of());
     }
 
+    public String catalogRulesText() {
+        return catalogRulesText;
+    }
+
     public Map<String, Object> componentSchema(String catalogId, String componentType) {
         if (catalogId == null || componentType == null) {
             return Map.of();
@@ -76,7 +87,6 @@ public final class A2UiCatalogRegistry {
         return schemas.getOrDefault(componentType, Map.of());
     }
 
-    @SuppressWarnings("unchecked")
     public Set<String> requiredProps(String catalogId, String componentType) {
         Map<String, Object> schema = componentSchema(catalogId, componentType);
         Object required = schema.get("required");
@@ -85,14 +95,14 @@ public final class A2UiCatalogRegistry {
         }
         Set<String> props = new LinkedHashSet<>();
         for (Object item : requiredList) {
-            if (item instanceof String prop && !prop.isBlank()) {
+            if (item instanceof String prop && !prop.isBlank()
+                    && !"component".equals(prop) && !"id".equals(prop)) {
                 props.add(prop);
             }
         }
         return Collections.unmodifiableSet(props);
     }
 
-    @SuppressWarnings("unchecked")
     public Set<String> allowedProps(String catalogId, String componentType) {
         Map<String, Object> schema = componentSchema(catalogId, componentType);
         Object properties = schema.get("properties");
@@ -102,7 +112,7 @@ public final class A2UiCatalogRegistry {
         Set<String> props = new LinkedHashSet<>();
         for (Object key : propsMap.keySet()) {
             String prop = String.valueOf(key);
-            if (!prop.isBlank()) {
+            if (!prop.isBlank() && !"component".equals(prop) && !"id".equals(prop)) {
                 props.add(prop);
             }
         }
@@ -113,7 +123,12 @@ public final class A2UiCatalogRegistry {
         Map<String, Object> schema = componentSchema(catalogId, componentType);
         Object additionalProperties = schema.get("additionalProperties");
         if (additionalProperties == null) {
-            return true;
+            Object unevaluated = schema.get("unevaluatedProperties");
+            if (unevaluated instanceof Boolean allow) {
+                return allow;
+            }
+            // v0.9 catalogs typically set unevaluatedProperties: false
+            return unevaluated == null;
         }
         if (additionalProperties instanceof Boolean allow) {
             return allow;
@@ -136,8 +151,13 @@ public final class A2UiCatalogRegistry {
     }
 
     private static Map<String, Map<String, Map<String, Object>>> loadCatalogDefinitions() {
-        Map<String, Map<String, Map<String, Object>>> catalogs = new LinkedHashMap<>();
-        catalogs.putAll(loadFromClasspath(STANDARD_CATALOG_RESOURCE));
+        Map<String, Map<String, Map<String, Object>>> loaded = loadFromClasspath(BASIC_CATALOG_RESOURCE);
+        // Alias both catalogId spellings used in upstream docs/examples.
+        Map<String, Map<String, Map<String, Object>>> catalogs = new LinkedHashMap<>(loaded);
+        if (catalogs.containsKey(A2UiCatalogIds.BASIC_V0_9)
+                && !catalogs.containsKey(A2UiCatalogIds.BASIC_V0_9_1)) {
+            catalogs.put(A2UiCatalogIds.BASIC_V0_9_1, catalogs.get(A2UiCatalogIds.BASIC_V0_9));
+        }
         return catalogs;
     }
 
@@ -163,6 +183,18 @@ public final class A2UiCatalogRegistry {
         }
     }
 
+    private static String loadRulesText() {
+        try (InputStream inputStream = A2UiCatalogRegistry.class.getResourceAsStream(
+                "/" + BASIC_CATALOG_RULES_RESOURCE)) {
+            if (inputStream == null) {
+                return "";
+            }
+            return new String(inputStream.readAllBytes());
+        } catch (IOException ex) {
+            throw new UncheckedIOException("Failed to load A2UI catalog rules", ex);
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private static Map<String, Map<String, Object>> extractComponentSchemas(Object componentsNode) {
         if (!(componentsNode instanceof Map<?, ?> components)) {
@@ -175,10 +207,63 @@ public final class A2UiCatalogRegistry {
                 continue;
             }
             if (entry.getValue() instanceof Map<?, ?> schemaMap) {
-                result.put(componentType, new LinkedHashMap<>((Map<String, Object>) schemaMap));
+                result.put(componentType, flattenComponentSchema((Map<String, Object>) schemaMap));
             }
         }
         return Collections.unmodifiableMap(result);
+    }
+
+    /**
+     * Flatten v0.9 {@code allOf} component schemas into a single properties/required view
+     * for tool-schema generation and lightweight prop checks.
+     */
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> flattenComponentSchema(Map<String, Object> schema) {
+        Map<String, Object> flattened = new LinkedHashMap<>(schema);
+        Map<String, Object> properties = new LinkedHashMap<>();
+        Set<String> required = new LinkedHashSet<>();
+
+        mergeSchemaNode(schema, properties, required);
+
+        flattened.put("type", "object");
+        flattened.put("properties", properties);
+        flattened.put("required", List.copyOf(required));
+        flattened.remove("allOf");
+        flattened.remove("$defs");
+        if (!flattened.containsKey("additionalProperties")
+                && schema.get("unevaluatedProperties") instanceof Boolean unevaluated) {
+            flattened.put("additionalProperties", unevaluated);
+        }
+        return flattened;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void mergeSchemaNode(
+            Map<String, Object> node,
+            Map<String, Object> properties,
+            Set<String> required) {
+        Object props = node.get("properties");
+        if (props instanceof Map<?, ?> propsMap) {
+            for (Map.Entry<?, ?> entry : propsMap.entrySet()) {
+                properties.put(String.valueOf(entry.getKey()), entry.getValue());
+            }
+        }
+        Object req = node.get("required");
+        if (req instanceof List<?> reqList) {
+            for (Object item : reqList) {
+                if (item instanceof String s && !s.isBlank()) {
+                    required.add(s);
+                }
+            }
+        }
+        Object allOf = node.get("allOf");
+        if (allOf instanceof List<?> allOfList) {
+            for (Object item : allOfList) {
+                if (item instanceof Map<?, ?> child) {
+                    mergeSchemaNode((Map<String, Object>) child, properties, required);
+                }
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")

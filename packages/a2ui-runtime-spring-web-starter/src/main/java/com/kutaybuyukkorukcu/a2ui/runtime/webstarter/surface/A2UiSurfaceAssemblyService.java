@@ -32,7 +32,10 @@ public class A2UiSurfaceAssemblyService {
         A2UiSurfaceSpec spec = definition.createSpec();
         validateSlots(definition, slots);
 
-        List<A2UiMessage> messages = new ArrayList<>(spec.buildMessages(surfaceId, slots));
+        List<A2UiMessage> messages = new ArrayList<>();
+        messages.add(new A2UiMessage.CreateSurface(surfaceId, catalogId));
+        messages.addAll(spec.buildMessages(surfaceId, slots));
+
         A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
         for (A2UiMessage message : messages) {
             A2UiSurfaceBufferOps.apply(buffer, message);
@@ -44,10 +47,6 @@ public class A2UiSurfaceAssemblyService {
                     SurfaceErrorCodes.TRANSFORM_FAILED,
                     Map.of("templateId", templateId, "root", spec.rootComponentId()));
         }
-
-        A2UiMessage.BeginRendering beginRendering = new A2UiMessage.BeginRendering(
-                surfaceId, spec.rootComponentId(), catalogId, null);
-        messages.add(beginRendering);
 
         List<A2UiDiagnostic> diagnostics = messageValidator.validate(
                 messages, A2UiValidationContext.forCatalog(catalogId));

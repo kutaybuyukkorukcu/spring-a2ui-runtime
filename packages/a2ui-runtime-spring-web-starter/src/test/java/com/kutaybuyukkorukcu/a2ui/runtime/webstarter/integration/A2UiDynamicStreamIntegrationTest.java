@@ -69,8 +69,8 @@ class A2UiDynamicStreamIntegrationTest {
                     "planner-surface",
                     "root",
                     List.of(
-                            Map.of("id", "root", "component", "Column", "children", List.of("title")),
-                            Map.of("id", "title", "component", "Text", "text", "KPI", "usageHint", "h2")),
+                            Map.of("id", "root", "component", "Column", "children", List.of("title"), "justify", "start"),
+                            Map.of("id", "title", "component", "Text", "text", "KPI", "variant", "h2")),
                     Map.of("metric", "42"),
                     new ToolContext(toolContextRef.get()));
             return callResponseSpec;
@@ -78,7 +78,7 @@ class A2UiDynamicStreamIntegrationTest {
     }
 
     @Test
-    void shouldStreamDynamicSurfaceUpdateThenBeginRendering() {
+    void shouldStreamCreateSurfaceThenUpdates() {
         webTestClient.post()
                 .uri("/a2ui/surface/stream")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -89,11 +89,12 @@ class A2UiDynamicStreamIntegrationTest {
                 .expectHeader().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM)
                 .expectBody(String.class)
                 .value(body -> {
-                    assertThat(body).contains("\"surfaceUpdate\"");
-                    assertThat(body).contains("\"dataModelUpdate\"");
-                    assertThat(body).contains("\"beginRendering\"");
+                    assertThat(body).contains("\"createSurface\"");
+                    assertThat(body).contains("\"updateComponents\"");
+                    assertThat(body).contains("\"updateDataModel\"");
                     assertThat(body).contains("[DONE]");
-                    assertThat(body).doesNotContain("null");
+                    assertThat(body).doesNotContain("beginRendering");
+                    assertThat(body).doesNotContain("surfaceUpdate");
                 });
     }
 }

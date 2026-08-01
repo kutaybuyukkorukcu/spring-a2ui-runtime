@@ -12,7 +12,7 @@ public class HealthController {
     public ResponseEntity<Map<String, Object>> health() {
         return ResponseEntity.ok(Map.of(
                 "status", "healthy",
-                "version", "1.1.1",
+                "version", "2.0.0-SNAPSHOT",
                 "timestamp", System.currentTimeMillis()
         ));
     }
@@ -21,12 +21,12 @@ public class HealthController {
     public ResponseEntity<Map<String, Object>> info() {
         return ResponseEntity.ok(Map.of(
                 "name", "A2UI Runtime Showcase Host",
-                "version", "1.1.1",
-                "description", "Thin Spring Boot sample host for A2UI serving, streaming, catalogs, and actions",
+                "version", "2.0.0-SNAPSHOT",
+                "description", "Thin Spring Boot sample host for Spring GenUI surface serving, streaming, catalogs, and actions",
                 "endpoints", Map.of(
                         "health", "GET /health",
                         "surfaceStream", "POST /a2ui/surface/stream",
-                        "catalog", "GET /a2ui/catalogs/standard-v0.8",
+                        "catalog", "GET /a2ui/catalogs/basic-v0.9",
                         "actions", "POST /a2ui/actions"),
                 "notes", Map.of(
                         "runtimeBoundary", "Reusable routing, validation, and transport behavior lives in the runtime modules; this host stays thin.",

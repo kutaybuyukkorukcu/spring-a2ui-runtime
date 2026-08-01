@@ -6,7 +6,6 @@ import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiValidationContext;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage.ComponentDefinition;
-import com.kutaybuyukkorukcu.a2ui.runtime.protocol.DataEntry;
 import com.kutaybuyukkorukcu.a2ui.runtime.surface.A2UiSurfaceBuffer;
 import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
@@ -18,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 
 public class A2UiDynamicAssemblyService {
+
+    private static final String ROOT_ID = "root";
 
     private final A2UiDynamicComponentNormalizer componentNormalizer;
     private final A2UiMessageValidator messageValidator;
@@ -65,6 +66,12 @@ public class A2UiDynamicAssemblyService {
                     SurfaceErrorCodes.TRANSFORM_FAILED,
                     null);
         }
+        if (!ROOT_ID.equals(root)) {
+            throw new SurfaceExecutionException(
+                    "root component id must be \"root\"",
+                    SurfaceErrorCodes.TRANSFORM_FAILED,
+                    Map.of("root", root));
+        }
 
         List<Map<String, Object>> sanitizedComponents = sanitizeComponents(args.components());
         if (!containsComponentId(sanitizedComponents, root)) {
@@ -85,14 +92,12 @@ public class A2UiDynamicAssemblyService {
         }
 
         List<A2UiMessage> messages = new ArrayList<>();
-        messages.add(new A2UiMessage.SurfaceUpdate(negotiatedSurfaceId, components));
+        messages.add(new A2UiMessage.CreateSurface(negotiatedSurfaceId, catalogId));
+        messages.add(new A2UiMessage.UpdateComponents(negotiatedSurfaceId, components));
 
         Map<String, Object> data = sanitizeData(args.data());
         if (!data.isEmpty()) {
-            messages.add(new A2UiMessage.DataModelUpdate(
-                    negotiatedSurfaceId,
-                    null,
-                    toDataEntries(data)));
+            messages.add(new A2UiMessage.UpdateDataModel(negotiatedSurfaceId, "/", data));
         }
 
         A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
@@ -100,14 +105,12 @@ public class A2UiDynamicAssemblyService {
             A2UiSurfaceBufferOps.apply(buffer, message);
         }
 
-        if (!buffer.getOrCreateSurface(negotiatedSurfaceId).hasComponent(root)) {
+        if (!buffer.getOrCreateSurface(negotiatedSurfaceId).hasComponent(ROOT_ID)) {
             throw new SurfaceExecutionException(
-                    "Root component not defined after surface update: " + root,
+                    "Root component not defined after updateComponents: " + ROOT_ID,
                     SurfaceErrorCodes.TRANSFORM_FAILED,
-                    Map.of("root", root, "surfaceId", negotiatedSurfaceId));
+                    Map.of("root", ROOT_ID, "surfaceId", negotiatedSurfaceId));
         }
-
-        messages.add(new A2UiMessage.BeginRendering(negotiatedSurfaceId, root, catalogId, null));
 
         List<A2UiDiagnostic> diagnostics = messageValidator.validate(
                 messages, A2UiValidationContext.forCatalog(catalogId));
@@ -194,41 +197,5 @@ public class A2UiDynamicAssemblyService {
             }
         }
         return false;
-    }
-
-    private static List<DataEntry> toDataEntries(Map<String, Object> data) {
-        List<DataEntry> entries = new ArrayList<>(data.size());
-        for (Map.Entry<String, Object> entry : data.entrySet()) {
-            entries.add(toDataEntry(entry.getKey(), entry.getValue()));
-        }
-        return entries;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static DataEntry toDataEntry(String key, Object value) {
-        if (value instanceof Map<?, ?> mapValue) {
-            List<DataEntry> nested = new ArrayList<>();
-            for (Map.Entry<?, ?> nestedEntry : mapValue.entrySet()) {
-                nested.add(toDataEntry(String.valueOf(nestedEntry.getKey()), nestedEntry.getValue()));
-            }
-            return DataEntry.ofMap(key, nested);
-        }
-        if (value instanceof List<?> listValue) {
-            List<DataEntry> nested = new ArrayList<>(listValue.size());
-            for (int i = 0; i < listValue.size(); i++) {
-                nested.add(toDataEntry(String.valueOf(i), listValue.get(i)));
-            }
-            return DataEntry.ofMap(key, nested);
-        }
-        if (value instanceof Number numberValue) {
-            return DataEntry.ofNumber(key, numberValue);
-        }
-        if (value instanceof Boolean booleanValue) {
-            return DataEntry.ofBoolean(key, booleanValue);
-        }
-        if (value == null) {
-            return DataEntry.ofString(key, null);
-        }
-        return DataEntry.ofString(key, String.valueOf(value));
     }
 }

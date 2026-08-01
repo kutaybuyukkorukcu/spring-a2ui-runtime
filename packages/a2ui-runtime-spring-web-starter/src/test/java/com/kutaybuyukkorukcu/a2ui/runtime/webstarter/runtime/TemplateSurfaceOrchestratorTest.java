@@ -82,10 +82,10 @@ class TemplateSurfaceOrchestratorTest {
         });
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show a news card", null, null);
 
-        StepVerifier.create(orchestrator.stream(request, "req-1", A2UiCatalogIds.STANDARD_V0_8))
-                .assertNext(message -> assertThat(message).isInstanceOf(A2UiMessage.SurfaceUpdate.class))
-                .assertNext(message -> assertThat(message).isInstanceOf(A2UiMessage.DataModelUpdate.class))
-                .assertNext(message -> assertThat(message).isInstanceOf(A2UiMessage.BeginRendering.class))
+        StepVerifier.create(orchestrator.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
+                .assertNext(message -> assertThat(message).isInstanceOf(A2UiMessage.CreateSurface.class))
+                .assertNext(message -> assertThat(message).isInstanceOf(A2UiMessage.UpdateComponents.class))
+                .assertNext(message -> assertThat(message).isInstanceOf(A2UiMessage.UpdateDataModel.class))
                 .verifyComplete();
     }
 
@@ -95,7 +95,7 @@ class TemplateSurfaceOrchestratorTest {
 
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("ambiguous request", null, null);
 
-        StepVerifier.create(orchestrator.stream(request, "req-1", A2UiCatalogIds.STANDARD_V0_8))
+        StepVerifier.create(orchestrator.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
                 .expectErrorSatisfies(error -> {
                     assertThat(error).isInstanceOf(SurfaceExecutionException.class);
                     assertThat(((SurfaceExecutionException) error).getErrorCode())

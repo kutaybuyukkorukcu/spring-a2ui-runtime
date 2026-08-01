@@ -1,27 +1,27 @@
 # Dynamic Generative UI (Phase 2)
 
-spring-a2ui supports two surface generation modes so product builders can choose controlled vs open-ended GenUI without inventing their own compose → validate → stream path. Both emit **A2UI v0.8 wire envelopes** over the same SSE endpoint (`POST /a2ui/surface/stream`).
+spring-a2ui supports two surface generation modes so product builders can choose controlled vs open-ended GenUI without inventing their own compose → validate → stream path. Both emit **A2UI v0.9.1 wire envelopes** over the same SSE endpoint (`POST /a2ui/surface/stream`). See also [Migrating to v0.9.1](migrating-to-v0.9.1.md).
 
 ## Template vs dynamic
 
 | Mode | Property | Behavior |
 |------|----------|----------|
 | **Template** | `a2ui.web.runtime.generation-mode=template` | LLM selects a registered template (`selectTemplate`) and fills slots (`renderTemplate`). Fixed adjacency lists authored in the runtime. |
-| **Dynamic** (library default) | `a2ui.web.runtime.generation-mode=dynamic` | LLM composes a surface from the standard v0.8 catalog alone via two-hop tools — no page templates. |
+| **Dynamic** (library default) | `a2ui.web.runtime.generation-mode=dynamic` | LLM composes a surface from the basic v0.9 catalog alone via two-hop tools — no page templates. |
 
 The showcase app defaults to the `template` Spring profile for predictable demos; set the property explicitly in your own application.
 
-## A2UI v0.8 contract
+## A2UI v0.9.1 contract
 
 Dynamic mode always produces the same envelope sequence as template mode:
 
-1. `surfaceUpdate` — flat adjacency-list components
-2. `dataModelUpdate` (optional) — plain JSON values bound to the surface data model
-3. `beginRendering` — **emitted by the runtime**, never by the LLM
+1. `createSurface` — surface id + catalogId (runtime)
+2. `updateComponents` — flat adjacency-list components (`"component":"Text"` + sibling props); root id must be `"root"`
+3. `updateDataModel` (optional) — `path` + JSON `value`
 
 The runtime pins `catalogId` from request negotiation (`a2uiClientCapabilities.supportedCatalogIds`). Planner tool args may include a `surfaceId` hint; the negotiated client surface id wins.
 
-Bound values use v0.8 shapes: `literalString`, `literalNumber`, `literalBoolean`, `literalArray`, or `path`.
+Dynamic values are native JSON or `{"path":"/..."}` — not BoundValue wrappers.
 
 ## Two-hop tool flow
 
@@ -42,14 +42,14 @@ sequenceDiagram
     Tools->>Planner: forced renderA2Ui tool choice
     Planner->>Tools: renderA2Ui(components, data)
     Tools->>Assembly: normalize + validate
-    Assembly-->>Tools: surfaceUpdate + dataModelUpdate + beginRendering
+    Assembly-->>Tools: `createSurface` + `updateComponents` + dataModelUpdate + createSurface (catalog + root id "root")
     Tools-->>Primary: success
     Orchestrator-->>Client: SSE envelopes
 ```
 
 - **Primary agent** calls `generateA2Ui()` when a visual UI helps.
 - **Planner** (second ChatClient inside `generateA2Ui`) must call `renderA2Ui` exactly once with flat planner-friendly component objects.
-- **`A2UiDynamicComponentNormalizer`** converts flat args to v0.8 adjacency.
+- **`A2UiDynamicComponentNormalizer`** converts flat args to flat v0.9.1 `ComponentDefinition`s (thin sanitize only).
 - **`responseFormat=NONE`** in dynamic mode — tool calling is incompatible with global `JSON_OBJECT`.
 
 Session state travels via Spring AI **`ToolContext`** (never `ThreadLocal`).

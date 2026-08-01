@@ -18,7 +18,7 @@ class A2UiClientEventTest {
         A2UiClientEvent event = new A2UiClientEvent(action, null);
         assertThat(event.isUserAction()).isTrue();
         assertThat(event.isError()).isFalse();
-        assertThat(event.userAction().name()).isEqualTo("submit");
+        assertThat(event.action().name()).isEqualTo("submit");
     }
 
     @Test
@@ -69,7 +69,7 @@ class A2UiClientEventTest {
         A2UiUserAction action = new A2UiUserAction("submit", "main", "btn-1", "2025-01-01T00:00:00Z", Map.of("input", "hello"));
         A2UiClientEvent event = new A2UiClientEvent(action, null);
         String json = mapper.writeValueAsString(event);
-        assertThat(json).contains("\"userAction\"");
+        assertThat(json).contains("\"action\"");
         assertThat(json).contains("\"submit\"");
     }
 }

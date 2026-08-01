@@ -1,6 +1,8 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.protocol;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage.ComponentDefinition;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,27 +19,37 @@ class A2UiWireFormatTest {
     @BeforeEach
     void setUp() {
         mapper = new ObjectMapper();
-        mapper.registerModule(new A2UiJacksonModule());
+        SimpleModule module = new SimpleModule();
+        module.addDeserializer(A2UiMessage.class, new A2UiMessageDeserializer());
+        module.addSerializer(A2UiMessage.class, new A2UiMessageSerializer());
+        mapper.registerModule(module);
     }
 
     @Test
-    void shouldEmitA2UiClientCompatibleWireFormatWithoutNullOptionalFields() throws Exception {
-        ComponentDefinition col = new ComponentDefinition("col-root",
-                Map.of("Column", Map.of("children", Map.of("explicitList", List.of("title-txt", "body-txt")))));
-        ComponentDefinition title = new ComponentDefinition("title-txt",
-                Map.of("Text", Map.of("text", Map.of("path", "title"), "usageHint", "h2")));
-        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(col, title));
-        A2UiMessage.DataModelUpdate dmu = new A2UiMessage.DataModelUpdate("main", null,
-                List.of(DataEntry.ofString("title", "Weather Update")));
-        A2UiMessage.BeginRendering br = new A2UiMessage.BeginRendering("main", "col-root",
-                "https://a2ui.org/specification/v0_8/standard_catalog_definition.json", null);
+    void shouldEmitVersionedV091GoldenSequence() throws Exception {
+        ComponentDefinition root = new ComponentDefinition(
+                "root", "Column", Map.of("children", List.of("title"), "justify", "start"));
+        ComponentDefinition title = new ComponentDefinition(
+                "title", "Text", Map.of("text", Map.of("path", "/title"), "variant", "h2"));
 
-        String surfaceJson = mapper.writeValueAsString((A2UiMessage) su);
-        String dataJson = mapper.writeValueAsString((A2UiMessage) dmu);
-        String beginJson = mapper.writeValueAsString((A2UiMessage) br);
+        A2UiMessage.CreateSurface cs = new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9);
+        A2UiMessage.UpdateComponents uc = new A2UiMessage.UpdateComponents("main", List.of(root, title));
+        A2UiMessage.UpdateDataModel udm = new A2UiMessage.UpdateDataModel(
+                "main", "/", Map.of("title", "Weather Update"));
 
-        assertThat(surfaceJson).doesNotContain("null");
-        assertThat(dataJson).doesNotContain("null");
-        assertThat(beginJson).doesNotContain("null");
+        String createJson = mapper.writeValueAsString((A2UiMessage) cs);
+        String updateJson = mapper.writeValueAsString((A2UiMessage) uc);
+        String dataJson = mapper.writeValueAsString((A2UiMessage) udm);
+
+        assertThat(createJson).contains("\"version\":\"v0.9.1\"");
+        assertThat(createJson).contains("\"createSurface\"");
+        assertThat(updateJson).contains("\"updateComponents\"");
+        assertThat(updateJson).contains("\"component\":\"Column\"");
+        assertThat(updateJson).contains("\"children\":[\"title\"]");
+        assertThat(updateJson).doesNotContain("explicitList");
+        assertThat(updateJson).doesNotContain("literalString");
+        assertThat(dataJson).contains("\"updateDataModel\"");
+        assertThat(dataJson).contains("\"value\"");
+        assertThat(dataJson).doesNotContain("valueString");
     }
 }

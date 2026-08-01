@@ -34,7 +34,7 @@ class A2UiActionServiceTest {
     void shouldHandleUserAction() {
         A2UiUserAction userAction = new A2UiUserAction("submit", "main", "btn-1", null, Map.of());
         A2UiClientEvent event = new A2UiClientEvent(userAction, null);
-        List<A2UiMessage> responseMessages = List.of(new A2UiMessage.SurfaceUpdate("main", List.of()));
+        List<A2UiMessage> responseMessages = List.of(new A2UiMessage.CreateSurface("main", "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"));
 
         when(handler.supports(userAction)).thenReturn(true);
         when(handler.handle(any(), anyString())).thenReturn(responseMessages);
@@ -77,7 +77,7 @@ class A2UiActionServiceTest {
     void shouldThrowWhenHandlerReturnsInvalidMessages() {
         A2UiUserAction userAction = new A2UiUserAction("click", "main", "btn-1", null, Map.of());
         A2UiClientEvent event = new A2UiClientEvent(userAction, null);
-        List<A2UiMessage> messages = List.of(new A2UiMessage.SurfaceUpdate("main", List.of()));
+        List<A2UiMessage> messages = List.of(new A2UiMessage.CreateSurface("main", "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"));
 
         when(handler.supports(userAction)).thenReturn(true);
         when(handler.handle(any(), anyString())).thenReturn(messages);

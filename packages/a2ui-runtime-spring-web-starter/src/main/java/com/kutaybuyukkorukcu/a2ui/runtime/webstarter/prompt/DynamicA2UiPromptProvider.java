@@ -39,36 +39,41 @@ public final class DynamicA2UiPromptProvider {
     }
 
     public String createPlannerSystemPrompt(String catalogId) {
-        String resolvedCatalogId = catalogId != null ? catalogId : A2UiCatalogIds.STANDARD_V0_8;
+        String resolvedCatalogId = catalogId != null ? catalogId : A2UiCatalogIds.BASIC_V0_9;
         Set<String> componentTypes = catalogRegistry.componentTypesForCatalog(resolvedCatalogId);
         if (componentTypes.isEmpty()) {
             componentTypes = catalogRegistry.supportedComponentTypes();
         }
         String componentTypesStr = String.join(", ", componentTypes);
+        String catalogRules = catalogRegistry.catalogRulesText();
 
-        return """
-                You are an A2UI layout planner. Compose a surface by calling the renderA2Ui tool exactly once.
-                
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("""
+                You are an A2UI v0.9.1 layout planner. Compose a surface by calling the renderA2Ui tool exactly once.
+
                 Hard requirements:
-                - Include a root component with id "root" in the components array.
-                - components must be a flat array of objects with id and component (catalog type name).
+                - Include a root component with id "root" in the components array (required).
+                - components must be a flat array of objects with string "component" type and sibling props.
                 - Every child UI element must be its own entry in the flat array; reference children by id only.
-                - List, Column, and Row use children.explicitList (string child ids) or children.template — never inline items arrays.
+                - List, Column, and Row use children as a bare string id array, or a template object {componentId, path}.
                 - Card uses a single child id (child) — wrap multiple children in a Column and set Card.child to that Column id.
-                - List children.template must be an object: { componentId, dataBinding } — never a bare string; put the data path in dataBinding (e.g. /monthlyTrends).
-                - Text styling uses usageHint (h1–h5, body, caption) — not variant.
-                - Button requires child (Text component id) and action.name — do not put label on Button; add a Text child and reference it.
-                - CheckBox uses value (BoundValue), not checked — bind booleans with path or literalBoolean.
-                - Bind dynamic Text and labels with path strings like /regionSales/North — never {data.regionSales.North}.
+                - Text styling uses variant (h1–h5, body, caption) — not usageHint.
+                - Button requires child (Text component id) and action — use action string shorthand or {event:{name}}.
+                - Dynamic values are native JSON strings/numbers/booleans, or {"path":"/..."}. Never use literalString/literalNumber.
+                - Bind dynamic Text and labels with path objects like {"path":"/regionSales/North"} — never {data.regionSales.North}.
                 - Do not emit empty {} objects; every component must have meaningful props.
                 - Populate data-bound props in the data object when the UI needs dynamic values.
-                - Use chart-style layouts for trends or metrics; use card-style layouts for summaries.
                 - Do not emit A2UI wire protocol envelopes or lifecycle commits; only call renderA2Ui.
                 - Do not output line-delimited JSON or markdown.
-                
+
                 Allowed catalog component types:
                 %s
-                """.formatted(componentTypesStr);
+                """.formatted(componentTypesStr));
+
+        if (catalogRules != null && !catalogRules.isBlank()) {
+            prompt.append("\nCatalog rules:\n").append(catalogRules.trim()).append("\n");
+        }
+        return prompt.toString();
     }
 
     public String createPlannerUserPrompt(A2UiPromptContext context) {

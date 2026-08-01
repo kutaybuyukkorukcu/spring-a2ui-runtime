@@ -33,8 +33,8 @@ class RuntimeSurfaceE2ETest {
     private static final String REQUEST_ID_HEADER = RequestCorrelationService.REQUEST_ID_HEADER;
     private static final String STREAM_PATH = "/a2ui/surface/stream";
     private static final String ACTIONS_PATH = "/a2ui/actions";
-    private static final String CATALOG_PATH = "/a2ui/catalogs/standard-v0.8";
-    private static final String DEFAULT_CATALOG_ID = A2UiCatalogIds.STANDARD_V0_8;
+    private static final String CATALOG_PATH = "/a2ui/catalogs/basic-v0.9";
+    private static final String DEFAULT_CATALOG_ID = A2UiCatalogIds.BASIC_V0_9;
 
     @Autowired
     private MockMvc mockMvc;
@@ -64,7 +64,7 @@ class RuntimeSurfaceE2ETest {
                                 .header(REQUEST_ID_HEADER, "req-e2e-action-1")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                        {"userAction":{"name":"confirm","surfaceId":"main","sourceComponentId":"confirm-btn","timestamp":"2026-05-19T00:00:00Z","context":{}}}
+                                        {"action":{"name":"confirm","surfaceId":"main","sourceComponentId":"confirm-btn","timestamp":"2026-05-19T00:00:00Z","context":{}}}
                                         """))
                 .andExpect(status().isOk())
                 .andExpect(header().string(REQUEST_ID_HEADER, "req-e2e-action-1"))
@@ -116,7 +116,7 @@ class RuntimeSurfaceE2ETest {
                                 .header(REQUEST_ID_HEADER, "req-e2e-unregistered")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                        {"userAction":{"name":"unknown-action","surfaceId":"main","sourceComponentId":"btn-1","timestamp":"2026-05-19T00:00:00Z","context":{}}}
+                                        {"action":{"name":"unknown-action","surfaceId":"main","sourceComponentId":"btn-1","timestamp":"2026-05-19T00:00:00Z","context":{}}}
                                         """))
                 .andExpect(status().isUnprocessableEntity());
     }

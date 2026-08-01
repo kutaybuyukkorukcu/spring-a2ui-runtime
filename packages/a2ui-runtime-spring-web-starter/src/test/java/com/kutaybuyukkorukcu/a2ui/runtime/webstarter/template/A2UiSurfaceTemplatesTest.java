@@ -57,23 +57,25 @@ class A2UiSurfaceTemplatesTest {
                 "city", "Istanbul",
                 "temperature", "24°C",
                 "condition", "Partly cloudy"));
-        A2UiMessage.SurfaceUpdate update = messages.stream()
-                .filter(A2UiMessage.SurfaceUpdate.class::isInstance)
-                .map(A2UiMessage.SurfaceUpdate.class::cast)
+        A2UiMessage.UpdateComponents update = messages.stream()
+                .filter(A2UiMessage.UpdateComponents.class::isInstance)
+                .map(A2UiMessage.UpdateComponents.class::cast)
                 .findFirst()
                 .orElseThrow();
         assertThat(update.components()).noneMatch(component -> "highlow-txt".equals(component.id()));
+        assertThat(update.components()).anyMatch(component -> "root".equals(component.id()));
     }
 
     private List<A2UiMessage> assemble(String templateId, Map<String, String> slots) {
-        return assemblyService.assemble(templateId, "main", A2UiCatalogIds.STANDARD_V0_8, slots);
+        return assemblyService.assemble(templateId, "main", A2UiCatalogIds.BASIC_V0_9, slots);
     }
 
     private void assertEmptyDiagnostics(List<A2UiMessage> messages) {
         List<A2UiDiagnostic> diagnostics = validator.validate(messages);
         assertThat(diagnostics).isEmpty();
-        assertThat(messages).anyMatch(A2UiMessage.SurfaceUpdate.class::isInstance);
-        assertThat(messages).anyMatch(A2UiMessage.DataModelUpdate.class::isInstance);
-        assertThat(messages).anyMatch(A2UiMessage.BeginRendering.class::isInstance);
+        assertThat(messages).anyMatch(A2UiMessage.CreateSurface.class::isInstance);
+        assertThat(messages).anyMatch(A2UiMessage.UpdateComponents.class::isInstance);
+        assertThat(messages).anyMatch(A2UiMessage.UpdateDataModel.class::isInstance);
+        assertThat(messages).noneMatch(m -> m.getClass().getSimpleName().equals("BeginRendering"));
     }
 }

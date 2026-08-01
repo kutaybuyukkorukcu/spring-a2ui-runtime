@@ -1,12 +1,12 @@
 # Backlog
 
-Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1)** ← next → **utilization layer (our SSE vocabulary)** → **optional foreign-client bridge (demand-gated)** → **Later**.
+Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / `2.0.0-SNAPSHOT`)** 🟡 code complete → live FE smoke → Central `2.0.0` → **utilization layer (our SSE vocabulary)** → **optional foreign-client bridge (demand-gated)** → **Later**.
 
 ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)`
 
 Implementation plans (for agents): `[docs/plans/phase-0-stream-infra.md](docs/plans/phase-0-stream-infra.md)` · `[docs/plans/phase-1-template-mvp.md](docs/plans/phase-1-template-mvp.md)` · `[docs/plans/phase-2-dynamic-generative-ui.md](docs/plans/phase-2-dynamic-generative-ui.md)` · `[docs/plans/phase-2.5-scalable-dynamic-runtime.md](docs/plans/phase-2.5-scalable-dynamic-runtime.md)` · `[docs/plans/phase-release-v0.8.md](docs/plans/phase-release-v0.8.md)` · `[docs/plans/phase-x-migrating-to-v0.9.md](docs/plans/phase-x-migrating-to-v0.9.md)` · `[docs/plans/phase-product-runtime-interaction.md](docs/plans/phase-product-runtime-interaction.md)`
 
-**Branches:** `chore/release-1.1.1` (this patch publish) · next: Phase X / v0.9.1.
+**Branches:** `feat/phase-x-v0.9.1` (Phase X hard cutover) · Legacy patch line `1.1.x`.
 
 ---
 
@@ -268,25 +268,33 @@ Merged `fix/dynamic-primary-tool-failfast` (forced primary `generateA2Ui`, plann
 
 ---
 
-## Phase X — Migrate to A2UI v0.9.1 🔴 next
+## Phase X — Migrate to A2UI v0.9.1 🟡 code complete (`feat/phase-x-v0.9.1`)
 
-**Prerequisite:** `1.1.0` ✅ and patch `1.1.1` ✅. a2ui.org marks **v0.8 = Legacy**, **v0.9.1 = Current** — protocol currency is a platform credibility gate before a large utilization investment on Legacy.
+**Prerequisite:** `1.1.0` ✅ and patch `1.1.1` ✅. a2ui.org marks **v0.8 = Legacy**, **v0.9.1 = Current**.
 
-**Plan:** `[docs/plans/phase-x-migrating-to-v0.9.md](docs/plans/phase-x-migrating-to-v0.9.md)`
+**Plan:** `[docs/plans/phase-x-migrating-to-v0.9.md](docs/plans/phase-x-migrating-to-v0.9.md)` · **Guide:** `[docs/guides/migrating-to-v0.9.1.md](docs/guides/migrating-to-v0.9.1.md)`
 
-Google moved from **structured-output-first (v0.8)** to **prompt-first + validate + retry (v0.9+)**:
+**Branch status:** hard cutover implemented on `feat/phase-x-v0.9.1` — library SemVer **`2.0.0-SNAPSHOT`**, wire `v0.9.1`, basic catalog, thin sanitize, templates + dynamic + FE demo updated. Unit/integration tests green.
 
-> Prompt → Generate → Validate → (if invalid) structured `VALIDATION_FAILED` back to LLM → self-correct
+**Cutover:** hard cutover on Maven Central **`2.0.0`** (v0.9.1 wire); keep **`1.1.x`** as v0.8 Legacy patch-only.
 
-Frontier guardrails to adopt (high priority when migrating):
+**Acceptance:** v0.9.1 envelopes (`createSurface` / `updateComponents` / `updateDataModel` / `deleteSurface`) assemble without semantic repair; validation uses v0.9.1 catalog + protocol rules; thin sanitization only; templates + `/a2ui/actions` (`action`) speak the same wire; demo on `@a2ui/react/v0_9`.
 
-1. **Prompt-generate-validate-retry loop** as the primary reliability mechanism (aligns with our Phase 2.5 direction; v0.9 makes it the protocol’s own philosophy).
-2. **Syntax-level healing only** (`payload_fixer` / stream parser: truncated JSON, trailing commas, brace closing) — **not** semantic repairs (no Card wrapping, no Button label synthesis).
-3. **Tool-time / catalog validation before client send** (Google `SendA2uiToClientTool` pattern) — we already started this in 2.5a/b; carry forward.
-4. **Wire-format simplification** — v0.9 flat `"component": "Text"`, native JSON values, `createSurface` / `updateComponents` / `updateDataModel` — largely **eliminates** the need for a BoundValue assembler.
-5. **Standard `VALIDATION_FAILED` error shape** (`surfaceId`, `path`, `message`) for agent self-correction.
+### Release gate (before Central `2.0.0`)
 
-**Acceptance (when Phase X runs):** v0.9 messages assemble without semantic repair; validation uses catalog + protocol rules; retry uses v0.9 error format; thin sanitization only.
+1. **Live FE smoke** — showcase + `fe-a2ui-demo` (`@a2ui/react/v0_9`) against running backend (stream, catalog, actions)
+2. **Publish Maven Central `2.0.0`** — drop `-SNAPSHOT`; document Legacy line = `1.1.x`
+
+### Phase X follow-ups (post-cutover / non-blocking)
+
+Tracked here so they do not block utilization sequencing, but should not be forgotten:
+
+- Rename Java type `A2UiUserAction` to align with JSON property `action` (wire already correct; class name is confusing)
+- Remove deprecated buffer / `A2UiClientEvent.userAction()` shims once call sites are clean — they hide incomplete migrations
+- Tighten planner retry feedback to protocol-shaped `VALIDATION_FAILED` (`code`, `surfaceId`, `path`, `message`) instead of only our `A2UiDiagnostic` list
+- `sendDataModel` is modeled on `createSurface` but is **not** a full bidirectional data-sync product yet — keep docs honest (default `false`)
+- Catalog validation: flattened local `allOf` props work for tool schema + lightweight checks; full networknt resolution of remote `common_types.json` `$ref`s is still weaker than an upstream JSON Schema suite
+- Historical Phase 0–2 / ADR docs still describe v0.8 sequences (intentional archive) — new contributors start from Phase X plan + migrating-to-v0.9.1 guide
 
 ---
 

@@ -1,8 +1,13 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.parse;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import org.junit.jupiter.api.Test;
 
+import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -13,94 +18,76 @@ class A2UiMessageParserTest {
     private final A2UiMessageParser parser = new A2UiMessageParser();
 
     @Test
-    void shouldParseSingleSurfaceUpdate() throws Exception {
-        String jsonl = "{\"surfaceUpdate\":{\"surfaceId\":\"main\",\"components\":[]}}";
-        List<A2UiMessage> messages = parser.parseAll(jsonl);
+    void shouldParseCreateSurface() throws Exception {
+        String json = "{\"version\":\"v0.9.1\",\"createSurface\":{\"surfaceId\":\"main\",\"catalogId\":\""
+                + A2UiCatalogIds.BASIC_V0_9 + "\"}}";
+        List<A2UiMessage> messages = parser.parseAll(json);
         assertThat(messages).hasSize(1);
-        assertThat(messages.get(0)).isInstanceOf(A2UiMessage.SurfaceUpdate.class);
-        A2UiMessage.SurfaceUpdate su = (A2UiMessage.SurfaceUpdate) messages.get(0);
-        assertThat(su.surfaceId()).isEqualTo("main");
+        assertThat(messages.get(0)).isInstanceOf(A2UiMessage.CreateSurface.class);
     }
 
     @Test
-    void shouldParseMultipleMessages() throws Exception {
-        String line1 = "{\"surfaceUpdate\":{\"surfaceId\":\"main\",\"components\":[]}}";
-        String line2 = "{\"dataModelUpdate\":{\"surfaceId\":\"main\",\"path\":\"user\",\"contents\":[{\"key\":\"name\",\"valueString\":\"Alice\"}]}}";
-        String line3 = "{\"beginRendering\":{\"surfaceId\":\"main\",\"root\":\"t1\",\"catalogId\":\"https://a2ui.org/specification/v0_8/standard_catalog_definition.json\"}}";
-        String jsonl = line1 + "\n" + line2 + "\n" + line3;
+    void shouldParseUpdateComponents() throws Exception {
+        String json = "{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"main\",\"components\":[{\"id\":\"root\",\"component\":\"Text\",\"text\":\"Hello\"}]}}";
+        List<A2UiMessage> messages = parser.parseAll(json);
+        assertThat(messages.get(0)).isInstanceOf(A2UiMessage.UpdateComponents.class);
+        A2UiMessage.UpdateComponents uc = (A2UiMessage.UpdateComponents) messages.get(0);
+        assertThat(uc.components().get(0).componentType()).isEqualTo("Text");
+    }
+
+    @Test
+    void shouldParseJsonlSequence() throws Exception {
+        String jsonl = """
+                {"version":"v0.9.1","createSurface":{"surfaceId":"main","catalogId":"%s"}}
+                {"version":"v0.9.1","updateComponents":{"surfaceId":"main","components":[{"id":"root","component":"Text","text":"Hi"}]}}
+                {"version":"v0.9.1","updateDataModel":{"surfaceId":"main","path":"/","value":{"x":1}}}
+                """.formatted(A2UiCatalogIds.BASIC_V0_9);
         List<A2UiMessage> messages = parser.parseAll(jsonl);
         assertThat(messages).hasSize(3);
-        assertThat(messages.get(0)).isInstanceOf(A2UiMessage.SurfaceUpdate.class);
-        assertThat(messages.get(1)).isInstanceOf(A2UiMessage.DataModelUpdate.class);
-        assertThat(messages.get(2)).isInstanceOf(A2UiMessage.BeginRendering.class);
+        assertThat(messages.get(0)).isInstanceOf(A2UiMessage.CreateSurface.class);
+        assertThat(messages.get(1)).isInstanceOf(A2UiMessage.UpdateComponents.class);
+        assertThat(messages.get(2)).isInstanceOf(A2UiMessage.UpdateDataModel.class);
     }
 
     @Test
-    void shouldSkipEmptyLines() throws Exception {
-        String jsonl = "\n{\"surfaceUpdate\":{\"surfaceId\":\"main\",\"components\":[]}}\n\n";
-        List<A2UiMessage> messages = parser.parseAll(jsonl);
-        assertThat(messages).hasSize(1);
+    void shouldParseUpdateDataModel() throws Exception {
+        String json = "{\"version\":\"v0.9.1\",\"updateDataModel\":{\"surfaceId\":\"main\",\"path\":\"/\",\"value\":{\"name\":\"Alice\"}}}";
+        List<A2UiMessage> messages = parser.parseAll(json);
+        A2UiMessage.UpdateDataModel udm = (A2UiMessage.UpdateDataModel) messages.get(0);
+        assertThat(udm.path()).isEqualTo("/");
     }
 
     @Test
-    void shouldParseDeleteSurface() throws Exception {
-        String jsonl = "{\"deleteSurface\":{\"surfaceId\":\"main\"}}";
-        List<A2UiMessage> messages = parser.parseAll(jsonl);
-        assertThat(messages).hasSize(1);
-        assertThat(messages.get(0)).isInstanceOf(A2UiMessage.DeleteSurface.class);
-    }
-
-    @Test
-    void shouldThrowOnInvalidJson() {
-        String jsonl = "not json at all";
-        assertThatThrownBy(() -> parser.parseAll(jsonl))
+    void shouldRejectInvalidJson() {
+        assertThatThrownBy(() -> parser.parseAll("{not-json"))
                 .isInstanceOf(A2UiParseException.class);
     }
 
     @Test
-    void shouldThrowOnUnknownMessageType() {
-        String jsonl = "{\"unknownType\":{\"surfaceId\":\"main\"}}";
-        assertThatThrownBy(() -> parser.parseAll(jsonl))
-                .isInstanceOf(A2UiParseException.class);
-    }
+    void shouldLoadGoldenSimpleTextFixture() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        try (InputStream in = getClass().getResourceAsStream("/META-INF/a2ui/fixtures/00_simple-text.json")) {
+            assertThat(in).isNotNull();
+            JsonNode root = mapper.readTree(in);
+            JsonNode messagesNode = root.get("messages");
+            assertThat(messagesNode.isArray()).isTrue();
 
-    @Test
-    void bestEffortParseShouldReturnValidAndFailedSeparately() {
-        String line1 = "{\"surfaceUpdate\":{\"surfaceId\":\"main\",\"components\":[]}}";
-        String line2 = "not valid json";
-        String line3 = "{\"deleteSurface\":{\"surfaceId\":\"main\"}}";
-        A2UiMessageParser.ParseResult result = parser.bestEffortParse(line1 + "\n" + line2 + "\n" + line3);
-        assertThat(result.messages()).hasSize(2);
-        assertThat(result.failures()).hasSize(1);
-        assertThat(result.hasFailures()).isTrue();
-        assertThat(result.isFullyValid()).isFalse();
-    }
+            List<A2UiMessage> parsed = new ArrayList<>();
+            for (JsonNode messageNode : messagesNode) {
+                parsed.add(parser.parseLine(mapper.writeValueAsString(messageNode), parsed.size() + 1));
+            }
 
-    @Test
-    void bestEffortParseShouldReturnAllValidOnPartialInput() {
-        String line1 = "{\"surfaceUpdate\":{\"surfaceId\":\"s1\",\"components\":[]}}";
-        String line2 = "garbage line";
-        A2UiMessageParser.ParseResult result = parser.bestEffortParse(line1 + "\n" + line2);
-        assertThat(result.messages()).hasSize(1);
-        assertThat(result.failures()).hasSize(1);
-        assertThat(result.messages().get(0)).isInstanceOf(A2UiMessage.SurfaceUpdate.class);
-    }
+            assertThat(parsed).hasSize(2);
+            assertThat(parsed.get(0)).isInstanceOf(A2UiMessage.CreateSurface.class);
+            A2UiMessage.CreateSurface cs = (A2UiMessage.CreateSurface) parsed.get(0);
+            assertThat(cs.catalogId()).isEqualTo(A2UiCatalogIds.BASIC_V0_9);
 
-    @Test
-    void shouldExtractJsonArray() throws Exception {
-        String jsonArray = "[{\"surfaceUpdate\":{\"surfaceId\":\"main\",\"components\":[]}},{\"deleteSurface\":{\"surfaceId\":\"main\"}}]";
-        List<String> lines = parser.tryExtractJsonArray(jsonArray);
-        assertThat(lines).hasSize(2);
-    }
-
-    @Test
-    void shouldParseDataModelUpdate() throws Exception {
-        String jsonl = "{\"dataModelUpdate\":{\"surfaceId\":\"s1\",\"path\":\"user\",\"contents\":[{\"key\":\"name\",\"valueString\":\"Bob\"},{\"key\":\"age\",\"valueNumber\":30}]}}";
-        List<A2UiMessage> messages = parser.parseAll(jsonl);
-        assertThat(messages).hasSize(1);
-        A2UiMessage.DataModelUpdate dmu = (A2UiMessage.DataModelUpdate) messages.get(0);
-        assertThat(dmu.contents()).hasSize(2);
-        assertThat(dmu.contents().get(0).valueString()).isEqualTo("Bob");
-        assertThat(dmu.contents().get(1).valueNumber()).isEqualTo(30);
+            assertThat(parsed.get(1)).isInstanceOf(A2UiMessage.UpdateComponents.class);
+            A2UiMessage.UpdateComponents uc = (A2UiMessage.UpdateComponents) parsed.get(1);
+            assertThat(uc.components()).hasSize(1);
+            assertThat(uc.components().get(0).id()).isEqualTo("root");
+            assertThat(uc.components().get(0).componentType()).isEqualTo("Text");
+            assertThat(uc.components().get(0).componentProperties()).containsEntry("text", "Hello, Minimal Catalog!");
+        }
     }
 }

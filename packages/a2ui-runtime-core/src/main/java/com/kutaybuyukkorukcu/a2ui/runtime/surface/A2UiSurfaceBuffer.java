@@ -1,10 +1,7 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.surface;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
-import com.kutaybuyukkorukcu.a2ui.runtime.protocol.DataEntry;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,17 +26,27 @@ public final class A2UiSurfaceBuffer {
         surfaces.remove(surfaceId);
     }
 
-    public void applySurfaceUpdate(A2UiMessage.SurfaceUpdate update) {
+    public void applyCreateSurface(A2UiMessage.CreateSurface create) {
+        SurfaceState state = getOrCreateSurface(create.surfaceId());
+        state.setCreated(true);
+        state.setCatalogId(create.catalogId());
+        state.setSendDataModel(Boolean.TRUE.equals(create.sendDataModel()));
+        if (create.theme() != null) {
+            state.setTheme(create.theme());
+        }
+    }
+
+    public void applyUpdateComponents(A2UiMessage.UpdateComponents update) {
         SurfaceState state = getOrCreateSurface(update.surfaceId());
         for (A2UiMessage.ComponentDefinition component : update.components()) {
             state.addComponent(component.id(), component.componentType());
         }
     }
 
-    public void applyDataModelUpdate(A2UiMessage.DataModelUpdate update) {
+    public void applyUpdateDataModel(A2UiMessage.UpdateDataModel update) {
         SurfaceState state = getOrCreateSurface(update.surfaceId());
-        String basePath = update.path() == null ? "" : update.path();
-        state.applyDataEntries(basePath, update.contents());
+        String path = update.path() == null || update.path().isBlank() ? "/" : update.path();
+        state.applyDataValue(path, update.value());
     }
 
     public Set<String> surfaceIds() {
@@ -53,9 +60,10 @@ public final class A2UiSurfaceBuffer {
     public static final class SurfaceState {
         private final Map<String, String> componentMap = new LinkedHashMap<>();
         private final Map<String, Object> dataModel = new LinkedHashMap<>();
-        private boolean renderingBegun = false;
-        private String rootComponentId;
+        private boolean created = false;
+        private boolean sendDataModel = false;
         private String catalogId;
+        private Map<String, Object> theme;
 
         public void addComponent(String componentId, String componentType) {
             componentMap.put(componentId, componentType);
@@ -73,20 +81,34 @@ public final class A2UiSurfaceBuffer {
             return Set.copyOf(componentMap.keySet());
         }
 
-        public void setRenderingBegun(boolean begun) {
-            this.renderingBegun = begun;
+        public void setCreated(boolean created) {
+            this.created = created;
         }
 
+        public boolean isCreated() {
+            return created;
+        }
+
+        /** @deprecated use {@link #isCreated()} — v0.9.1 has no beginRendering */
+        @Deprecated
         public boolean isRenderingBegun() {
-            return renderingBegun;
+            return created;
         }
 
-        public void setRootComponentId(String rootComponentId) {
-            this.rootComponentId = rootComponentId;
+        /** @deprecated no-op compatibility for callers still setting beginRendering flags */
+        @Deprecated
+        public void setRenderingBegun(boolean begun) {
+            this.created = begun;
         }
 
         public String getRootComponentId() {
-            return rootComponentId;
+            return hasComponent("root") ? "root" : null;
+        }
+
+        /** @deprecated root is always component id {@code root} in v0.9.1 */
+        @Deprecated
+        public void setRootComponentId(String rootComponentId) {
+            // no-op: root is identified by component id "root"
         }
 
         public void setCatalogId(String catalogId) {
@@ -97,49 +119,54 @@ public final class A2UiSurfaceBuffer {
             return catalogId;
         }
 
-        public void applyDataEntries(String basePath, List<DataEntry> entries) {
-            for (DataEntry entry : entries) {
-                String fullPath = basePath.isEmpty() ? entry.key() : basePath + "/" + entry.key();
-                if (entry.valueMap() != null) {
-                    applyNestedData(fullPath, entry.valueMap());
-                } else if (entry.valueString() != null) {
-                    setDataAtPath(fullPath, entry.valueString());
-                } else if (entry.valueNumber() != null) {
-                    setDataAtPath(fullPath, entry.valueNumber());
-                } else if (entry.valueBoolean() != null) {
-                    setDataAtPath(fullPath, entry.valueBoolean());
-                }
-            }
+        public void setSendDataModel(boolean sendDataModel) {
+            this.sendDataModel = sendDataModel;
+        }
+
+        public boolean isSendDataModel() {
+            return sendDataModel;
+        }
+
+        public void setTheme(Map<String, Object> theme) {
+            this.theme = theme == null ? null : Map.copyOf(theme);
+        }
+
+        public Map<String, Object> getTheme() {
+            return theme;
         }
 
         @SuppressWarnings("unchecked")
-        private void applyNestedData(String basePath, List<DataEntry> entries) {
-            Map<String, Object> nested = new LinkedHashMap<>();
-            for (DataEntry entry : entries) {
-                if (entry.valueMap() != null) {
-                    Map<String, Object> child = new LinkedHashMap<>();
-                    for (DataEntry childEntry : entry.valueMap()) {
-                        child.put(childEntry.key(), getValueFromEntry(childEntry));
+        public void applyDataValue(String path, Object value) {
+            if (path == null || path.isBlank() || "/".equals(path)) {
+                dataModel.clear();
+                if (value == null) {
+                    return;
+                }
+                if (value instanceof Map<?, ?> map) {
+                    for (Map.Entry<?, ?> entry : map.entrySet()) {
+                        dataModel.put(String.valueOf(entry.getKey()), entry.getValue());
                     }
-                    nested.put(entry.key(), child);
-                } else {
-                    nested.put(entry.key(), getValueFromEntry(entry));
+                    return;
                 }
+                throw new IllegalArgumentException("root data model value must be an object");
             }
-            setDataAtPath(basePath, nested);
-        }
 
-        private Object getValueFromEntry(DataEntry entry) {
-            if (entry.valueString() != null) return entry.valueString();
-            if (entry.valueNumber() != null) return entry.valueNumber();
-            if (entry.valueBoolean() != null) return entry.valueBoolean();
-            if (entry.valueMap() != null) return entry.valueMap();
-            return null;
+            String normalized = path.startsWith("/") ? path.substring(1) : path;
+            if (normalized.isBlank()) {
+                applyDataValue("/", value);
+                return;
+            }
+
+            String[] parts = normalized.split("/");
+            if (value == null) {
+                deleteAtPath(parts);
+                return;
+            }
+            setDataAtPath(parts, value);
         }
 
         @SuppressWarnings("unchecked")
-        private void setDataAtPath(String path, Object value) {
-            String[] parts = path.split("/");
+        private void setDataAtPath(String[] parts, Object value) {
             Map<String, Object> current = dataModel;
             for (int i = 0; i < parts.length - 1; i++) {
                 Object next = current.get(parts[i]);
@@ -152,8 +179,21 @@ public final class A2UiSurfaceBuffer {
             current.put(parts[parts.length - 1], value);
         }
 
+        @SuppressWarnings("unchecked")
+        private void deleteAtPath(String[] parts) {
+            Map<String, Object> current = dataModel;
+            for (int i = 0; i < parts.length - 1; i++) {
+                Object next = current.get(parts[i]);
+                if (!(next instanceof Map<?, ?> map)) {
+                    return;
+                }
+                current = (Map<String, Object>) map;
+            }
+            current.remove(parts[parts.length - 1]);
+        }
+
         public Object getDataAtPath(String path) {
-            if (path == null || path.isEmpty()) {
+            if (path == null || path.isEmpty() || "/".equals(path)) {
                 return dataModel;
             }
             String[] parts = path.startsWith("/") ? path.substring(1).split("/") : path.split("/");

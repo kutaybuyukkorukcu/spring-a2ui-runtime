@@ -75,7 +75,7 @@ class A2UiTemplateStreamIntegrationTest {
     }
 
     @Test
-    void shouldStreamSurfaceUpdateThenBeginRenderingFromTemplateTools() {
+    void shouldStreamCreateSurfaceThenUpdatesFromTemplateTools() {
         webTestClient.post()
                 .uri("/a2ui/surface/stream")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -86,10 +86,12 @@ class A2UiTemplateStreamIntegrationTest {
                 .expectHeader().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM)
                 .expectBody(String.class)
                 .value(body -> {
-                    assertThat(body).contains("\"surfaceUpdate\"");
-                    assertThat(body).contains("\"beginRendering\"");
+                    assertThat(body).contains("\"createSurface\"");
+                    assertThat(body).contains("\"updateComponents\"");
+                    assertThat(body).contains("\"updateDataModel\"");
                     assertThat(body).contains("[DONE]");
-                    assertThat(body).doesNotContain("null");
+                    assertThat(body).doesNotContain("beginRendering");
+                    assertThat(body).doesNotContain("surfaceUpdate");
                 });
     }
 

@@ -95,7 +95,7 @@ class A2UiDynamicToolsTest {
                         "root",
                         List.of(
                                 Map.of("id", "root", "component", "Column", "children", List.of("title")),
-                                Map.of("id", "title", "component", "Text", "text", "Hello", "usageHint", "h2")),
+                                Map.of("id", "title", "component", "Text", "text", "Hello", "variant", "h2")),
                         Map.of("heading", "Hello"),
                         renderContext);
             }
@@ -103,7 +103,7 @@ class A2UiDynamicToolsTest {
         });
 
         DynamicRenderSession session = new DynamicRenderSession(
-                "main", A2UiCatalogIds.STANDARD_V0_8, "show a dashboard", null);
+                "main", A2UiCatalogIds.BASIC_V0_9, "show a dashboard", null);
         ToolContext toolContext = new ToolContext(Map.of(A2UiDynamicTools.SESSION_CONTEXT_KEY, session));
 
         String result = dynamicTools.generateA2Ui(toolContext);
@@ -111,7 +111,7 @@ class A2UiDynamicToolsTest {
         assertThat(result).isEqualTo("Generated A2UI surface");
         assertThat(plannerCalls.get()).isEqualTo(2);
         assertThat(session.renderedMessages()).hasSize(3);
-        assertThat(session.renderedMessages().get(2)).isInstanceOf(A2UiMessage.BeginRendering.class);
+        assertThat(session.renderedMessages().get(0)).isInstanceOf(A2UiMessage.CreateSurface.class);
         verify(runtimeMetrics).recordDynamicValidationFailed();
         verify(runtimeMetrics).recordDynamicValidationRetrySuccess();
         verify(runtimeMetrics).recordDynamicSurfaceGenerated();
@@ -138,7 +138,7 @@ class A2UiDynamicToolsTest {
         });
 
         DynamicRenderSession session = new DynamicRenderSession(
-                "main", A2UiCatalogIds.STANDARD_V0_8, "show a dashboard", null);
+                "main", A2UiCatalogIds.BASIC_V0_9, "show a dashboard", null);
         ToolContext toolContext = new ToolContext(Map.of(A2UiDynamicTools.SESSION_CONTEXT_KEY, session));
 
         assertThatThrownBy(() -> dynamicTools.generateA2Ui(toolContext))
@@ -152,7 +152,7 @@ class A2UiDynamicToolsTest {
 
     @Test
     void shouldEmbedGeneratedCatalogSchemaInRenderToolCallback() {
-        ToolCallback callback = dynamicTools.buildRenderA2UiToolCallback(A2UiCatalogIds.STANDARD_V0_8);
+        ToolCallback callback = dynamicTools.buildRenderA2UiToolCallback(A2UiCatalogIds.BASIC_V0_9);
         String inputSchema = callback.getToolDefinition().inputSchema();
 
         assertThat(inputSchema).contains("CheckBox");

@@ -10,20 +10,10 @@ import java.util.Set;
 
 /**
  * Generates the JSON Schema for the {@code renderA2Ui} tool's input parameters
- * from the A2UI catalog. The schema constrains the LLM at tool-call time by:
- * <ul>
- *   <li>Requiring {@code id} and {@code component} on every component entry</li>
- *   <li>Listing allowed component type names from the catalog</li>
- *   <li>Embedding catalog prop shapes with {@code additionalProperties: false}</li>
- *   <li>Marking required props per component type (e.g. CheckBox requires label and value)</li>
- *   <li>Allowing LLM-friendly BoundValue shorthand (string | number | boolean | path object)
- *       that the thin assembler canonicalizes</li>
- * </ul>
+ * from the A2UI catalog. Flat v0.9.1 form: {@code component} is a const string enum of
+ * catalog types; Dynamic* props accept string | {@code {path}} (or number/boolean equivalents).
  */
 public final class A2UiToolSchemaGenerator {
-
-    private static final Set<String> BOUND_VALUE_KEYS = Set.of(
-            "literalString", "literalNumber", "literalBoolean", "literalArray", "path");
 
     private final A2UiCatalogRegistry catalogRegistry;
     private final ObjectMapper objectMapper;
@@ -37,12 +27,6 @@ public final class A2UiToolSchemaGenerator {
         this.objectMapper = objectMapper;
     }
 
-    /**
-     * Generates the full JSON Schema (as a string) for the {@code renderA2Ui} tool input.
-     *
-     * @param catalogId the catalog to generate the schema from
-     * @return a JSON Schema string suitable for {@code ToolDefinition.inputSchema()}
-     */
     public String renderA2UiInputSchema(String catalogId) {
         Map<String, Object> schema = buildSchemaMap(catalogId);
         try {
@@ -65,13 +49,15 @@ public final class A2UiToolSchemaGenerator {
 
         properties.put("root", Map.of(
                 "type", "string",
-                "description", "Root component id, typically \"root\""));
+                "const", "root",
+                "description", "Root component id must be \"root\""));
 
         properties.put("components", buildComponentsSchema(catalogId));
 
         properties.put("data", Map.of(
                 "type", "object",
-                "description", "Plain JSON data model values. Keys map to data model paths; values are the data to bind.",
+                "description",
+                "Plain JSON data model values. Keys map under path \"/\"; values are native JSON.",
                 "additionalProperties", true));
 
         root.put("properties", properties);
@@ -85,168 +71,200 @@ public final class A2UiToolSchemaGenerator {
         Set<String> componentTypes = catalogRegistry.componentTypesForCatalog(catalogId);
         String typeList = String.join(", ", componentTypes);
 
-        Map<String, Object> componentPropsSchema = new LinkedHashMap<>();
-        for (String componentType : componentTypes) {
-            componentPropsSchema.put(componentType, buildComponentTypeSchema(catalogId, componentType));
-        }
-
-        Map<String, Object> nestedComponent = new LinkedHashMap<>();
-        nestedComponent.put("type", "object");
-        nestedComponent.put("description",
-                "Single-key object where the key is the component type name and the value is the props object. "
-                        + "Allowed type names: " + typeList + ".");
-        nestedComponent.put("properties", componentPropsSchema);
-        nestedComponent.put("additionalProperties", false);
-        nestedComponent.put("minProperties", 1);
-        nestedComponent.put("maxProperties", 1);
-
         Map<String, Object> stringComponent = new LinkedHashMap<>();
         stringComponent.put("type", "string");
         stringComponent.put("enum", List.copyOf(componentTypes));
-        stringComponent.put("description",
-                "Flat form: catalog type name. Put props as sibling fields on the component entry "
-                        + "(alongside id). Prefer nested form when possible.");
-
-        Map<String, Object> componentProperty = new LinkedHashMap<>();
-        componentProperty.put("description",
-                "Component type: either a catalog type name string (flat form) or a single-key "
-                        + "{Type: props} object (nested form). Allowed: " + typeList + ".");
-        componentProperty.put("oneOf", List.of(stringComponent, nestedComponent));
+        stringComponent.put("description", "Catalog component type name. Props are sibling fields.");
 
         Map<String, Object> itemSchema = new LinkedHashMap<>();
         itemSchema.put("type", "object");
         itemSchema.put("required", List.of("id", "component"));
 
         Map<String, Object> itemProperties = new LinkedHashMap<>();
-        itemProperties.put("id", Map.of("type", "string", "description", "Unique component id (kebab-case)"));
-        itemProperties.put("component", componentProperty);
+        itemProperties.put("id", Map.of("type", "string", "description", "Unique component id"));
+        itemProperties.put("component", stringComponent);
+
+        // Embed per-type prop hints as additionalProperties guidance via description;
+        // flat form uses sibling props with additionalProperties true.
+        for (String componentType : componentTypes) {
+            Map<String, Object> typeProps = buildComponentTypeProps(catalogId, componentType);
+            for (Map.Entry<String, Object> entry : typeProps.entrySet()) {
+                itemProperties.putIfAbsent(entry.getKey(), entry.getValue());
+            }
+        }
         itemSchema.put("properties", itemProperties);
-        // Flat form puts props next to id/component; nested form keeps them under component.Type.
         itemSchema.put("additionalProperties", true);
+        itemSchema.put("description",
+                "Flat component: id + component type string + sibling props. Allowed types: " + typeList);
 
         Map<String, Object> componentsSchema = new LinkedHashMap<>();
         componentsSchema.put("type", "array");
         componentsSchema.put("description",
                 "Flat array of component objects. Every child UI element must be its own entry; "
-                        + "reference children by id only (never inline nested components).");
+                        + "reference children by id only (never inline nested components). "
+                        + "Root component id must be \"root\".");
         componentsSchema.put("items", itemSchema);
         return componentsSchema;
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, Object> buildComponentTypeSchema(String catalogId, String componentType) {
+    private Map<String, Object> buildComponentTypeProps(String catalogId, String componentType) {
         Map<String, Object> catalogSchema = catalogRegistry.componentSchema(catalogId, componentType);
-        Set<String> requiredProps = catalogRegistry.requiredProps(catalogId, componentType);
-
-        Map<String, Object> typeSchema = new LinkedHashMap<>();
-        typeSchema.put("type", "object");
-        typeSchema.put("description", buildComponentDescription(componentType, requiredProps));
-        typeSchema.put("additionalProperties", false);
-
+        Map<String, Object> adaptedProps = new LinkedHashMap<>();
         Object catalogProperties = catalogSchema.get("properties");
-        if (catalogProperties instanceof Map<?, ?> propsMap && !propsMap.isEmpty()) {
-            Map<String, Object> adaptedProps = new LinkedHashMap<>();
+        if (catalogProperties instanceof Map<?, ?> propsMap) {
             for (Map.Entry<?, ?> entry : propsMap.entrySet()) {
                 String propName = String.valueOf(entry.getKey());
+                if ("id".equals(propName) || "component".equals(propName)) {
+                    continue;
+                }
                 if (entry.getValue() instanceof Map<?, ?> propSchema) {
                     adaptedProps.put(propName, adaptPropSchema(propName, (Map<String, Object>) propSchema));
                 }
             }
-            typeSchema.put("properties", adaptedProps);
         }
-
-        if (!requiredProps.isEmpty()) {
-            typeSchema.put("required", List.copyOf(requiredProps));
-        }
-        return typeSchema;
+        return adaptedProps;
     }
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> adaptPropSchema(String propName, Map<String, Object> catalogPropSchema) {
         if ("children".equals(propName)) {
-            return childrenShorthandSchema(catalogPropSchema);
+            return childrenSchema();
         }
         if ("action".equals(propName)) {
-            return actionShorthandSchema(catalogPropSchema);
+            return actionSchema();
         }
-        if (isBoundValueObjectSchema(catalogPropSchema)) {
-            return boundValueShorthandSchema(catalogPropSchema);
+        String ref = catalogPropSchema.get("$ref") instanceof String s ? s : null;
+        if (ref != null) {
+            if (ref.contains("DynamicString")) {
+                return dynamicStringSchema(catalogPropSchema);
+            }
+            if (ref.contains("DynamicNumber")) {
+                return dynamicNumberSchema(catalogPropSchema);
+            }
+            if (ref.contains("DynamicBoolean")) {
+                return dynamicBooleanSchema(catalogPropSchema);
+            }
+            if (ref.contains("DynamicStringList")) {
+                return dynamicStringListSchema(catalogPropSchema);
+            }
+            if (ref.contains("ComponentId")) {
+                return Map.of("type", "string");
+            }
+            if (ref.contains("ChildList")) {
+                return childrenSchema();
+            }
+            if (ref.contains("Action")) {
+                return actionSchema();
+            }
         }
-
         Map<String, Object> copied = deepCopyMap(catalogPropSchema);
-        if (!copied.containsKey("additionalProperties") && "object".equals(copied.get("type"))) {
-            copied.put("additionalProperties", false);
-        }
+        copied.remove("$ref");
         return copied;
     }
 
-    private Map<String, Object> childrenShorthandSchema(Map<String, Object> catalogPropSchema) {
+    private Map<String, Object> childrenSchema() {
         Map<String, Object> bareList = new LinkedHashMap<>();
         bareList.put("type", "array");
         bareList.put("items", Map.of("type", "string"));
-        bareList.put("description", "Shorthand: list of child component ids (assembler wraps as explicitList)");
+        bareList.put("description", "Bare list of child component ids");
+
+        Map<String, Object> template = new LinkedHashMap<>();
+        template.put("type", "object");
+        template.put("required", List.of("componentId", "path"));
+        template.put("properties", Map.of(
+                "componentId", Map.of("type", "string"),
+                "path", Map.of("type", "string")));
+        template.put("additionalProperties", false);
+        template.put("description", "Template: componentId + path to data list");
 
         Map<String, Object> schema = new LinkedHashMap<>();
-        schema.put("description", "Children: bare id list or catalog children object (explicitList | template)");
-        schema.put("oneOf", List.of(bareList, deepCopyMap(catalogPropSchema)));
+        schema.put("description", "Children: bare id array or {componentId, path} template");
+        schema.put("oneOf", List.of(bareList, template));
         return schema;
     }
 
-    private Map<String, Object> actionShorthandSchema(Map<String, Object> catalogPropSchema) {
+    private Map<String, Object> actionSchema() {
         Map<String, Object> stringAction = Map.of(
                 "type", "string",
-                "description", "Shorthand action name (assembler wraps as {name})");
+                "description", "Shorthand event name (runtime wraps as {event:{name}})");
+
+        Map<String, Object> eventObj = new LinkedHashMap<>();
+        eventObj.put("type", "object");
+        eventObj.put("required", List.of("name"));
+        eventObj.put("properties", Map.of(
+                "name", Map.of("type", "string"),
+                "context", Map.of("type", "object", "additionalProperties", true)));
+        eventObj.put("additionalProperties", false);
+
+        Map<String, Object> eventAction = new LinkedHashMap<>();
+        eventAction.put("type", "object");
+        eventAction.put("required", List.of("event"));
+        eventAction.put("properties", Map.of("event", eventObj));
+        eventAction.put("additionalProperties", false);
 
         Map<String, Object> schema = new LinkedHashMap<>();
-        schema.put("description", "Action: string name or catalog action object");
-        schema.put("oneOf", List.of(stringAction, deepCopyMap(catalogPropSchema)));
+        schema.put("description", "Action: string name or {event:{name, context?}}");
+        schema.put("oneOf", List.of(stringAction, eventAction));
         return schema;
     }
 
-    private Map<String, Object> boundValueShorthandSchema(Map<String, Object> catalogPropSchema) {
-        List<Object> alternatives = new ArrayList<>();
-        alternatives.add(Map.of("type", "string", "description", "literalString or path (/...) shorthand"));
-        alternatives.add(Map.of("type", "number"));
-        alternatives.add(Map.of("type", "boolean"));
-        alternatives.add(Map.of("type", "array", "items", Map.of("type", "string")));
-        alternatives.add(deepCopyMap(catalogPropSchema));
+    private Map<String, Object> dynamicStringSchema(Map<String, Object> catalogPropSchema) {
+        Map<String, Object> schema = new LinkedHashMap<>();
+        Object description = catalogPropSchema.get("description");
+        schema.put("description", description != null
+                ? String.valueOf(description) + " Accepts string literal or {\"path\":\"/...\"}."
+                : "DynamicString: string literal or {\"path\":\"/...\"}");
+        schema.put("oneOf", List.of(
+                Map.of("type", "string"),
+                pathObjectSchema()));
+        return schema;
+    }
 
+    private Map<String, Object> dynamicNumberSchema(Map<String, Object> catalogPropSchema) {
         Map<String, Object> schema = new LinkedHashMap<>();
         Object description = catalogPropSchema.get("description");
         if (description != null) {
-            schema.put("description", String.valueOf(description)
-                    + " Accepts BoundValue object or shorthand (string/number/boolean/array).");
-        } else {
-            schema.put("description", "BoundValue object or shorthand (string/number/boolean/array)");
+            schema.put("description", String.valueOf(description));
         }
-        schema.put("oneOf", alternatives);
+        schema.put("oneOf", List.of(
+                Map.of("type", "number"),
+                pathObjectSchema()));
         return schema;
     }
 
-    @SuppressWarnings("unchecked")
-    private static boolean isBoundValueObjectSchema(Map<String, Object> propSchema) {
-        if (!"object".equals(propSchema.get("type"))) {
-            return false;
+    private Map<String, Object> dynamicBooleanSchema(Map<String, Object> catalogPropSchema) {
+        Map<String, Object> schema = new LinkedHashMap<>();
+        Object description = catalogPropSchema.get("description");
+        if (description != null) {
+            schema.put("description", String.valueOf(description));
         }
-        Object properties = propSchema.get("properties");
-        if (!(properties instanceof Map<?, ?> propsMap) || propsMap.isEmpty()) {
-            return false;
-        }
-        for (Object key : propsMap.keySet()) {
-            if (BOUND_VALUE_KEYS.contains(String.valueOf(key))) {
-                return true;
-            }
-        }
-        return false;
+        schema.put("oneOf", List.of(
+                Map.of("type", "boolean"),
+                pathObjectSchema()));
+        return schema;
     }
 
-    private String buildComponentDescription(String componentType, Set<String> requiredProps) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(componentType);
-        if (!requiredProps.isEmpty()) {
-            sb.append(" (required: ").append(String.join(", ", requiredProps)).append(")");
+    private Map<String, Object> dynamicStringListSchema(Map<String, Object> catalogPropSchema) {
+        Map<String, Object> array = new LinkedHashMap<>();
+        array.put("type", "array");
+        array.put("items", Map.of("type", "string"));
+        Map<String, Object> schema = new LinkedHashMap<>();
+        Object description = catalogPropSchema.get("description");
+        if (description != null) {
+            schema.put("description", String.valueOf(description));
         }
-        return sb.toString();
+        schema.put("oneOf", List.of(array, pathObjectSchema()));
+        return schema;
+    }
+
+    private static Map<String, Object> pathObjectSchema() {
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "object");
+        schema.put("required", List.of("path"));
+        schema.put("additionalProperties", false);
+        schema.put("properties", Map.of("path", Map.of("type", "string")));
+        return schema;
     }
 
     @SuppressWarnings("unchecked")

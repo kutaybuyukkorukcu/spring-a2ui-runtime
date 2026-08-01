@@ -2,7 +2,6 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage.ComponentDefinition;
-import com.kutaybuyukkorukcu.a2ui.runtime.protocol.DataEntry;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -17,8 +16,7 @@ public final class A2UiSurfaceTemplates {
     public static final String FORM_LOGIN = "form-login";
     public static final String WEATHER_CARD = "weather-card";
 
-    private static final String ROOT_COLUMN = "col-root";
-    private static final String WEATHER_CARD_ROOT = "weather-card-root";
+    private static final String ROOT = "root";
 
     private A2UiSurfaceTemplates() {
     }
@@ -26,7 +24,7 @@ public final class A2UiSurfaceTemplates {
     public static A2UiSurfaceSpec textCard() {
         return new FixedSurfaceSpec(
                 TEXT_CARD,
-                ROOT_COLUMN,
+                ROOT,
                 Set.of("title", "body"),
                 Set.of(),
                 A2UiSurfaceTemplates::textCardComponents,
@@ -36,7 +34,7 @@ public final class A2UiSurfaceTemplates {
     public static A2UiSurfaceSpec heroCta() {
         return new FixedSurfaceSpec(
                 HERO_CTA,
-                ROOT_COLUMN,
+                ROOT,
                 Set.of("heading", "subtitle", "buttonLabel"),
                 Set.of("actionName"),
                 A2UiSurfaceTemplates::heroCtaComponents,
@@ -46,7 +44,7 @@ public final class A2UiSurfaceTemplates {
     public static A2UiSurfaceSpec formLogin() {
         return new FixedSurfaceSpec(
                 FORM_LOGIN,
-                ROOT_COLUMN,
+                ROOT,
                 Set.of("title", "usernameLabel", "passwordLabel", "submitLabel"),
                 Set.of(),
                 A2UiSurfaceTemplates::formLoginComponents,
@@ -56,7 +54,7 @@ public final class A2UiSurfaceTemplates {
     public static A2UiSurfaceSpec weatherCard() {
         return new FixedSurfaceSpec(
                 WEATHER_CARD,
-                WEATHER_CARD_ROOT,
+                ROOT,
                 Set.of("city", "temperature", "condition"),
                 Set.of("highLow"),
                 null,
@@ -66,28 +64,28 @@ public final class A2UiSurfaceTemplates {
 
     private static List<ComponentDefinition> textCardComponents() {
         return List.of(
-                column(ROOT_COLUMN, List.of("title-txt", "body-txt")),
-                text("title-txt", "title", "h2"),
-                text("body-txt", "body", null));
+                column(ROOT, List.of("title-txt", "body-txt")),
+                text("title-txt", "/title", "h2"),
+                text("body-txt", "/body", null));
     }
 
     private static List<ComponentDefinition> heroCtaComponents() {
         return List.of(
-                column(ROOT_COLUMN, List.of("heading-txt", "subtitle-txt", "btn-primary")),
-                text("heading-txt", "heading", "h2"),
-                text("subtitle-txt", "subtitle", "body"),
+                column(ROOT, List.of("heading-txt", "subtitle-txt", "btn-primary")),
+                text("heading-txt", "/heading", "h2"),
+                text("subtitle-txt", "/subtitle", "body"),
                 button("btn-primary", "btn-label-txt", "primary_action"),
-                text("btn-label-txt", "buttonLabel", null));
+                text("btn-label-txt", "/buttonLabel", null));
     }
 
     private static List<ComponentDefinition> formLoginComponents() {
         return List.of(
-                column(ROOT_COLUMN, List.of("title-txt", "username-field", "password-field", "submit-btn")),
-                text("title-txt", "title", "h2"),
-                textField("username-field", "usernameLabel", "shortText"),
-                textField("password-field", "passwordLabel", "obscured"),
+                column(ROOT, List.of("title-txt", "username-field", "password-field", "submit-btn")),
+                text("title-txt", "/title", "h2"),
+                textField("username-field", "/usernameLabel", "shortText"),
+                textField("password-field", "/passwordLabel", "obscured"),
                 button("submit-btn", "submit-label-txt", "submit"),
-                text("submit-label-txt", "submitLabel", null));
+                text("submit-label-txt", "/submitLabel", null));
     }
 
     private static List<ComponentDefinition> weatherCardComponents(Map<String, String> slots) {
@@ -97,14 +95,14 @@ public final class A2UiSurfaceTemplates {
             columnChildren.add("highlow-txt");
         }
         List<ComponentDefinition> components = new ArrayList<>();
-        components.add(card(WEATHER_CARD_ROOT, "weather-col"));
+        components.add(card(ROOT, "weather-col"));
         components.add(column("weather-col", columnChildren));
         components.add(row("weather-header-row", List.of("city-txt", "temp-txt")));
-        components.add(text("city-txt", "city", "h2"));
-        components.add(text("temp-txt", "temperature", "h1"));
-        components.add(text("condition-txt", "condition", "body"));
+        components.add(text("city-txt", "/city", "h2"));
+        components.add(text("temp-txt", "/temperature", "h1"));
+        components.add(text("condition-txt", "/condition", "body"));
         if (hasHighLow) {
-            components.add(text("highlow-txt", "highLow", "caption"));
+            components.add(text("highlow-txt", "/highLow", "caption"));
         }
         return List.copyOf(components);
     }
@@ -118,40 +116,45 @@ public final class A2UiSurfaceTemplates {
     }
 
     private static ComponentDefinition column(String id, List<String> childIds) {
-        return new ComponentDefinition(id, Map.of("Column", Map.of(
-                "children", Map.of("explicitList", childIds))));
+        Map<String, Object> props = new LinkedHashMap<>();
+        props.put("children", childIds);
+        props.put("justify", "start");
+        return new ComponentDefinition(id, "Column", props);
     }
 
     private static ComponentDefinition row(String id, List<String> childIds) {
-        return new ComponentDefinition(id, Map.of("Row", Map.of(
-                "children", Map.of("explicitList", childIds))));
+        Map<String, Object> props = new LinkedHashMap<>();
+        props.put("children", childIds);
+        props.put("justify", "start");
+        return new ComponentDefinition(id, "Row", props);
     }
 
     private static ComponentDefinition card(String id, String childId) {
-        return new ComponentDefinition(id, Map.of("Card", Map.of("child", childId)));
+        return new ComponentDefinition(id, "Card", Map.of("child", childId));
     }
 
-    private static ComponentDefinition text(String id, String pathKey, String usageHint) {
+    private static ComponentDefinition text(String id, String path, String variant) {
         Map<String, Object> props = new LinkedHashMap<>();
-        props.put("text", Map.of("path", pathKey));
-        if (usageHint != null) {
-            props.put("usageHint", usageHint);
+        props.put("text", Map.of("path", path));
+        if (variant != null) {
+            props.put("variant", variant);
         }
-        return new ComponentDefinition(id, Map.of("Text", props));
+        return new ComponentDefinition(id, "Text", props);
     }
 
-    private static ComponentDefinition textField(String id, String labelPathKey, String fieldType) {
+    private static ComponentDefinition textField(String id, String labelPath, String variant) {
         Map<String, Object> props = new LinkedHashMap<>();
-        props.put("label", Map.of("path", labelPathKey));
-        props.put("textFieldType", fieldType);
-        return new ComponentDefinition(id, Map.of("TextField", props));
+        props.put("label", Map.of("path", labelPath));
+        props.put("variant", variant);
+        return new ComponentDefinition(id, "TextField", props);
     }
 
     private static ComponentDefinition button(String id, String childId, String defaultActionName) {
-        return new ComponentDefinition(id, Map.of("Button", Map.of(
-                "child", childId,
-                "primary", true,
-                "action", Map.of("name", defaultActionName))));
+        Map<String, Object> props = new LinkedHashMap<>();
+        props.put("child", childId);
+        props.put("variant", "primary");
+        props.put("action", Map.of("event", Map.of("name", defaultActionName)));
+        return new ComponentDefinition(id, "Button", props);
     }
 
     private record FixedSurfaceSpec(
@@ -182,19 +185,22 @@ public final class A2UiSurfaceTemplates {
             if (HERO_CTA.equals(templateId)) {
                 components = withHeroActionName(components, slots);
             }
-            List<DataEntry> entries = new ArrayList<>();
+            Map<String, Object> data = new LinkedHashMap<>();
             for (String key : dataModelKeys) {
                 if ("actionName".equals(key)) {
                     continue;
                 }
                 String value = slots.get(key);
                 if (value != null) {
-                    entries.add(DataEntry.ofString(key, value));
+                    data.put(key, value);
                 }
             }
-            return List.of(
-                    new A2UiMessage.SurfaceUpdate(surfaceId, components),
-                    new A2UiMessage.DataModelUpdate(surfaceId, null, entries));
+            List<A2UiMessage> messages = new ArrayList<>();
+            messages.add(new A2UiMessage.UpdateComponents(surfaceId, components));
+            if (!data.isEmpty()) {
+                messages.add(new A2UiMessage.UpdateDataModel(surfaceId, "/", data));
+            }
+            return List.copyOf(messages);
         }
 
         private static List<ComponentDefinition> withHeroActionName(
@@ -203,10 +209,11 @@ public final class A2UiSurfaceTemplates {
             List<ComponentDefinition> updated = new ArrayList<>(components.size());
             for (ComponentDefinition component : components) {
                 if ("btn-primary".equals(component.id())) {
-                    updated.add(new ComponentDefinition(component.id(), Map.of("Button", Map.of(
-                            "child", "btn-label-txt",
-                            "primary", true,
-                            "action", Map.of("name", actionName)))));
+                    Map<String, Object> props = new LinkedHashMap<>();
+                    props.put("child", "btn-label-txt");
+                    props.put("variant", "primary");
+                    props.put("action", Map.of("event", Map.of("name", actionName)));
+                    updated.add(new ComponentDefinition(component.id(), "Button", props));
                 } else {
                     updated.add(component);
                 }

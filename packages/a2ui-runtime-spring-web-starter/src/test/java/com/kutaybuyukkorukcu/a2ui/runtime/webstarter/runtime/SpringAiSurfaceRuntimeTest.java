@@ -32,15 +32,15 @@ class SpringAiSurfaceRuntimeTest {
     @Test
     void shouldDelegateToDynamicOrchestratorByDefault() {
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show dashboard", null, null);
-        A2UiMessage.SurfaceUpdate surfaceUpdate =
-                new A2UiMessage.SurfaceUpdate("main", List.of());
-        when(dynamicOrchestrator.stream(request, "req-1", A2UiCatalogIds.STANDARD_V0_8))
-                .thenReturn(Flux.just(surfaceUpdate));
+        A2UiMessage.CreateSurface createSurface =
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9);
+        when(dynamicOrchestrator.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
+                .thenReturn(Flux.just(createSurface));
 
         SpringAiSurfaceRuntime runtime = createRuntime(new A2UiWebProperties());
 
-        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.STANDARD_V0_8))
-                .assertNext(message -> assertThat(message).isInstanceOf(A2UiMessage.SurfaceUpdate.class))
+        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
+                .assertNext(message -> assertThat(message).isInstanceOf(A2UiMessage.CreateSurface.class))
                 .verifyComplete();
     }
 
@@ -50,12 +50,12 @@ class SpringAiSurfaceRuntimeTest {
         properties.getRuntime().setGenerationMode("template");
 
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show card", null, null);
-        when(templateOrchestrator.stream(request, "req-1", A2UiCatalogIds.STANDARD_V0_8))
+        when(templateOrchestrator.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
                 .thenReturn(Flux.empty());
 
         SpringAiSurfaceRuntime runtime = createRuntime(properties);
 
-        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.STANDARD_V0_8))
+        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
                 .verifyComplete();
     }
 
