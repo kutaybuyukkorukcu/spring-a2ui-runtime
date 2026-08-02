@@ -14,16 +14,16 @@ If you are building generative UI on Spring, you should not have to hand-roll pr
 
 ## Status
 
-Library version **1.1.1** is published on Maven Central as the A2UI **v0.8** GA line (template + dynamic).
-Prefer **1.1.1** over `1.1.0` / `1.0.0`. A2UI **v0.9.1** migration is next on the roadmap.
-Both generation modes ship as GA:
+Library version **`2.0.0-SNAPSHOT`** speaks **A2UI v0.9.1 Current** (hard cutover). Maven Central **`1.1.x`** remains the A2UI **v0.8 Legacy** patch line for older clients.
+
+Both generation modes ship:
 
 | Mode | Property | When to use it |
 | ---- | -------- | -------------- |
 | Template | `a2ui.web.runtime.generation-mode=template` | Predictable layouts from registered surface templates |
-| Dynamic | `a2ui.web.runtime.generation-mode=dynamic` | Open-ended prompts composed from the standard v0.8 catalog |
+| Dynamic | `a2ui.web.runtime.generation-mode=dynamic` | Open-ended prompts composed from the basic v0.9 catalog |
 
-Surfaces are streamed as **A2UI envelopes over SSE**. This 0.8.x line focuses on the A2UI surface path only. A2UI v0.9 support is planned separately after this line.
+Surfaces are streamed as **A2UI v0.9.1 envelopes over SSE** (`createSurface` / `updateComponents` / `updateDataModel`). See [Migrating to v0.9.1](docs/guides/migrating-to-v0.9.1.md).
 
 ## Getting started
 
@@ -33,7 +33,7 @@ You do not need to build this repository to use the runtime. Add the web starter
 <dependency>
   <groupId>com.kutaybuyukkorukcu.a2ui.runtime</groupId>
   <artifactId>a2ui-runtime-spring-web-starter</artifactId>
-  <version>1.1.1</version>
+  <version>2.0.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -57,7 +57,7 @@ Accept: text/event-stream
   "content": "Show a simple login form",
   "a2uiClientCapabilities": {
     "supportedCatalogIds": [
-      "https://a2ui.org/specification/v0_8/standard_catalog_definition.json"
+      "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
     ]
   }
 }
@@ -82,9 +82,9 @@ Sample apps under `apps/` (`be-transform-showcase`, `fe-a2ui-demo`) are for loca
 
 ## What the runtime does
 
-* Streams A2UI v0.8 envelopes (`surfaceUpdate`, `dataModelUpdate`, `beginRendering`) over SSE
-* Negotiates catalogs from client capabilities and pins `catalogId` on render
-* Validates messages against the standard v0.8 catalog (including component properties)
+* Streams A2UI v0.9.1 envelopes (`createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface`) over SSE
+* Negotiates catalogs from client capabilities and pins `catalogId` on `createSurface`
+* Validates messages against the basic v0.9 catalog (including component properties)
 * Fails fast with SSE `event: error` — no silent fallback surfaces
 * Offers template tools for deterministic UX and a two-hop dynamic path for catalog-only composition
 * Retries dynamic assembly once with validation diagnostics, then errors

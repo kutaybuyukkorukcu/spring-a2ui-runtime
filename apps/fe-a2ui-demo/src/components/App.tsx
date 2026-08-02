@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { A2UIProvider, A2UIRenderer, initializeDefaultCatalog } from '@a2ui/react/v0_8';
-import type { A2UIClientEventMessage } from '@a2ui/react/v0_8';
+import { A2UIProvider, A2UIRenderer, initializeDefaultCatalog } from '@a2ui/react/v0_9';
+import type { A2UIClientEventMessage } from '@a2ui/react/v0_9';
 import { useSurfaceGeneration } from '../hooks/useSurfaceGeneration';
 
 initializeDefaultCatalog();
@@ -58,7 +58,7 @@ function DemoContent({
     <div className="app">
       <header>
         <h1>A2UI Runtime Demo</h1>
-        <p>Connect to spring-a2ui-runtime backend and render A2UI v0.8 surfaces</p>
+        <p>Connect to spring-a2ui-runtime backend and render A2UI v0.9.1 surfaces</p>
         <p className="generation-mode-hint">
           Generation mode: <strong>{generationMode}</strong>
           {generationMode === 'dynamic' && (

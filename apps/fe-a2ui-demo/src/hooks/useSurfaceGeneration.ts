@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { useA2UIActions } from '@a2ui/react/v0_8';
-import type { A2UIClientEventMessage, ServerToClientMessage } from '@a2ui/react/v0_8';
+import { useA2UIActions } from '@a2ui/react/v0_9';
+import type { A2UIClientEventMessage, ServerToClientMessage } from '@a2ui/react/v0_9';
 import { streamSurface, sendAction } from '../services/api';
 
 /** Must be called from a component rendered inside {@link A2UIProvider}. */

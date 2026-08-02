@@ -1,11 +1,12 @@
 # Getting started
 
 This guide walks a Spring Boot app from dependency to a first A2UI SSE stream
-using **spring-a2ui-runtime** (A2UI v0.8).
+using **spring-a2ui-runtime** (A2UI **v0.9.1**).
 
 The runtime owns **compose → validate → stream → fail-fast → actions**. Your app
 keeps product logic, design system, and FE renderer. For positioning and roadmap
 stages, see [Platform positioning](../platform.md).
+For the v0.8 → v0.9.1 cutover, see [Migrating to v0.9.1](migrating-to-v0.9.1.md).
 
 For endpoint shapes and error codes, see [REST API](../rest-api.md).
 For dynamic-mode internals, see [Dynamic generative UI](dynamic-generative-ui.md).
@@ -23,7 +24,7 @@ For dynamic-mode internals, see [Dynamic generative UI](dynamic-generative-ui.md
 <dependency>
   <groupId>com.kutaybuyukkorukcu.a2ui.runtime</groupId>
   <artifactId>a2ui-runtime-spring-web-starter</artifactId>
-  <version>1.1.1</version>
+  <version>2.0.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -49,7 +50,7 @@ a2ui:
 | Mode | Behavior |
 | ---- | -------- |
 | `template` | LLM selects a registered template and fills slots. Layout comes from Java builders. |
-| `dynamic` | LLM composes components from the standard v0.8 catalog via two-hop tools. |
+| `dynamic` | LLM composes components from the basic v0.9 catalog via two-hop tools. |
 
 Useful companion properties (defaults shown in [REST API](../rest-api.md)):
 
@@ -71,7 +72,7 @@ curl -N -X POST http://localhost:5001/a2ui/surface/stream \
     "content": "Show a simple login form",
     "a2uiClientCapabilities": {
       "supportedCatalogIds": [
-        "https://a2ui.org/specification/v0_8/standard_catalog_definition.json"
+        "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       ]
     }
   }'
@@ -79,9 +80,9 @@ curl -N -X POST http://localhost:5001/a2ui/surface/stream \
 
 Successful streams emit A2UI envelopes as SSE events, typically:
 
-1. `surfaceUpdate`
-2. `dataModelUpdate` (optional)
-3. `beginRendering` (always emitted by the runtime, not by the LLM)
+1. `createSurface` (surfaceId + catalogId)
+2. `updateComponents` (flat components; root id `"root"`)
+3. `updateDataModel` (optional)
 4. `done`
 
 Failures are fail-fast:
@@ -108,7 +109,7 @@ screens (login, hero CTA, weather card, …). The LLM picks among registered
 template IDs and fills slots; adjacency lists stay authored in code.
 
 **Dynamic** is for open-ended prompts where inventing layout from the catalog is
-the point. The runtime still validates every envelope against the v0.8 catalog
+the point. The runtime still validates every envelope against the v0.9.1 catalog
 before it reaches the client. Invalid planner output is retried once with
 diagnostics, then surfaced as `A2UI_VALIDATION_FAILED`.
 
@@ -116,7 +117,7 @@ You can switch modes with configuration only — same HTTP endpoint either way.
 
 ## 5. Wire a client
 
-Any client that speaks A2UI v0.8 over SSE can consume the stream. This repo’s
+Any client that speaks A2UI v0.9.1 over SSE can consume the stream. This repo’s
 sample UI lives in [`apps/fe-a2ui-demo`](../../apps/fe-a2ui-demo) and uses
 `@a2ui/react`.
 

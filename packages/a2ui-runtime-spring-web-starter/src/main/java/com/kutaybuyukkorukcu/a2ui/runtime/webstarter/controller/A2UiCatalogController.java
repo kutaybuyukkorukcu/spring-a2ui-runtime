@@ -1,6 +1,5 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.controller;
 
-import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiCatalogService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -18,8 +17,8 @@ public class A2UiCatalogController {
         this.catalogService = catalogService;
     }
 
-    @GetMapping(value = "/a2ui/catalogs/standard-v0.8", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, Object>> getStandardCatalog() {
-        return ResponseEntity.ok(catalogService.getStandardCatalog());
+    @GetMapping(value = "/a2ui/catalogs/basic-v0.9", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Object>> getBasicCatalog() {
+        return ResponseEntity.ok(catalogService.getBasicCatalog());
     }
 }

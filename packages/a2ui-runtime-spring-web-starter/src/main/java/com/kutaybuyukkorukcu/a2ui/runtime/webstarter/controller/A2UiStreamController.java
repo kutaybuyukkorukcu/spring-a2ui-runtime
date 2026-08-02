@@ -102,10 +102,10 @@ public class A2UiStreamController {
 
     private String messageType(A2UiMessage message) {
         return switch (message) {
-            case A2UiMessage.SurfaceUpdate su -> "surfaceUpdate";
-            case A2UiMessage.DataModelUpdate dmu -> "dataModelUpdate";
-            case A2UiMessage.BeginRendering br -> "beginRendering";
-            case A2UiMessage.DeleteSurface ds -> "deleteSurface";
+            case A2UiMessage.CreateSurface ignored -> "createSurface";
+            case A2UiMessage.UpdateComponents ignored -> "updateComponents";
+            case A2UiMessage.UpdateDataModel ignored -> "updateDataModel";
+            case A2UiMessage.DeleteSurface ignored -> "deleteSurface";
         };
     }
 }

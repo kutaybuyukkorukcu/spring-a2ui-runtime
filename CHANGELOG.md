@@ -5,7 +5,25 @@ All notable changes to spring-a2ui-runtime are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project aims to follow [Semantic Versioning](https://semver.org/).
 
-Library versions (`1.x`) are independent of the A2UI **protocol** version (v0.8 for this line).
+Library versions (`2.x`) speak A2UI **protocol** v0.9.1. The `1.1.x` line remains A2UI v0.8 Legacy.
+
+## [2.0.0-SNAPSHOT] — unreleased
+
+Hard cutover to **A2UI v0.9.1 Current**.
+
+### Changed
+
+- Wire ops: `createSurface` / `updateComponents` / `updateDataModel` / `deleteSurface` (no `beginRendering`)
+- Flat components (`"component":"Text"` + sibling props); native JSON or `{"path"}` (no BoundValue / DataEntry)
+- Basic catalog (`BASIC_V0_9`); route `GET /a2ui/catalogs/basic-v0.9`
+- Client events: JSON property `action` (not `userAction`)
+- MIME `application/a2ui+json`; version field `v0.9.1`
+- Demo FE on `@a2ui/react/v0_9`
+- Library SemVer **`2.0.0`** (breaking)
+
+### Migration
+
+See [docs/guides/migrating-to-v0.9.1.md](docs/guides/migrating-to-v0.9.1.md). Stay on **`1.1.x`** for Legacy v0.8 clients.
 
 ## [1.1.1] — 2026-07-31
 

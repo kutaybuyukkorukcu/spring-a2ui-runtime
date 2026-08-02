@@ -1,4 +1,4 @@
-const CATALOG_ID = 'https://a2ui.org/specification/v0_8/standard_catalog_definition.json';
+const CATALOG_ID = 'https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json';
 
 interface A2UiSurfaceRequest {
   content: string;
@@ -110,7 +110,7 @@ export async function sendAction(event: any): Promise<{ accepted: boolean; messa
 }
 
 export async function fetchCatalog(): Promise<Record<string, unknown>> {
-  const response = await fetch('/a2ui/catalogs/standard-v0.8');
+  const response = await fetch('/a2ui/catalogs/basic-v0.9');
   if (!response.ok) {
     throw new Error(`Failed to fetch catalog: ${response.status}`);
   }

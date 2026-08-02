@@ -39,7 +39,7 @@ Open-ended GenUI (arbitrary HTML / remote applets) is out of scope unless we exp
 Near-term **execution order is locked** in [`BACKLOG.md`](../BACKLOG.md). Do not reshuffle it. Outcomes for builders:
 
 1. **Patch `1.1.1`** ✅ — dynamic path is trustworthy infrastructure  
-2. **Phase X (A2UI v0.9.1)** — protocol currency on Current wire  
+2. **Phase X (A2UI v0.9.1)** 🟡 — protocol currency on Current wire (`2.0.0`)  
 3. **Utilization on native SSE** — text / progress / run lifecycle around surfaces ([plan](plans/phase-product-runtime-interaction.md))  
 4. **Optional foreign-client bridge** — demand-gated adapter only  
 5. **Later** — builder DX, multi-provider, ops maturity, template SPI (see BACKLOG Later)
@@ -47,6 +47,7 @@ Near-term **execution order is locked** in [`BACKLOG.md`](../BACKLOG.md). Do not
 ## Where to go next
 
 - [Getting started](guides/getting-started.md) — dependency → first SSE stream  
+- [Migrating to v0.9.1](guides/migrating-to-v0.9.1.md) — hard cutover from `1.1.x`  
 - [REST API](rest-api.md) — public HTTP surface  
 - [ADR 001](adr/001-streaming-surface-generation.md) — stream-only, fail-fast, template + dynamic  
 - [`BACKLOG.md`](../BACKLOG.md) — phases, utilization, Later themes  

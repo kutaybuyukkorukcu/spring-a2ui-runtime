@@ -12,9 +12,9 @@ class A2UiActionResponseTest {
 
     @Test
     void shouldCreateAcceptedResponse() {
-        ComponentDefinition text = new ComponentDefinition("t1", Map.of("Text", Map.of("text", Map.of("literalString", "Hi"))));
-        A2UiMessage.SurfaceUpdate su = new A2UiMessage.SurfaceUpdate("main", List.of(text));
-        A2UiActionResponse response = A2UiActionResponse.accepted("submit", "main", "btn-1", List.of(su));
+        ComponentDefinition text = new ComponentDefinition("t1", "Text", Map.of("text", "Hi"));
+        A2UiMessage.UpdateComponents uc = new A2UiMessage.UpdateComponents("main", List.of(text));
+        A2UiActionResponse response = A2UiActionResponse.accepted("submit", "main", "btn-1", List.of(uc));
 
         assertThat(response.accepted()).isTrue();
         assertThat(response.actionName()).isEqualTo("submit");

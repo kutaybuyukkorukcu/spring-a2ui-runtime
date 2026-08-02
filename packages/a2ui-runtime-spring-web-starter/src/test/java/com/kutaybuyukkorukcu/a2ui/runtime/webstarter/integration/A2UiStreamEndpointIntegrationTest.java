@@ -34,12 +34,11 @@ class A2UiStreamEndpointIntegrationTest {
 
     @Test
     void shouldStreamProgressiveSseEventsBeforeDone() {
-        A2UiMessage surfaceUpdate = new A2UiMessage.SurfaceUpdate("main", List.of());
-        A2UiMessage beginRendering = new A2UiMessage.BeginRendering(
-                "main", "root-1", A2UiCatalogIds.STANDARD_V0_8, null);
+        A2UiMessage createSurface = new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9);
+        A2UiMessage updateComponents = new A2UiMessage.UpdateComponents("main", List.of());
 
         when(surfaceRuntime.stream(any(), anyString(), anyString()))
-                .thenReturn(Flux.just(surfaceUpdate, beginRendering));
+                .thenReturn(Flux.just(createSurface, updateComponents));
 
         webTestClient.post()
                 .uri("/a2ui/surface/stream")
@@ -51,8 +50,8 @@ class A2UiStreamEndpointIntegrationTest {
                 .expectHeader().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM)
                 .expectBody(String.class)
                 .value(body -> {
-                    assertThat(body).contains("\"surfaceUpdate\"");
-                    assertThat(body).contains("\"beginRendering\"");
+                    assertThat(body).contains("\"createSurface\"");
+                    assertThat(body).contains("\"updateComponents\"");
                     assertThat(body).contains("[DONE]");
                 });
     }

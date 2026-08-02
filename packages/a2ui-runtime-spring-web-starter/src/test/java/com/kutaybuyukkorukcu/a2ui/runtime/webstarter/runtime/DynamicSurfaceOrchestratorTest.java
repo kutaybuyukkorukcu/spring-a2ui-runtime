@@ -79,7 +79,7 @@ class DynamicSurfaceOrchestratorTest {
     }
 
     @Test
-    void shouldReturnRenderedMessagesWithRuntimeBeginRendering() {
+    void shouldReturnRenderedMessagesWithCreateSurface() {
         AtomicReference<Map<String, Object>> toolContextRef = new AtomicReference<>();
         when(requestSpec.toolContext(any())).thenAnswer(invocation -> {
             toolContextRef.set(invocation.getArgument(0));
@@ -91,7 +91,7 @@ class DynamicSurfaceOrchestratorTest {
                     "root",
                     List.of(
                             Map.of("id", "root", "component", "Column", "children", List.of("title")),
-                            Map.of("id", "title", "component", "Text", "text", "Hello", "usageHint", "h2")),
+                            Map.of("id", "title", "component", "Text", "text", "Hello", "variant", "h2")),
                     Map.of("heading", "Hello"),
                     new ToolContext(toolContextRef.get()));
             return callResponseSpec;
@@ -99,10 +99,10 @@ class DynamicSurfaceOrchestratorTest {
 
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show a dashboard", null, null);
 
-        StepVerifier.create(orchestrator.stream(request, "req-1", A2UiCatalogIds.STANDARD_V0_8))
-                .assertNext(message -> assertThat(message).isInstanceOf(A2UiMessage.SurfaceUpdate.class))
-                .assertNext(message -> assertThat(message).isInstanceOf(A2UiMessage.DataModelUpdate.class))
-                .assertNext(message -> assertThat(message).isInstanceOf(A2UiMessage.BeginRendering.class))
+        StepVerifier.create(orchestrator.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
+                .assertNext(message -> assertThat(message).isInstanceOf(A2UiMessage.CreateSurface.class))
+                .assertNext(message -> assertThat(message).isInstanceOf(A2UiMessage.UpdateComponents.class))
+                .assertNext(message -> assertThat(message).isInstanceOf(A2UiMessage.UpdateDataModel.class))
                 .verifyComplete();
 
         ArgumentCaptor<ToolCallback> toolCallbackCaptor = ArgumentCaptor.forClass(ToolCallback.class);
@@ -120,7 +120,7 @@ class DynamicSurfaceOrchestratorTest {
 
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("ambiguous request", null, null);
 
-        StepVerifier.create(orchestrator.stream(request, "req-1", A2UiCatalogIds.STANDARD_V0_8))
+        StepVerifier.create(orchestrator.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
                 .expectErrorSatisfies(error -> {
                     assertThat(error).isInstanceOf(SurfaceExecutionException.class);
                     assertThat(((SurfaceExecutionException) error).getErrorCode())
@@ -140,7 +140,7 @@ class DynamicSurfaceOrchestratorTest {
 
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show a dashboard", null, null);
 
-        StepVerifier.create(orchestrator.stream(request, "req-1", A2UiCatalogIds.STANDARD_V0_8))
+        StepVerifier.create(orchestrator.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
                 .expectErrorSatisfies(error -> {
                     assertThat(error).isInstanceOf(SurfaceExecutionException.class);
                     SurfaceExecutionException failure = (SurfaceExecutionException) error;
