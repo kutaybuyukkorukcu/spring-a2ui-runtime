@@ -12,7 +12,7 @@ public class HealthController {
     public ResponseEntity<Map<String, Object>> health() {
         return ResponseEntity.ok(Map.of(
                 "status", "healthy",
-                "version", "2.0.0-SNAPSHOT",
+                "version", "2.0.0",
                 "timestamp", System.currentTimeMillis()
         ));
     }
@@ -21,7 +21,7 @@ public class HealthController {
     public ResponseEntity<Map<String, Object>> info() {
         return ResponseEntity.ok(Map.of(
                 "name", "A2UI Runtime Showcase Host",
-                "version", "2.0.0-SNAPSHOT",
+                "version", "2.0.0",
                 "description", "Thin Spring Boot sample host for Spring GenUI surface serving, streaming, catalogs, and actions",
                 "endpoints", Map.of(
                         "health", "GET /health",
