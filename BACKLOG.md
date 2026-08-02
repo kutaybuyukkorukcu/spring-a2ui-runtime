@@ -1,12 +1,12 @@
 # Backlog
 
-Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / `2.0.0-SNAPSHOT`)** 🟡 code complete → live FE smoke → Central `2.0.0` → **utilization layer (our SSE vocabulary)** → **optional foreign-client bridge (demand-gated)** → **Later**.
+Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / `2.0.0-SNAPSHOT`)** 🟡 live FE smoke ✅ → Central `2.0.0` → **utilization layer (our SSE vocabulary)** → **optional foreign-client bridge (demand-gated)** → **Later**.
 
 ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)`
 
 Implementation plans (for agents): `[docs/plans/phase-0-stream-infra.md](docs/plans/phase-0-stream-infra.md)` · `[docs/plans/phase-1-template-mvp.md](docs/plans/phase-1-template-mvp.md)` · `[docs/plans/phase-2-dynamic-generative-ui.md](docs/plans/phase-2-dynamic-generative-ui.md)` · `[docs/plans/phase-2.5-scalable-dynamic-runtime.md](docs/plans/phase-2.5-scalable-dynamic-runtime.md)` · `[docs/plans/phase-release-v0.8.md](docs/plans/phase-release-v0.8.md)` · `[docs/plans/phase-x-migrating-to-v0.9.md](docs/plans/phase-x-migrating-to-v0.9.md)` · `[docs/plans/phase-product-runtime-interaction.md](docs/plans/phase-product-runtime-interaction.md)`
 
-**Branches:** `feat/phase-x-v0.9.1` (Phase X hard cutover) · Legacy patch line `1.1.x`.
+**Branches:** `main` (Phase X hard cutover merged) · Legacy patch line `1.1.x`.
 
 ---
 
@@ -268,13 +268,13 @@ Merged `fix/dynamic-primary-tool-failfast` (forced primary `generateA2Ui`, plann
 
 ---
 
-## Phase X — Migrate to A2UI v0.9.1 🟡 code complete (`feat/phase-x-v0.9.1`)
+## Phase X — Migrate to A2UI v0.9.1 🟡 live FE smoke ✅ (`main`)
 
 **Prerequisite:** `1.1.0` ✅ and patch `1.1.1` ✅. a2ui.org marks **v0.8 = Legacy**, **v0.9.1 = Current**.
 
 **Plan:** `[docs/plans/phase-x-migrating-to-v0.9.md](docs/plans/phase-x-migrating-to-v0.9.md)` · **Guide:** `[docs/guides/migrating-to-v0.9.1.md](docs/guides/migrating-to-v0.9.1.md)`
 
-**Branch status:** hard cutover implemented on `feat/phase-x-v0.9.1` — library SemVer **`2.0.0-SNAPSHOT`**, wire `v0.9.1`, basic catalog, thin sanitize, templates + dynamic + FE demo updated. Unit/integration tests green.
+**Status:** hard cutover merged to `main` — library SemVer **`2.0.0-SNAPSHOT`**, wire `v0.9.1`, basic catalog, thin sanitize, templates + dynamic + FE demo on `@a2ui/react/v0_9` (`MessageProcessor` / `A2uiSurface`). Unit/integration tests green; live FE smoke ✅.
 
 **Cutover:** hard cutover on Maven Central **`2.0.0`** (v0.9.1 wire); keep **`1.1.x`** as v0.8 Legacy patch-only.
 
@@ -282,7 +282,7 @@ Merged `fix/dynamic-primary-tool-failfast` (forced primary `generateA2Ui`, plann
 
 ### Release gate (before Central `2.0.0`)
 
-1. **Live FE smoke** — showcase + `fe-a2ui-demo` (`@a2ui/react/v0_9`) against running backend (stream, catalog, actions)
+1. **Live FE smoke** ✅ — showcase (dynamic) + `fe-a2ui-demo` (`@a2ui/react/v0_9`): catalog 200, SSE `createSurface`/`updateComponents`/`done`, surfaces render, Buy posts `/a2ui/actions`
 2. **Publish Maven Central `2.0.0`** — drop `-SNAPSHOT`; document Legacy line = `1.1.x`
 
 ### Phase X follow-ups (post-cutover / non-blocking)

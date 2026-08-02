@@ -152,11 +152,11 @@ public final class A2UiCatalogRegistry {
 
     private static Map<String, Map<String, Map<String, Object>>> loadCatalogDefinitions() {
         Map<String, Map<String, Map<String, Object>>> loaded = loadFromClasspath(BASIC_CATALOG_RESOURCE);
-        // Alias both catalogId spellings used in upstream docs/examples.
+        // Alias catalogId spellings used in upstream docs / examples.
         Map<String, Map<String, Map<String, Object>>> catalogs = new LinkedHashMap<>(loaded);
-        if (catalogs.containsKey(A2UiCatalogIds.BASIC_V0_9)
-                && !catalogs.containsKey(A2UiCatalogIds.BASIC_V0_9_1)) {
-            catalogs.put(A2UiCatalogIds.BASIC_V0_9_1, catalogs.get(A2UiCatalogIds.BASIC_V0_9));
+        Map<String, Map<String, Object>> basic = catalogs.get(A2UiCatalogIds.BASIC_V0_9);
+        if (basic != null) {
+            catalogs.putIfAbsent(A2UiCatalogIds.BASIC_V0_9_1, basic);
         }
         return catalogs;
     }
