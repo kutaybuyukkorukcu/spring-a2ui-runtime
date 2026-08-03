@@ -1,6 +1,6 @@
 # Backlog
 
-Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** → **optional foreign-client bridge (demand-gated)** → **Later**.
+Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Later**.
 
 ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)`
 
@@ -304,26 +304,26 @@ A2UI is a **UI payload format**. A GenUI **platform** also needs text, progress,
 
 **Plan:** `[docs/plans/phase-product-runtime-interaction.md](docs/plans/phase-product-runtime-interaction.md)` · **Agent:** `.cursor/agents/product-runtime-architect.md`
 
-| Capability | Product need | Our SSE today |
-|------------|--------------|---------------|
-| Text / token streaming | Prose beside surfaces | Surfaces only |
-| Tool lifecycle visibility | Client-visible steps | Internal / metrics |
-| Run lifecycle | start / finish / fail / cancel | Partial (`error` / `done`) |
+| Capability | Product need | Our SSE |
+|------------|--------------|---------|
+| Text / token streaming | Prose beside surfaces | ✅ `assistantText` (opt-in) |
+| Tool lifecycle visibility | Client-visible steps | ✅ `toolProgress` (opt-in) |
+| Run lifecycle | start / finish / fail | ✅ `run*` + `error` / `done` (opt-in) |
 | Bidirectional UX | User → agent UI actions | ✅ `POST /a2ui/actions` |
-| Third-party chat / agent-UI clients | Optional harness | ❌ — bridge later if demand |
+| Foreign chat / agent-UI clients | Third-party harness | ❌ not planned — native SSE only |
 
 **Sequencing (locked)**
 
-1. **Phase X (v0.9.1)** — protocol currency  
-2. **Utilization on native SSE** — `run*` / optional `assistantText` / `toolProgress` (our names)  
-3. **Optional foreign-client bridge module** — demand-gated translation only; zero foreign protocol types in core  
-4. **Non-goals:** rebuilding core around third-party chat protocols; open HTML GenUI; foreign enums in core  
+1. **Phase X (v0.9.1)** ✅ — protocol currency  
+2. **Utilization on native SSE** ✅ — `run*` / `assistantText` / `toolProgress` ([guide](docs/guides/native-sse-utilization.md))  
+3. **Host-app actions cookbook** ✅ — [hosting-actions](docs/guides/hosting-actions.md)  
+4. **Non-goals:** foreign-client bridge / AG-UI as core; open HTML GenUI; platform datastore  
 
 ---
 
 ## Later — platform maturity & builder focus (low priority)
 
-Items below are **not** near-term gates and **do not** reshuffle the locked order (patch → Phase X → utilization → optional foreign-client bridge). They deepen the platform so product builders spend less time on GenUI plumbing and more on product behavior.
+Items below are **not** near-term gates. They deepen the platform so product builders spend less time on GenUI plumbing and more on product behavior.
 
 ### Consumer extensibility
 
@@ -338,7 +338,7 @@ Template SPI so apps register custom controlled layouts. Useful, **not** a gate 
 - Golden-path cookbook: Boot + web starter → first validated surface in one sitting (README alone stays the 15-minute bar)
 - FE design-system binding guide (catalog component → native widget map) — we do **not** ship FE product shells
 - Multi-provider Spring AI parity beyond OpenAI-first (Anthropic / Gemini / Groq)
-- Host-app patterns: `POST /a2ui/actions` → product services, session/context handoff, multi-surface apps
+- Multi-surface apps and session/context handoff patterns
 
 ### Platform ops & reliability (beyond ongoing metrics)
 
@@ -346,10 +346,10 @@ Template SPI so apps register custom controlled layouts. Useful, **not** a gate 
 - Latency / caching patterns for dynamic composition (without weakening fail-fast or reintroducing semantic repair)
 - Catalog / protocol upgrade helpers when bumping A2UI wire versions (builder migration notes)
 
-### Demand-gated interop (adapters only)
+### Explicit non-goals (interop)
 
-- Optional **foreign-client bridge** module (see utilization sequencing) — translation beside A2UI-native SSE
-- Optional **A2A / MCP** adjacency for agent discovery — never replaces native SSE as product identity
+- **Foreign-client bridge** (AG-UI / CopilotKit translation module) — not planned; native SSE is the product pipe  
+- **A2A / MCP** adjacency for agent discovery — never replaces native SSE as product identity  
 ---
 
 ## Reliability and observability (ongoing)

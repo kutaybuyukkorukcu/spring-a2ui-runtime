@@ -169,12 +169,14 @@ public class A2UiWebAutoConfiguration {
             ChatClient.Builder chatClientBuilder,
             ObjectProvider<Advisor> advisors,
             DynamicA2UiPromptProvider dynamicPromptProvider,
-            A2UiDynamicTools dynamicTools) {
+            A2UiDynamicTools dynamicTools,
+            A2UiWebProperties webProperties) {
         return new DynamicSurfaceOrchestrator(
                 chatClientBuilder,
                 resolveAdvisors(advisors),
                 dynamicPromptProvider,
-                dynamicTools);
+                dynamicTools,
+                webProperties);
     }
 
     @Bean
@@ -183,12 +185,14 @@ public class A2UiWebAutoConfiguration {
             ChatClient.Builder chatClientBuilder,
             ObjectProvider<Advisor> advisors,
             TemplateModePromptProvider templateModePromptProvider,
-            A2UiTemplateTools templateTools) {
+            A2UiTemplateTools templateTools,
+            A2UiWebProperties webProperties) {
         return new TemplateSurfaceOrchestrator(
                 chatClientBuilder,
                 resolveAdvisors(advisors),
                 templateModePromptProvider,
-                templateTools);
+                templateTools,
+                webProperties);
     }
 
     @Bean
@@ -215,8 +219,11 @@ public class A2UiWebAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public A2UiSurfaceService a2UiSurfaceService(A2UiSurfaceRuntime surfaceRuntime, A2UiMessageValidator messageValidator) {
-        return new A2UiSurfaceService(surfaceRuntime, messageValidator);
+    public A2UiSurfaceService a2UiSurfaceService(
+            A2UiSurfaceRuntime surfaceRuntime,
+            A2UiMessageValidator messageValidator,
+            A2UiWebProperties webProperties) {
+        return new A2UiSurfaceService(surfaceRuntime, messageValidator, webProperties);
     }
 
     @Bean

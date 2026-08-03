@@ -2,11 +2,12 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiValidationException;
-import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.A2UiSurfaceRequest;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.properties.A2UiWebProperties;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiRuntimeEvent;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiSseEventMapper;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRequestCatalogNegotiator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiSurfaceService;
@@ -55,17 +56,12 @@ public class A2UiStreamController {
             String catalogId = A2UiRequestCatalogNegotiator.negotiateCatalogId(request);
             return surfaceService.stream(request, requestId, catalogId);
         })
-                .map(message -> {
+                .map(event -> {
                     runtimeMetrics.recordTransformSuccess("stream");
                     try {
-                        String json = objectMapper.writeValueAsString(message);
-                        String eventType = messageType(message);
-                        return ServerSentEvent.<String>builder()
-                                .event(eventType)
-                                .data(json)
-                                .build();
+                        return A2UiSseEventMapper.toSse(event, objectMapper);
                     } catch (Exception e) {
-                        LOGGER.error("Failed to serialize streaming A2UI message", e);
+                        LOGGER.error("Failed to serialize streaming runtime event", e);
                         return ServerSentEvent.<String>builder()
                                 .event("error")
                                 .data("{\"error\":\"Serialization failed\"}")
@@ -74,25 +70,19 @@ public class A2UiStreamController {
                 })
                 .onErrorResume(SurfaceExecutionException.class, ex -> {
                     runtimeMetrics.recordTransformFailure("stream", ex.getErrorCode());
-                    return Flux.just(ServerSentEvent.<String>builder()
-                            .event("error")
-                            .data(String.format("{\"error\":\"%s\",\"errorCode\":\"%s\"}", ex.getMessage(), ex.getErrorCode()))
-                            .build());
+                    return lifecycleAwareErrorFlux(requestId, ex.getErrorCode(), ex.getMessage());
                 })
                 .onErrorResume(A2UiValidationException.class, ex -> {
                     runtimeMetrics.recordTransformFailure("stream", SurfaceErrorCodes.A2UI_VALIDATION_FAILED);
-                    return Flux.just(ServerSentEvent.<String>builder()
-                            .event("error")
-                            .data(String.format("{\"error\":\"%s\",\"errorCode\":\"%s\"}", ex.getMessage(), SurfaceErrorCodes.A2UI_VALIDATION_FAILED))
-                            .build());
+                    return lifecycleAwareErrorFlux(requestId, SurfaceErrorCodes.A2UI_VALIDATION_FAILED, ex.getMessage());
                 })
                 .onErrorResume(Exception.class, ex -> {
                     runtimeMetrics.recordTransformFailure("stream", SurfaceErrorCodes.TRANSFORM_FAILED);
                     LOGGER.error("Streaming surface generation error", ex);
-                    return Flux.just(ServerSentEvent.<String>builder()
-                            .event("error")
-                            .data(String.format("{\"error\":\"Transformation failed: %s\",\"errorCode\":\"%s\"}", ex.getMessage(), SurfaceErrorCodes.TRANSFORM_FAILED))
-                            .build());
+                    return lifecycleAwareErrorFlux(
+                            requestId,
+                            SurfaceErrorCodes.TRANSFORM_FAILED,
+                            "Transformation failed: " + ex.getMessage());
                 })
                 .concatWith(Flux.just(ServerSentEvent.<String>builder()
                         .event("done")
@@ -100,12 +90,24 @@ public class A2UiStreamController {
                         .build()));
     }
 
-    private String messageType(A2UiMessage message) {
-        return switch (message) {
-            case A2UiMessage.CreateSurface ignored -> "createSurface";
-            case A2UiMessage.UpdateComponents ignored -> "updateComponents";
-            case A2UiMessage.UpdateDataModel ignored -> "updateDataModel";
-            case A2UiMessage.DeleteSurface ignored -> "deleteSurface";
-        };
+    private Flux<ServerSentEvent<String>> lifecycleAwareErrorFlux(String requestId, String errorCode, String message) {
+        Flux<ServerSentEvent<String>> errorEvent = Flux.just(ServerSentEvent.<String>builder()
+                .event("error")
+                .data(String.format("{\"error\":\"%s\",\"errorCode\":\"%s\"}", message, errorCode))
+                .build());
+
+        if (!webProperties.getStream().isLifecycleEvents()) {
+            return errorEvent;
+        }
+
+        try {
+            ServerSentEvent<String> runError = A2UiSseEventMapper.toSse(
+                    new A2UiRuntimeEvent.RunError(requestId, errorCode, message),
+                    objectMapper);
+            return Flux.just(runError).concatWith(errorEvent);
+        } catch (Exception serializationError) {
+            LOGGER.warn("Failed to serialize runError event", serializationError);
+            return errorEvent;
+        }
     }
 }

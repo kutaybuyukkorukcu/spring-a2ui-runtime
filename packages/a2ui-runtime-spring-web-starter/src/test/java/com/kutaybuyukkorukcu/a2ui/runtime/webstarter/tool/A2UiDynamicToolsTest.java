@@ -8,6 +8,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.DynamicA2UiPromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiRuntimeEventCollector;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiDynamicAssemblyService;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiDynamicComponentNormalizer;
 import org.junit.jupiter.api.BeforeEach;
@@ -103,7 +104,7 @@ class A2UiDynamicToolsTest {
         });
 
         DynamicRenderSession session = new DynamicRenderSession(
-                "main", A2UiCatalogIds.BASIC_V0_9, "show a dashboard", null);
+                "main", A2UiCatalogIds.BASIC_V0_9, "show a dashboard", null, A2UiRuntimeEventCollector.DISABLED);
         ToolContext toolContext = new ToolContext(Map.of(A2UiDynamicTools.SESSION_CONTEXT_KEY, session));
 
         String result = dynamicTools.generateA2Ui(toolContext);
@@ -138,7 +139,7 @@ class A2UiDynamicToolsTest {
         });
 
         DynamicRenderSession session = new DynamicRenderSession(
-                "main", A2UiCatalogIds.BASIC_V0_9, "show a dashboard", null);
+                "main", A2UiCatalogIds.BASIC_V0_9, "show a dashboard", null, A2UiRuntimeEventCollector.DISABLED);
         ToolContext toolContext = new ToolContext(Map.of(A2UiDynamicTools.SESSION_CONTEXT_KEY, session));
 
         assertThatThrownBy(() -> dynamicTools.generateA2Ui(toolContext))

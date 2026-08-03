@@ -17,6 +17,9 @@ spring:
           temperature: 0.0
 
 a2ui:
+  web:
+    stream:
+      lifecycle-events: true
   runtime:
     deterministic:
       temperature: ${A2UI_RUNTIME_TEMPERATURE:0.0}

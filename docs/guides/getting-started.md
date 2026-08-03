@@ -59,6 +59,7 @@ Useful companion properties (defaults shown in [REST API](../rest-api.md)):
 | `a2ui.web.enabled` | `true` | Master switch for `/a2ui` endpoints |
 | `a2ui.web.stream.enabled` | `true` | SSE stream endpoint |
 | `a2ui.web.stream.timeout-ms` | `120000` | Stream timeout |
+| `a2ui.web.stream.lifecycle-events` | `false` | Emit run/text/tool utilization events (see [utilization guide](../guides/native-sse-utilization.md)) |
 | `a2ui.web.actions.enabled` | `true` | `POST /a2ui/actions` |
 | `a2ui.web.catalog.enabled` | `true` | Catalog GET endpoint |
 
@@ -134,7 +135,11 @@ cd apps/fe-a2ui-demo
 VITE_A2UI_GENERATION_MODE=dynamic npm run dev
 ```
 
-Client actions go to `POST /a2ui/actions` (see [REST API](../rest-api.md)).
+Client actions go to `POST /a2ui/actions`. See [Hosting actions](hosting-actions.md) for
+wiring handlers to your product services and DB.
+
+Optional utilization events (`runStarted`, `toolProgress`, …) are documented in
+[Native SSE utilization](native-sse-utilization.md).
 
 ## 6. Common errors
 
@@ -167,6 +172,8 @@ Then open the frontend demo or hit the curl example above against
 
 ## Next reading
 
+* [Hosting actions](hosting-actions.md)
+* [Native SSE utilization](native-sse-utilization.md)
 * [REST API](../rest-api.md)
 * [Dynamic generative UI](dynamic-generative-ui.md)
 * [Contributing](../../CONTRIBUTING.md)

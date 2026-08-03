@@ -1,6 +1,7 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiRuntimeEventCollector;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiSurfaceAssemblyService;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiTemplateRegistry;
@@ -29,20 +30,32 @@ public class A2UiTemplateTools {
 
     @Tool(description = "Select a surface template. Must be one of: text-card, hero-cta, form-login, weather-card.")
     public String selectTemplate(String templateId, String rationale, ToolContext toolContext) {
-        templateRegistry.require(templateId);
         TemplateRenderSession session = requireSession(toolContext);
-        session.setSelectedTemplateId(templateId);
-        return "Selected template " + templateId;
+        A2UiRuntimeEventCollector collector = session.eventCollector();
+        collector.toolStart("selectTemplate");
+        try {
+            templateRegistry.require(templateId);
+            session.setSelectedTemplateId(templateId);
+            return "Selected template " + templateId;
+        } finally {
+            collector.toolEnd("selectTemplate");
+        }
     }
 
     @Tool(description = "Render the selected template with slot values as string key-value pairs.")
     public String renderTemplate(String templateId, Map<String, String> slots, ToolContext toolContext) {
         TemplateRenderSession session = requireSession(toolContext);
-        List<A2UiMessage> messages = assemblyService.assemble(
-                templateId, session.surfaceId(), session.catalogId(), slots);
-        session.setRenderedMessages(messages);
-        runtimeMetrics.recordTemplateRendered(templateId);
-        return "Rendered template " + templateId;
+        A2UiRuntimeEventCollector collector = session.eventCollector();
+        collector.toolStart("renderTemplate");
+        try {
+            List<A2UiMessage> messages = assemblyService.assemble(
+                    templateId, session.surfaceId(), session.catalogId(), slots);
+            session.setRenderedMessages(messages);
+            runtimeMetrics.recordTemplateRendered(templateId);
+            return "Rendered template " + templateId;
+        } finally {
+            collector.toolEnd("renderTemplate");
+        }
     }
 
     private TemplateRenderSession requireSession(ToolContext toolContext) {

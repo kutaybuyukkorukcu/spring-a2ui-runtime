@@ -5,6 +5,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.A2UiSurfaceRequest;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiRuntimeEvent;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiSurfaceRuntime;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +39,9 @@ class A2UiStreamEndpointIntegrationTest {
         A2UiMessage updateComponents = new A2UiMessage.UpdateComponents("main", List.of());
 
         when(surfaceRuntime.stream(any(), anyString(), anyString()))
-                .thenReturn(Flux.just(createSurface, updateComponents));
+                .thenReturn(Flux.just(
+                        new A2UiRuntimeEvent.Surface(createSurface),
+                        new A2UiRuntimeEvent.Surface(updateComponents)));
 
         webTestClient.post()
                 .uri("/a2ui/surface/stream")

@@ -13,7 +13,7 @@ We abstract GenUI backend infrastructure so teams can focus on product. Builders
 | Backend abstraction for GenUI product teams | A chat product shell or FE design system |
 
 **Product pipe:** A2UI-native SSE (`POST /a2ui/surface/stream`).  
-**Optional later:** demand-gated **foreign-client bridge** / interop adapter — never replaces native SSE as identity.
+**Not planned:** foreign-client bridge / AG-UI translation module — builders integrate with native SSE (or wrap in their own adapter).
 
 ## What builders keep vs what we own
 
@@ -39,14 +39,15 @@ Open-ended GenUI (arbitrary HTML / remote applets) is out of scope unless we exp
 Near-term **execution order is locked** in [`BACKLOG.md`](../BACKLOG.md). Do not reshuffle it. Outcomes for builders:
 
 1. **Patch `1.1.1`** ✅ — dynamic path is trustworthy infrastructure  
-2. **Phase X (A2UI v0.9.1)** 🟡 — protocol currency on Current wire (`2.0.0`)  
-3. **Utilization on native SSE** — text / progress / run lifecycle around surfaces ([plan](plans/phase-product-runtime-interaction.md))  
-4. **Optional foreign-client bridge** — demand-gated adapter only  
-5. **Later** — builder DX, multi-provider, ops maturity, template SPI (see BACKLOG Later)
+2. **Phase X (A2UI v0.9.1)** ✅ — protocol currency on Current wire (`2.0.0`)  
+3. **Utilization on native SSE** ✅ — text / progress / run lifecycle ([plan](plans/phase-product-runtime-interaction.md), [guide](guides/native-sse-utilization.md))  
+4. **Later** — builder DX, multi-provider, ops maturity, template SPI (see BACKLOG Later)
 
 ## Where to go next
 
 - [Getting started](guides/getting-started.md) — dependency → first SSE stream  
+- [Hosting actions](guides/hosting-actions.md) — `A2UiActionHandler` → your product DB  
+- [Native SSE utilization](guides/native-sse-utilization.md) — run / text / tool progress events  
 - [Migrating to v0.9.1](guides/migrating-to-v0.9.1.md) — hard cutover from `1.1.x`  
 - [REST API](rest-api.md) — public HTTP surface  
 - [ADR 001](adr/001-streaming-surface-generation.md) — stream-only, fail-fast, template + dynamic  
