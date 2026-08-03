@@ -7,6 +7,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiPromptContext;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.DynamicA2UiPromptProvider;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiRuntimeEventCollector;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiDynamicAssemblyService;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.RenderA2UiArgs;
@@ -62,15 +63,21 @@ public class A2UiDynamicTools {
     @Tool(description = "Generate a rich A2UI visual surface when a visual UI would help the user.")
     public String generateA2Ui(ToolContext toolContext) {
         DynamicRenderSession session = requireSession(toolContext);
-        A2UiPromptContext promptContext = new A2UiPromptContext(
-                session.userContent(),
-                session.contextHints(),
-                session.catalogId(),
-                List.of());
+        A2UiRuntimeEventCollector collector = session.eventCollector();
+        collector.toolStart(A2UiForcedToolChoiceFactory.GENERATE_TOOL_NAME);
+        try {
+            A2UiPromptContext promptContext = new A2UiPromptContext(
+                    session.userContent(),
+                    session.contextHints(),
+                    session.catalogId(),
+                    List.of());
 
-        runPlannerWithOptionalRetry(session, promptContext);
-        runtimeMetrics.recordDynamicSurfaceGenerated();
-        return "Generated A2UI surface";
+            runPlannerWithOptionalRetry(session, promptContext);
+            runtimeMetrics.recordDynamicSurfaceGenerated();
+            return "Generated A2UI surface";
+        } finally {
+            collector.toolEnd(A2UiForcedToolChoiceFactory.GENERATE_TOOL_NAME);
+        }
     }
 
     @Tool(description = "Planner-only: emit structured A2UI layout components and optional data model values.")
@@ -83,10 +90,16 @@ public class A2UiDynamicTools {
             @ToolParam(description = "Plain JSON data model values", required = false) Map<String, Object> data,
             ToolContext toolContext) {
         DynamicRenderSession session = requireSession(toolContext);
-        RenderA2UiArgs args = new RenderA2UiArgs(surfaceId, root, components, data);
-        List<A2UiMessage> messages = assemblyService.assemble(args, session.catalogId(), session.surfaceId());
-        session.setRenderedMessages(messages);
-        return "Rendered surface " + session.surfaceId();
+        A2UiRuntimeEventCollector collector = session.eventCollector();
+        collector.toolStart(A2UiForcedToolChoiceFactory.RENDER_TOOL_NAME);
+        try {
+            RenderA2UiArgs args = new RenderA2UiArgs(surfaceId, root, components, data);
+            List<A2UiMessage> messages = assemblyService.assemble(args, session.catalogId(), session.surfaceId());
+            session.setRenderedMessages(messages);
+            return "Rendered surface " + session.surfaceId();
+        } finally {
+            collector.toolEnd(A2UiForcedToolChoiceFactory.RENDER_TOOL_NAME);
+        }
     }
 
     private void runPlannerWithOptionalRetry(DynamicRenderSession session, A2UiPromptContext promptContext) {

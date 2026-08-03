@@ -1,6 +1,7 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiRuntimeEventCollector;
 
 import java.util.List;
 
@@ -8,12 +9,14 @@ public final class TemplateRenderSession {
 
     private final String surfaceId;
     private final String catalogId;
+    private final A2UiRuntimeEventCollector eventCollector;
     private volatile String selectedTemplateId;
     private volatile List<A2UiMessage> renderedMessages;
 
-    public TemplateRenderSession(String surfaceId, String catalogId) {
+    public TemplateRenderSession(String surfaceId, String catalogId, A2UiRuntimeEventCollector eventCollector) {
         this.surfaceId = surfaceId;
         this.catalogId = catalogId;
+        this.eventCollector = eventCollector == null ? A2UiRuntimeEventCollector.DISABLED : eventCollector;
     }
 
     String surfaceId() {
@@ -22,6 +25,10 @@ public final class TemplateRenderSession {
 
     String catalogId() {
         return catalogId;
+    }
+
+    A2UiRuntimeEventCollector eventCollector() {
+        return eventCollector;
     }
 
     String selectedTemplateId() {

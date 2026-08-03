@@ -6,6 +6,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiPromptContext;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.DynamicA2UiPromptProvider;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.properties.A2UiWebProperties;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.A2UiDynamicTools;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.A2UiForcedToolChoiceFactory;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.DynamicRenderSession;
@@ -16,6 +17,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -28,26 +30,42 @@ public class DynamicSurfaceOrchestrator {
     private final List<Advisor> advisors;
     private final DynamicA2UiPromptProvider promptProvider;
     private final A2UiDynamicTools dynamicTools;
+    private final boolean lifecycleEventsEnabled;
 
     public DynamicSurfaceOrchestrator(
             ChatClient.Builder chatClientBuilder,
             List<Advisor> advisors,
             DynamicA2UiPromptProvider promptProvider,
             A2UiDynamicTools dynamicTools) {
+        this(chatClientBuilder, advisors, promptProvider, dynamicTools, null);
+    }
+
+    public DynamicSurfaceOrchestrator(
+            ChatClient.Builder chatClientBuilder,
+            List<Advisor> advisors,
+            DynamicA2UiPromptProvider promptProvider,
+            A2UiDynamicTools dynamicTools,
+            A2UiWebProperties webProperties) {
         this.chatClientBuilder = chatClientBuilder;
         this.advisors = advisors == null ? List.of() : advisors;
         this.promptProvider = promptProvider;
         this.dynamicTools = dynamicTools;
+        this.lifecycleEventsEnabled = webProperties != null && webProperties.getStream().isLifecycleEvents();
     }
 
-    public Flux<A2UiMessage> stream(A2UiSurfaceRequest request, String requestId, String catalogId) {
+    public Flux<A2UiRuntimeEvent> stream(A2UiSurfaceRequest request, String requestId, String catalogId) {
         return Mono.fromCallable(() -> {
+            String runId = requestId;
+            A2UiRuntimeEventCollector collector = lifecycleEventsEnabled
+                    ? new A2UiRuntimeEventCollector(runId, true)
+                    : A2UiRuntimeEventCollector.DISABLED;
             String contextHints = buildContextHints(request);
             DynamicRenderSession session = new DynamicRenderSession(
                     DEFAULT_SURFACE_ID,
                     catalogId,
                     request.content(),
-                    contextHints);
+                    contextHints,
+                    collector);
             A2UiPromptContext promptContext = new A2UiPromptContext(
                     request.content(),
                     contextHints,
@@ -56,7 +74,7 @@ public class DynamicSurfaceOrchestrator {
 
             ToolCallback generateToolCallback = dynamicTools.buildGenerateA2UiToolCallback();
             ChatClient chatClient = createClient();
-            chatClient.prompt()
+            String assistantContent = chatClient.prompt()
                     .system(promptProvider.createPrimarySystemPrompt())
                     .user(promptProvider.createPrimaryUserPrompt(promptContext))
                     .toolCallbacks(generateToolCallback)
@@ -64,6 +82,7 @@ public class DynamicSurfaceOrchestrator {
                     .options(A2UiForcedToolChoiceFactory.forcedGenerateA2UiToolChoice())
                     .call()
                     .content();
+            collector.assistantText(assistantContent);
 
             if (!session.hasRenderedMessages()) {
                 throw new SurfaceExecutionException(
@@ -71,10 +90,20 @@ public class DynamicSurfaceOrchestrator {
                         SurfaceErrorCodes.TRANSFORM_FAILED,
                         null);
             }
-            return session.renderedMessages();
+            return toRuntimeEvents(collector, session.renderedMessages());
         })
                 .subscribeOn(Schedulers.boundedElastic())
                 .flatMapMany(Flux::fromIterable);
+    }
+
+    private static List<A2UiRuntimeEvent> toRuntimeEvents(
+            A2UiRuntimeEventCollector collector,
+            List<A2UiMessage> renderedMessages) {
+        List<A2UiRuntimeEvent> events = new ArrayList<>(collector.drain());
+        for (A2UiMessage message : renderedMessages) {
+            events.add(new A2UiRuntimeEvent.Surface(message));
+        }
+        return events;
     }
 
     private ChatClient createClient() {

@@ -7,6 +7,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.A2UiSurfaceRequest;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiRuntimeEvent;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiSurfaceRuntime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,11 +64,15 @@ class A2UiSurfaceServiceTest {
     void shouldStreamMessages() {
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show a button", null, null);
         A2UiMessage msg = new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9);
-        when(runtime.stream(any(), anyString(), anyString())).thenReturn(Flux.just(msg));
+        when(runtime.stream(any(), anyString(), anyString()))
+                .thenReturn(Flux.just(new A2UiRuntimeEvent.Surface(msg)));
         when(validator.validateSingle(any())).thenReturn(List.of());
 
         StepVerifier.create(service.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
-                .expectNext(msg)
+                .assertNext(event -> {
+                    assertThat(event).isInstanceOf(A2UiRuntimeEvent.Surface.class);
+                    assertThat(((A2UiRuntimeEvent.Surface) event).message()).isEqualTo(msg);
+                })
                 .verifyComplete();
     }
 
@@ -75,7 +80,8 @@ class A2UiSurfaceServiceTest {
     void shouldFailFastOnStreamValidationFailure() {
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show a button", null, null);
         A2UiMessage invalid = new A2UiMessage.CreateSurface(null, A2UiCatalogIds.BASIC_V0_9);
-        when(runtime.stream(any(), anyString(), anyString())).thenReturn(Flux.just(invalid));
+        when(runtime.stream(any(), anyString(), anyString()))
+                .thenReturn(Flux.just(new A2UiRuntimeEvent.Surface(invalid)));
         when(validator.validateSingle(invalid)).thenReturn(List.of(mock(A2UiDiagnostic.class)));
 
         StepVerifier.create(service.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
@@ -91,7 +97,8 @@ class A2UiSurfaceServiceTest {
     void shouldStreamAndValidateEachMessage() {
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show a button", null, null);
         A2UiMessage msg = new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9);
-        when(runtime.stream(any(), anyString(), anyString())).thenReturn(Flux.just(msg));
+        when(runtime.stream(any(), anyString(), anyString()))
+                .thenReturn(Flux.just(new A2UiRuntimeEvent.Surface(msg)));
         when(validator.validateSingle(any())).thenReturn(List.of());
 
         service.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9).blockLast();

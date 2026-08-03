@@ -35,12 +35,16 @@ class SpringAiSurfaceRuntimeTest {
         A2UiMessage.CreateSurface createSurface =
                 new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9);
         when(dynamicOrchestrator.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
-                .thenReturn(Flux.just(createSurface));
+                .thenReturn(Flux.just(new A2UiRuntimeEvent.Surface(createSurface)));
 
         SpringAiSurfaceRuntime runtime = createRuntime(new A2UiWebProperties());
 
         StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
-                .assertNext(message -> assertThat(message).isInstanceOf(A2UiMessage.CreateSurface.class))
+                .assertNext(event -> {
+                    assertThat(event).isInstanceOf(A2UiRuntimeEvent.Surface.class);
+                    assertThat(((A2UiRuntimeEvent.Surface) event).message())
+                            .isInstanceOf(A2UiMessage.CreateSurface.class);
+                })
                 .verifyComplete();
     }
 

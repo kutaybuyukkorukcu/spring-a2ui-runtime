@@ -44,6 +44,10 @@ event: done
 data: [DONE]
 ```
 
+When `a2ui.web.stream.lifecycle-events=true`, the stream may also include
+utilization events (`runStarted`, `toolProgress`, `assistantText`, `runFinished`)
+before surface envelopes. See [Native SSE utilization](guides/native-sse-utilization.md).
+
 Error events:
 ```
 event: error
@@ -135,6 +139,7 @@ Optional `createSurface.sendDataModel` (default `false`): when `true`, clients s
 | `a2ui.web.base-path` | `/a2ui` | Base path for all endpoints |
 | `a2ui.web.stream.enabled` | `true` | Enable/disable SSE streaming endpoint |
 | `a2ui.web.stream.timeout-ms` | `120000` | SSE stream timeout in milliseconds |
+| `a2ui.web.stream.lifecycle-events` | `false` | Emit run/text/tool utilization events on the stream |
 | `a2ui.web.actions.enabled` | `true` | Enable/disable action handling endpoint |
 | `a2ui.web.catalog.enabled` | `true` | Enable/disable catalog serving endpoint |
 | `a2ui.web.runtime.generation-mode` | `dynamic` | Surface generation mode: `template` or `dynamic`. Library default is `dynamic`; set explicitly in apps. See [Getting started](guides/getting-started.md) and [Dynamic Generative UI](guides/dynamic-generative-ui.md). |

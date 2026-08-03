@@ -69,7 +69,9 @@ class RuntimeSurfaceE2ETest {
                 .andExpect(status().isOk())
                 .andExpect(header().string(REQUEST_ID_HEADER, "req-e2e-action-1"))
                 .andExpect(jsonPath("$.accepted").value(true))
-                .andExpect(jsonPath("$.eventType").value("actionResult"));
+                .andExpect(jsonPath("$.eventType").value("actionResult"))
+                .andExpect(jsonPath("$.messages").isArray())
+                .andExpect(jsonPath("$.messages.length()").value(3));
     }
 
     @Test

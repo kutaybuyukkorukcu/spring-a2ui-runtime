@@ -1,7 +1,8 @@
 # Phase — Product runtime utilization layer (platform track)
 
-**Status:** Plan / product decision (not started)  
-**Depends on:** Maven Central `1.1.0` ✅ · patch `1.1.1` ✅ · **Phase X (A2UI v0.9.1) before large utilization investment**  
+**Status:** Complete (Slices 0–2, 4 partial; Slice 3 not planned)  
+**Depends on:** Maven Central `1.1.0` ✅ · patch `1.1.1` ✅ · **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅  
+**Current baseline:** library SemVer **`2.0.0`**, wire **`v0.9.1`** (`A2UiProtocol.SUPPORTED_VERSION`)  
 **Related:** `BACKLOG.md` → Vision / Mission · utilization · optional foreign-client bridge  
 **Agent:** `.cursor/agents/product-runtime-architect.md`
 
@@ -21,11 +22,12 @@ Positioning home: [`docs/platform.md`](../platform.md) · Later themes (builder 
 
 | Layer | What | Our stance |
 |-------|------|------------|
-| **UI payload / GenUI grammar** | Declarative catalog surfaces (A2UI) | Implement & stay current (Phase X → v0.9.1) |
-| **Generation runtime** | Prompt/tools → validate → stream | **Our core** (template + dynamic) |
-| **Utilization around surfaces** | Run / text / tool progress on native SSE | **Build in our vocabulary** |
-| **Foreign chat / agent-UI pipes** | Third-party client event protocols | **Optional bridge only** |
+| **UI payload / GenUI grammar** | Declarative catalog surfaces (A2UI) | Current wire **v0.9.1** (Phase X ✅) |
+| **Generation runtime** | Prompt/tools → validate → stream | **Our core** (template + dynamic) — shipped on Central `2.0.0` |
+| **Utilization around surfaces** | Run / text / tool progress on native SSE | **Build next** — in our vocabulary |
+| **Foreign chat / agent-UI pipes** | Third-party client event protocols | **Not planned** — native SSE only |
 | **FE product shells** | Full chat chrome / design systems | Builders bring their own |
+| **Product persistence / DB** | Domain storage (JPA, JDBC, Redis, IndexedDB, …) | **Builders own** — wire via `A2UiActionHandler` → their services; we do not ship a GenUI datastore |
 
 We do not rebuild core around third-party interaction protocols. Interop adapters, if any, sit beside the product pipe — they are not the product.
 
@@ -54,15 +56,16 @@ We do not rebuild core around third-party interaction protocols. Interop adapter
 
 | Need | Product expectation | Our surface today |
 |------|---------------------|-------------------|
-| Install + 15-min Boot path | README + Central | ✅ `1.1.1` |
+| Install + 15-min Boot path | README + Central | ✅ `2.0.0` |
 | Declarative GenUI | Validated A2UI envelopes | ✅ template + dynamic |
-| Protocol currency | Current A2UI (v0.9.1) | ❌ still on Legacy v0.8 → **Phase X** |
-| Chat text + surfaces | Prose beside surfaces | ❌ surfaces only → utilization |
-| Tool / progress visibility | Client-visible steps | ❌ internal → utilization |
-| Run start / finish / cancel | Explicit run lifecycle | Partial (`error` / `done`) |
-| Bidirectional actions | User → agent UI actions | ✅ `POST /a2ui/actions` |
+| Protocol currency | Current A2UI (v0.9.1) | ✅ Phase X / Central `2.0.0` |
+| Chat text + surfaces | Prose beside surfaces | ✅ utilization (`assistantText`, opt-in) |
+| Tool / progress visibility | Client-visible steps | ✅ utilization (`toolProgress`, opt-in) |
+| Run start / finish / cancel | Explicit run lifecycle | ✅ utilization (`run*`, opt-in) |
+| Bidirectional actions | User → agent UI actions | ✅ `POST /a2ui/actions` + `A2UiActionHandler` SPI |
+| Host persistence pattern | Action → product DB → UI ack | ✅ [hosting-actions guide](../guides/hosting-actions.md) |
 | Controlled template SPI | Register own templates | Low priority (FE design systems map catalog → widgets) |
-| Third-party chat clients | Optional harness | ❌ bridge later if demand |
+| Third-party chat clients | Optional harness | ❌ not planned |
 
 ---
 
@@ -70,18 +73,20 @@ We do not rebuild core around third-party interaction protocols. Interop adapter
 
 ### Verdict
 
-- **Runtime (generation):** Shipped GA at `1.1.0`; patch `1.1.1` dynamic fail-fast ✅.  
-- **Platform altitude:** Not yet — need v0.9.1 currency + utilization on native SSE.  
-- **Do not** make a foreign interaction protocol the default pipe or put foreign protocol types in core.
+- **Runtime (generation):** Shipped GA at Central **`2.0.0`** on A2UI **v0.9.1** (hard cutover from Legacy `1.1.x` / v0.8).  
+- **Platform altitude:** Shipped on native SSE (opt-in lifecycle events).  
+- **Do not** make a foreign interaction protocol the default pipe or put foreign protocol types in core.  
+- **Do not** ship a platform database; persistence stays in the host app.  
+- **Foreign-client bridge:** not planned (product decision).
 
 ### Continue with (ordered)
 
 | Priority | Track | Why |
 |----------|-------|-----|
-| **P0** | Patch `1.1.1` ✅ | Dynamic reliability baseline |
-| **P0** | **Phase X → A2UI v0.9.1** | Protocol currency before big utilization on Legacy |
-| **P1** | **Native SSE lifecycle enrichment** (our event vocabulary) | Chat-quality GenUI on our pipe |
-| **P2** | **Optional foreign-client bridge module** | Demand-gated adapter for external client ecosystems |
+| **P0** | Patch `1.1.1` ✅ | Dynamic reliability baseline (Legacy line) |
+| **P0** | **Phase X → A2UI v0.9.1 / Central `2.0.0`** ✅ | Protocol currency |
+| **P1** | **Native SSE lifecycle enrichment** (our event vocabulary) | ✅ Shipped (`lifecycle-events` flag) |
+| **—** | Foreign-client bridge | ❌ Not planned |
 | **Later** | Template SPI, multi-provider, reliability deep-dive | Not gates for platform identity |
 
 ### Explicit non-goals
@@ -92,6 +97,7 @@ We do not rebuild core around third-party interaction protocols. Interop adapter
 - Putting foreign interaction-protocol types into `a2ui-runtime-core`  
 - Changing two-hop dynamic generation or reintroducing semantic repair  
 - Shipping a second declarative UI payload format beside A2UI  
+- Shipping a platform GenUI datastore (SQLite, IndexedDB, or otherwise) — builders own persistence  
 
 ---
 
@@ -107,9 +113,10 @@ We do not rebuild core around third-party interaction protocols. Interop adapter
 │  │ /actions         │  │ (separate module, demand-gated)  │ │
 │  └────────┬─────────┘  └──────────────────────────────────┘ │
 │           │                                                  │
-│  ┌────────▼─────────┐                                        │
-│  │ core: validate,  │  template + dynamic generation         │
-│  │ assembly, catalog│  (unchanged strategy)                  │
+│  ┌────────▼─────────┐  ┌──────────────────────────────────┐ │
+│  │ core: validate,  │  │ host: A2UiActionHandler →        │ │
+│  │ assembly, catalog│  │ product services / DB (builders) │ │
+│  │ template+dynamic │  └──────────────────────────────────┘ │
 │  └──────────────────┘                                        │
 └─────────────────────────────────────────────────────────────┘
          │ SSE (primary)                 │ optional bridge
@@ -119,6 +126,8 @@ We do not rebuild core around third-party interaction protocols. Interop adapter
 
 **Design rule:** Enrich the **internal event model** first (run id, text deltas, tool steps) so both native SSE and any future adapter project from one source. Avoid two divergent orchestrators.
 
+**Design rule:** Do **not** extend `A2UiMessage` with utilization events — keep A2UI grammar (`createSurface` / `updateComponents` / `updateDataModel` / `deleteSurface`) separate from run/text/progress. Prefer an internal `A2UiRuntimeEvent` (or similar) with surface envelopes as one variant; controller maps to SSE.
+
 ---
 
 ## Implementation slices
@@ -127,46 +136,50 @@ We do not rebuild core around third-party interaction protocols. Interop adapter
 
 - [x] v0.8 / `1.1.0` on Maven Central  
 - [x] Land `1.1.1` dynamic fail-fast patch  
-- [ ] Phase X (v0.9.1) — see `phase-x-migrating-to-v0.9.md`
+- [x] Phase X (v0.9.1) — Central **`2.0.0`**, wire `v0.9.1`, demo on `@a2ui/*/v0_9` (see `phase-x-migrating-to-v0.9.md` + `docs/guides/migrating-to-v0.9.1.md`)
 
-### Slice 1 — Native run / progress vocabulary
+### Slice 1 — Native run / progress vocabulary ✅
 
-Extend A2UI-native stream with **our** names (illustrative — finalize in spike):
+Extend A2UI-native stream with **our** names (illustrative — finalize in spike). These are **SSE utilization events**, not A2UI envelope types:
 
 | Event (working names) | Purpose |
 |-----------------------|---------|
 | `runStarted` / `runFinished` / `runError` | Explicit run lifecycle for FE shells |
 | `assistantText` (deltas) | Optional prose beside surfaces |
 | `toolProgress` (start/args/end) | Visibility for two-hop tools |
-| existing `surfaceUpdate` / `dataModelUpdate` / `beginRendering` | Unchanged |
+| existing A2UI envelopes | Unchanged: `createSurface` / `updateComponents` / `updateDataModel` / `deleteSurface` |
 | `error` / `done` | Keep; map clearly to run terminal states |
 
-Config flag: `a2ui.web.stream.lifecycle-events=true` (default TBD for backward compatibility).
+Config flag: `a2ui.web.stream.lifecycle-events` (recommend default **`false`** until demo / host opts in).
 
-**Acceptance:** Demo FE can show progress + optional assistant text; unknown-event-tolerant clients still work.
+**Acceptance:** Demo FE can show progress + optional assistant text; unknown-event-tolerant clients still work (only A2UI JSON goes to `@a2ui` MessageProcessor). ✅
 
-### Slice 2 — Event model extraction
+### Slice 2 — Event model extraction ✅
 
 - Internal `A2UiRuntimeEvent` (or similar) sealed hierarchy from orchestrators  
 - Controllers map → SSE; no foreign protocol types in core  
+- `A2UiSurfaceService` validates **surface envelopes only**, not lifecycle events  
 - Unit tests: template + dynamic runs share lifecycle shape  
 
-**Acceptance:** Single event source; stream controller is a thin mapper.
+**Acceptance:** Single event source; stream controller is a thin mapper. ✅
 
-### Slice 3 — Optional foreign-client bridge module
+### Slice 3 — Foreign-client bridge — not planned
 
-- New module **only if** product demand for third-party chat / agent-UI clients  
-- Foreign deps **only in this module**  
-- Map `A2UiRuntimeEvent` → external wire events; A2UI envelopes remain the UI payload  
-- Smoke: one external client consumes one dynamic surface  
+Product decision: we do **not** ship an AG-UI / CopilotKit translation module.
+Builders integrate with **A2UI-native SSE** directly (or wrap utilization events
+in their own adapter). Core jars stay free of foreign interaction-protocol types.
 
-**Acceptance:** Core jars have zero foreign interaction-protocol refs; docs explain `/surface/stream` vs bridge.
+### Slice 4 — Product docs ✅ (partial)
 
-### Slice 4 — Product docs + decision record
+- Guide: [Native SSE utilization](../guides/native-sse-utilization.md)  
+- Thin host-app actions cookbook: [Hosting actions](../guides/hosting-actions.md)  
+- Update `BACKLOG.md` / `docs/platform.md` as slices complete ✅  
 
-- Guide: “A2UI-native SSE vs optional foreign-client bridge”  
-- ADR addendum if needed (does not overturn ADR 001)  
-- Update `BACKLOG.md` as slices complete  
+### Showcase / demo (parallel, thin) ✅
+
+- Non-stub showcase `A2UiActionHandler` (e.g. `confirm` / `primary_action`) returns real `updateComponents` / `updateDataModel`  
+- Optional in-memory ack map to illustrate host-owned store — **not** a platform DB  
+- Domain story copy (e.g. gym-notes framing) is launch narrative only; not a product module  
 
 ### Later — Template registry SPI (low priority)
 
@@ -178,32 +191,24 @@ Additional **Later** platform-maturity themes (builder DX, multi-provider, ops, 
 
 ---
 
-## Spike checklist (before Slice 3)
-
-- [ ] Confirm whether consumers need a foreign bridge vs native SSE + our lifecycle events  
-- [ ] If yes: how A2UI envelopes are carried as external payload  
-- [ ] Cancel/steer: native endpoint vs bridge-only input  
-- [ ] Lifecycle events vs `@a2ui/react` demo (ignore-unknown vs stream profile)  
-- [ ] Packaging: one starter vs two Central artifacts  
-
----
-
 ## Success metrics
 
 | Signal | Target |
 |--------|--------|
 | Time-to-first-surface for new Spring app | &lt; 15 minutes with README alone |
-| Protocol currency | A2UI v0.9.1 (Phase X) |
-| Chat-quality demo (text + surface + action) | Supported on **native SSE** (Slices 1–2) |
-| Third-party chat-client path | Optional module (Slice 3) — only if demand |
+| Protocol currency | A2UI v0.9.1 on Central `2.0.0` ✅ |
+| Chat-quality demo (text + surface + action) | Supported on **native SSE** (Slices 1–2) ✅ |
+| Third-party chat-client path | Not planned |
 | Core dependency surface | No foreign interaction-protocol types in core/web-starter |
+| Persistence | Documented as host-owned; no platform datastore |
 
 ---
 
 ## Suggested execution order
 
 1. Patch `1.1.1` ✅  
-2. Phase X (v0.9.1)  
-3. Slices 1–2 (utilization on native SSE)  
-4. Slice 3 (optional foreign-client bridge) — demand-gated  
-5. Slice 4 (docs) · template SPI anytime as low-prio parallel  
+2. Phase X (v0.9.1 / Central `2.0.0`) ✅  
+3. Slices 1–2 (utilization on native SSE) ✅  
+4. Showcase action loop + host-actions / utilization docs ✅  
+5. Slice 3 (foreign-client bridge) — **not planned**  
+6. Template SPI · remaining Later themes — low-prio parallel  

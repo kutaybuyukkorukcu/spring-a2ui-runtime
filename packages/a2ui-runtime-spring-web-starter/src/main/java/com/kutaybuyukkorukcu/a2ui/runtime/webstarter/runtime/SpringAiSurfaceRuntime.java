@@ -57,7 +57,7 @@ public class SpringAiSurfaceRuntime implements A2UiSurfaceRuntime {
     }
 
     @Override
-    public Flux<A2UiMessage> stream(A2UiSurfaceRequest request, String requestId, String catalogId) {
+    public Flux<A2UiRuntimeEvent> stream(A2UiSurfaceRequest request, String requestId, String catalogId) {
         if (isTemplateMode()) {
             return templateOrchestrator.stream(request, requestId, catalogId);
         }

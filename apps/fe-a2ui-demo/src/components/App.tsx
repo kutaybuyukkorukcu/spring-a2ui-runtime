@@ -11,7 +11,7 @@ import {
   basicCatalog,
   type ReactComponentImplementation,
 } from '@a2ui/react/v0_9';
-import { streamSurface, sendAction } from '../services/api';
+import { streamSurface, sendAction, type StreamUtilizationEvent } from '../services/api';
 // Package exports omit CSS; load via Vite alias in vite.config.ts
 import '@a2ui/react-v0_9-css';
 
@@ -44,6 +44,9 @@ export function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [input, setInput] = useState('');
+  const [runStatus, setRunStatus] = useState<string | null>(null);
+  const [assistantText, setAssistantText] = useState<string | null>(null);
+  const [toolProgress, setToolProgress] = useState<string | null>(null);
   const [surfaces, setSurfaces] = useState<SurfaceModel<ReactComponentImplementation>[]>([]);
   const processorRef = useRef<MessageProcessor<ReactComponentImplementation> | null>(null);
 
@@ -81,12 +84,47 @@ export function App() {
   const clear = useCallback(() => {
     for (const surfaceId of Array.from(processor.model.surfacesMap.keys())) {
       processor.processMessages([
-        { version: 'v0.9.1', deleteSurface: { surfaceId } },
+        { version: 'v0.9', deleteSurface: { surfaceId } },
       ]);
     }
     setSurfaces([]);
     setError(null);
+    setRunStatus(null);
+    setAssistantText(null);
+    setToolProgress(null);
   }, [processor]);
+
+  const handleUtilizationEvent = useCallback((event: StreamUtilizationEvent) => {
+    switch (event.type) {
+      case 'runStarted':
+        setRunStatus('Composing surface…');
+        break;
+      case 'runFinished':
+        setRunStatus('Surface ready');
+        setToolProgress(null);
+        break;
+      case 'runError':
+        setRunStatus('Run failed');
+        break;
+      case 'assistantText': {
+        const payload = event.data as { delta?: string };
+        if (payload.delta) {
+          setAssistantText(payload.delta);
+        }
+        break;
+      }
+      case 'toolProgress': {
+        const payload = event.data as { toolName?: string; phase?: string };
+        if (payload.toolName) {
+          const phaseLabel = payload.phase === 'end' ? 'finished' : 'running';
+          setToolProgress(`${payload.toolName} ${phaseLabel}`);
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }, []);
 
   const generate = useCallback(async (content: string) => {
     setLoading(true);
@@ -108,13 +146,14 @@ export function App() {
           }
         },
         (err) => setError(err),
+        handleUtilizationEvent,
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
-  }, [processor, clear]);
+  }, [processor, clear, handleUtilizationEvent]);
 
   const samplePrompts = generationMode === 'dynamic' ? DYNAMIC_SAMPLE_PROMPTS : TEMPLATE_SAMPLE_PROMPTS;
 
@@ -145,6 +184,14 @@ export function App() {
           <div className="a2ui-error">
             <h3>Error</h3>
             <p>{error}</p>
+          </div>
+        )}
+
+        {(runStatus || assistantText || toolProgress) && (
+          <div className="a2ui-run-status">
+            {runStatus && <p>{runStatus}</p>}
+            {toolProgress && <p className="a2ui-tool-progress">{toolProgress}</p>}
+            {assistantText && <p className="a2ui-assistant-text">{assistantText}</p>}
           </div>
         )}
 

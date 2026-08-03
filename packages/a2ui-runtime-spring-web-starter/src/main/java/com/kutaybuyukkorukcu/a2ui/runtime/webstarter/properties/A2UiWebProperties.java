@@ -44,10 +44,14 @@ public class A2UiWebProperties {
     public static class StreamProperties {
         private boolean enabled = true;
         private long timeoutMs = 120000L;
+        private boolean lifecycleEvents = false;
+
         public boolean isEnabled() { return enabled; }
         public void setEnabled(boolean enabled) { this.enabled = enabled; }
         public long getTimeoutMs() { return timeoutMs; }
         public void setTimeoutMs(long timeoutMs) { this.timeoutMs = timeoutMs; }
+        public boolean isLifecycleEvents() { return lifecycleEvents; }
+        public void setLifecycleEvents(boolean lifecycleEvents) { this.lifecycleEvents = lifecycleEvents; }
     }
 
     public static class RuntimeProperties {
