@@ -72,6 +72,8 @@ Near-term **execution order is locked** in [`BACKLOG.md`](../BACKLOG.md). Do not
 
 - [Getting started](guides/getting-started.md) — dependency → first SSE stream  
 - [Golden-path cookbook](guides/golden-path-cookbook.md) — stream → utilization → action → host ack  
+- [Ops and diagnostics](guides/ops-and-diagnostics.md) — metrics, fail-fast playbook, latency/cost  
+- [Multi-provider Spring AI](guides/multi-provider-spring-ai.md) — OpenAI default; Groq/Anthropic/Gemini recipes  
 - [Action round-trip](guides/action-round-trip.md) — HITL / ops approval loop  
 - [Flow recompose](guides/flow-recompose.md) — host state → next surface  
 - [FE design-system binding](guides/fe-design-system-binding.md) — catalog → widgets  

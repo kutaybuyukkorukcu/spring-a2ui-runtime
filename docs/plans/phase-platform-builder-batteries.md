@@ -1,6 +1,6 @@
 # Phase — Platform builder batteries (OSS DX)
 
-**Status:** Slices **A + B + C + C2 complete**; D / E next  
+**Status:** Slices **A–E complete** (batteries phase done; Later residual remains)  
 **Depends on:** Phase X ✅ · utilization layer ✅ · hosting-actions + utilization guides ✅  
 **Current baseline:** library SemVer **`2.0.0`**, wire **`v0.9.1`**  
 **Related:** [`BACKLOG.md`](../../BACKLOG.md) · [`docs/platform.md`](../platform.md) · prior plan [`phase-product-runtime-interaction.md`](phase-product-runtime-interaction.md)  
@@ -249,10 +249,10 @@ Controlled layouts — analogue to CopilotKit “fixed-schema A2UI” (schema on
 
 **Acceptance:**
 
-- [ ] Ops guide exists  
-- [ ] Latency/cost section present  
-- [ ] At least one metric path documented via showcase or guide  
-- [ ] Fail-fast policy unchanged  
+- [x] Ops guide exists — [`ops-and-diagnostics.md`](../guides/ops-and-diagnostics.md)  
+- [x] Latency/cost section present  
+- [x] At least one metric path documented via showcase or guide  
+- [x] Fail-fast policy unchanged  
 
 ---
 
@@ -262,11 +262,14 @@ OSS hygiene, not wedge. Keep after A–D.
 
 | Work | Detail |
 |------|--------|
-| Docs | Anthropic / Gemini / Groq recipes as Spring AI allows |
-| Smoke | One alternate provider proves tools + stream |
-| Honest limits | Tool-calling / schema differences affecting dynamic mode |
+| Docs | Anthropic / Gemini / Groq recipes as Spring AI supports |
+| Smoke | Checklist + Groq-via-OpenAI-compatible path (showcase already wired) |
+| Honest limits | Tool-calling / force-tool differences affecting dynamic mode |
 
-**Acceptance:** Guide + smoke checklist; getting-started stays OpenAI-default.
+**Acceptance:**
+
+- [x] Guide — [`multi-provider-spring-ai.md`](../guides/multi-provider-spring-ai.md)  
+- [x] Smoke checklist documented; getting-started stays OpenAI-default  
 
 ---
 
@@ -285,8 +288,8 @@ OSS hygiene, not wedge. Keep after A–D.
 1. **Slice 0** — plan + research revision ✅  
 2. **Slice A + B in parallel** — docs + HITL showcase ✅  
 3. **Slice C + C2 in parallel** — Template SPI + **host A2UI catalog registration SPI** ✅  
-4. **Slice D** — Ops (incl. latency/cost)  
-5. **Slice E** — Multi-provider  
+4. **Slice D** — Ops (incl. latency/cost) ✅  
+5. **Slice E** — Multi-provider ✅  
 
 SemVer: docs-only = no bump. Template + Catalog SPI landed as source-compatible additions on top of published `2.0.0`; bump to **`2.1.0`** at the next Maven Central release cut (not required per-slice).
 

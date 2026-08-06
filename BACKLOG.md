@@ -61,7 +61,7 @@ Ship a Maven Central Spring Boot runtime that turns prompts/intents into **valid
 - ~~Integration model~~ → **A2UI-native SSE** (optional foreign bridges later)
 - ~~Tool API shape~~ → **Builder + runtime `@Tool` adapters**
 - ~~Is dynamic A2UI in scope?~~ → **Yes — Phase 2 (shipped)**
-- ~~Provider scope~~ → **OpenAI-first for MVP**; Anthropic / Gemini / Groq later
+- ~~Provider scope~~ → **OpenAI-first for MVP**; Anthropic / Gemini / Groq documented ([multi-provider guide](docs/guides/multi-provider-spring-ai.md))
 - ~~Platform vs foreign protocol-as-core~~ → **Platform**; native SSE remains identity
 - ~~v0.8 / Central `1.1.0`~~ → **Published**
 - ~~Patch `1.1.1` dynamic fail-fast~~ → **Published**
@@ -335,8 +335,8 @@ A2UI is a **UI payload format**. A GenUI **platform** also needs text, progress,
 | **B** | Showcase: **ops HITL primary**, context-shaped intake secondary (`fe-a2ui-demo` stays smoke client) | P0 ✅ |
 | **C** | Template SPI — host-registered controlled layouts | P1 ✅ |
 | **C2** | **Host A2UI catalog SPI** — register catalog schemas for validate/generate (not “we author catalogs”) | P1 ✅ (parallel with C) |
-| **D** | Ops guide + metrics + latency/cost / caching hygiene | P1 |
-| **E** | Multi-provider Spring AI beyond OpenAI-first | P2 |
+| **D** | Ops guide + metrics + latency/cost / caching hygiene | P1 ✅ |
+| **E** | Multi-provider Spring AI beyond OpenAI-first | P2 ✅ |
 
 **Extension filter:** deepen compose → validate → stream → fail-fast → actions; self-host in Boot; leave FE + domain + **catalog authoring/renderers** to builders; serve a high-gravity **decision/capture** job.
 
