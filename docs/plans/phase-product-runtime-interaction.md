@@ -179,15 +179,11 @@ in their own adapter). Core jars stay free of foreign interaction-protocol types
 
 - Non-stub showcase `A2UiActionHandler` (e.g. `confirm` / `primary_action`) returns real `updateComponents` / `updateDataModel`  
 - Optional in-memory ack map to illustrate host-owned store — **not** a platform DB  
-- Domain story copy (e.g. gym-notes framing) is launch narrative only; not a product module  
+- Domain story copy (e.g. gym-notes framing) was launch narrative only — **superseded** by builder-batteries showcase (ops HITL / intake); not a product module  
 
-### Later — Template registry SPI (low priority)
+### Later themes — moved
 
-- Public SPI to register custom `A2UiSurfaceSpec` templates  
-- Doc: “Authoring a custom surface template”  
-- Not a platform gate — FE design systems primarily bind catalog components  
-
-Additional **Later** platform-maturity themes (builder DX, multi-provider, ops, demand-gated interop) live in [`BACKLOG.md`](../../BACKLOG.md) under **Later — platform maturity & builder focus**. They do not change this plan’s sequencing.
+Template SPI, host A2UI catalog registration SPI, builder DX, multi-provider, and ops batteries are sequenced in [`phase-platform-builder-batteries.md`](phase-platform-builder-batteries.md) (next execution phase). Residual Later items live in [`BACKLOG.md`](../../BACKLOG.md).
 
 ---
 
@@ -211,4 +207,4 @@ Additional **Later** platform-maturity themes (builder DX, multi-provider, ops, 
 3. Slices 1–2 (utilization on native SSE) ✅  
 4. Showcase action loop + host-actions / utilization docs ✅  
 5. Slice 3 (foreign-client bridge) — **not planned**  
-6. Template SPI · remaining Later themes — low-prio parallel  
+6. Template SPI · remaining Later themes — superseded by [`phase-platform-builder-batteries.md`](phase-platform-builder-batteries.md) (next execution phase) 

@@ -22,7 +22,8 @@ public final class A2UiCatalogRegistry {
     public static final String STANDARD_CATALOG_RESOURCE = BASIC_CATALOG_RESOURCE;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final A2UiCatalogRegistry SHARED = new A2UiCatalogRegistry(loadCatalogDefinitions());
+    private static final A2UiCatalogRegistry SHARED =
+            new A2UiCatalogRegistry(loadCatalogDefinitions(), loadRulesText());
 
     private final Map<String, Map<String, Map<String, Object>>> componentSchemasByCatalogId;
     private final Map<String, Set<String>> componentTypesByCatalogId;
@@ -30,7 +31,8 @@ public final class A2UiCatalogRegistry {
     private final Set<String> supportedComponentTypes;
     private final String catalogRulesText;
 
-    private A2UiCatalogRegistry(Map<String, Map<String, Map<String, Object>>> componentSchemasByCatalogId) {
+    private A2UiCatalogRegistry(
+            Map<String, Map<String, Map<String, Object>>> componentSchemasByCatalogId, String catalogRulesText) {
         this.componentSchemasByCatalogId = Collections.unmodifiableMap(deepCopy(componentSchemasByCatalogId));
         Map<String, Set<String>> typesByCatalog = new LinkedHashMap<>();
         Set<String> allTypes = new LinkedHashSet<>();
@@ -42,11 +44,57 @@ public final class A2UiCatalogRegistry {
         this.componentTypesByCatalogId = Collections.unmodifiableMap(typesByCatalog);
         this.supportedCatalogIds = Collections.unmodifiableSet(new LinkedHashSet<>(this.componentSchemasByCatalogId.keySet()));
         this.supportedComponentTypes = Collections.unmodifiableSet(allTypes);
-        this.catalogRulesText = loadRulesText();
+        this.catalogRulesText = catalogRulesText == null ? "" : catalogRulesText;
     }
 
     public static A2UiCatalogRegistry shared() {
         return SHARED;
+    }
+
+    /**
+     * Builds a registry from an explicit catalogId → component-type → schema map, with no
+     * catalog rules text. Mainly useful for tests and hosts assembling a registry from scratch
+     * rather than extending {@link #shared()}.
+     */
+    public static A2UiCatalogRegistry of(Map<String, Map<String, Map<String, Object>>> componentSchemasByCatalogId) {
+        return new A2UiCatalogRegistry(componentSchemasByCatalogId, "");
+    }
+
+    /**
+     * Registers host {@link A2UiCatalogContribution}s on top of a base registry (typically
+     * {@link #shared()}). Contributions targeting a new {@code catalogId} add a catalog;
+     * contributions targeting an existing {@code catalogId} merge component types into it.
+     * Contribution rules text is appended after the base catalog rules text.
+     */
+    public static A2UiCatalogRegistry withContributions(
+            A2UiCatalogRegistry base, List<A2UiCatalogContribution> contributions) {
+        Map<String, Map<String, Map<String, Object>>> merged = mutableDeepCopy(base.componentSchemasByCatalogId);
+        StringBuilder rulesText = new StringBuilder(base.catalogRulesText);
+
+        if (contributions != null) {
+            for (A2UiCatalogContribution contribution : contributions) {
+                if (contribution == null) {
+                    continue;
+                }
+                String catalogId = contribution.catalogId();
+                if (catalogId == null || catalogId.isBlank()) {
+                    continue;
+                }
+                Map<String, Map<String, Object>> componentSchemas = contribution.componentSchemas();
+                if (componentSchemas != null && !componentSchemas.isEmpty()) {
+                    merged.computeIfAbsent(catalogId, key -> new LinkedHashMap<>()).putAll(componentSchemas);
+                }
+                String rules = contribution.rulesText();
+                if (rules != null && !rules.isBlank()) {
+                    if (rulesText.length() > 0) {
+                        rulesText.append("\n\n");
+                    }
+                    rulesText.append(rules.trim());
+                }
+            }
+        }
+
+        return new A2UiCatalogRegistry(merged, rulesText.toString());
     }
 
     public boolean isSupportedCatalogId(String catalogId) {
@@ -277,6 +325,20 @@ public final class A2UiCatalogRegistry {
                         Collections.unmodifiableMap(new LinkedHashMap<>(componentEntry.getValue())));
             }
             copy.put(catalogEntry.getKey(), Collections.unmodifiableMap(componentsCopy));
+        }
+        return copy;
+    }
+
+    /** Like {@link #deepCopy} but leaves the result mutable so contributions can be merged in. */
+    private static Map<String, Map<String, Map<String, Object>>> mutableDeepCopy(
+            Map<String, Map<String, Map<String, Object>>> source) {
+        Map<String, Map<String, Map<String, Object>>> copy = new LinkedHashMap<>();
+        for (Map.Entry<String, Map<String, Map<String, Object>>> catalogEntry : source.entrySet()) {
+            Map<String, Map<String, Object>> componentsCopy = new LinkedHashMap<>();
+            for (Map.Entry<String, Map<String, Object>> componentEntry : catalogEntry.getValue().entrySet()) {
+                componentsCopy.put(componentEntry.getKey(), new LinkedHashMap<>(componentEntry.getValue()));
+            }
+            copy.put(catalogEntry.getKey(), componentsCopy);
         }
         return copy;
     }

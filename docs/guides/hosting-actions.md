@@ -12,6 +12,7 @@ persistence, and what A2UI messages to return.
 | `A2UiActionHandler` implementation | **Your app** |
 | Domain services, repositories, DB | **Your app** |
 | FE renderer and design system | **Your app** |
+| A2UI catalog schema + widget renderers (beyond basic) | **Your app** — register schemas with `A2UiCatalogContribution`; see [registering catalogs](registering-catalogs.md) |
 
 We do **not** ship a GenUI datastore. SQLite, JPA, Redis, or IndexedDB on the FE
 stay in the host product.
@@ -97,18 +98,20 @@ do not re-run the LLM unless **you** call back into your own services.
 
 ## Wiring with Spring Data (example)
 
+Ops / HITL style — your service owns the write gate:
+
 ```java
 @Service
-public class WorkoutLogService {
-    private final WorkoutRepository repository;
+public class ChangeApprovalService {
+    private final ChangeRequestRepository repository;
 
-    public WorkoutLogService(WorkoutRepository repository) {
+    public ChangeApprovalService(ChangeRequestRepository repository) {
         this.repository = repository;
     }
 
-    public void saveFromAction(A2UiUserAction action) {
+    public void applyDecision(A2UiUserAction action) {
         // Read structured fields from action.context() or your data model
-        repository.save(new WorkoutEntry(action.name(), action.timestamp()));
+        repository.save(new ChangeDecision(action.name(), action.timestamp(), action.context()));
     }
 }
 ```
@@ -124,6 +127,11 @@ in your handler or service layer; the runtime does not manage product sessions.
 
 ## Next reading
 
-* [REST API — actions](../rest-api.md#handle-client-action)
-* [Native SSE utilization](native-sse-utilization.md) — run/text/progress around surfaces
-* [Getting started](getting-started.md) — first stream end-to-end
+* [Action round-trip](action-round-trip.md) — HITL decision loop  
+* [Flow recompose](flow-recompose.md) — host state → next surface  
+* [Authoring templates](authoring-templates.md) — layout SPI  
+* [Registering catalogs](registering-catalogs.md) — component vocabulary SPI  
+* [Golden-path cookbook](golden-path-cookbook.md)  
+* [REST API — actions](../rest-api.md#handle-client-action)  
+* [Native SSE utilization](native-sse-utilization.md) — run/text/progress around surfaces  
+* [Getting started](getting-started.md) — first stream end-to-end  

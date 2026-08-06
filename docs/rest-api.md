@@ -121,6 +121,8 @@ Accept: application/json
 
 **Response (200):** The vendored A2UI basic catalog (v0.9 / v0.9.1) as a JSON Schema document.
 
+This endpoint serves the **bootstrap** catalog. Hosts author production catalogs that match their design system and register those schemas with the runtime via `A2UiCatalogContribution` for validate/generate ([registering catalogs](guides/registering-catalogs.md), [catalog ownership](platform.md#catalog-ownership-a2ui-aligned)).
+
 Optional `createSurface.sendDataModel` (default `false`): when `true`, clients should attach the surface data model as transport metadata on subsequent `POST /a2ui/actions` requests. MVP apps can leave this unset.
 
 ---

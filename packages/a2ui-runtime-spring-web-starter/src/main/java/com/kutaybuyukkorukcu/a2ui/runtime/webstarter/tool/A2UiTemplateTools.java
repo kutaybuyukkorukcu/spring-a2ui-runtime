@@ -28,7 +28,7 @@ public class A2UiTemplateTools {
         this.runtimeMetrics = runtimeMetrics;
     }
 
-    @Tool(description = "Select a surface template. Must be one of: text-card, hero-cta, form-login, weather-card.")
+    @Tool(description = "Select a registered surface template by id (available templates are listed in the system prompt).")
     public String selectTemplate(String templateId, String rationale, ToolContext toolContext) {
         TemplateRenderSession session = requireSession(toolContext);
         A2UiRuntimeEventCollector collector = session.eventCollector();

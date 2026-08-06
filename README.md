@@ -16,14 +16,16 @@ If you are building generative UI on Spring, you should not have to hand-roll pr
 
 Library version **`2.0.0`** speaks **A2UI v0.9.1 Current** (hard cutover). Maven Central **`1.1.x`** remains the A2UI **v0.8 Legacy** patch line for older clients.
 
+**Core MVP is shipped** (compose → validate → stream → fail-fast → actions, utilization, basic catalog). Next: [platform builder batteries](docs/plans/phase-platform-builder-batteries.md) — docs, decision/capture showcase, host Template/Catalog SPI, ops.
+
 Both generation modes ship:
 
 | Mode | Property | When to use it |
 | ---- | -------- | -------------- |
 | Template | `a2ui.web.runtime.generation-mode=template` | Predictable layouts from registered surface templates |
-| Dynamic | `a2ui.web.runtime.generation-mode=dynamic` | Open-ended prompts composed from the basic v0.9 catalog |
+| Dynamic | `a2ui.web.runtime.generation-mode=dynamic` | Open-ended prompts from the **active** catalog (vendored basic today; host A2UI catalog registration planned) |
 
-Surfaces are streamed as **A2UI v0.9.1 envelopes over SSE** (`createSurface` / `updateComponents` / `updateDataModel`). See [Migrating to v0.9.1](docs/guides/migrating-to-v0.9.1.md).
+Surfaces are streamed as **A2UI v0.9.1 envelopes over SSE** (`createSurface` / `updateComponents` / `updateDataModel`). See [Migrating to v0.9.1](docs/guides/migrating-to-v0.9.1.md). Catalog schemas + FE renderers stay with you; we validate/generate ([catalog ownership](docs/platform.md#catalog-ownership-a2ui-aligned)).
 
 ## Getting started
 
@@ -84,11 +86,12 @@ Sample apps under `apps/` (`be-transform-showcase`, `fe-a2ui-demo`) are for loca
 
 * Streams A2UI v0.9.1 envelopes (`createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface`) over SSE
 * Negotiates catalogs from client capabilities and pins `catalogId` on `createSurface`
-* Validates messages against the basic v0.9 catalog (including component properties)
+* Validates messages against the **active** catalog (vendored basic v0.9 today, including component properties; host catalog registration planned)
 * Fails fast with SSE `event: error` — no silent fallback surfaces
-* Offers template tools for deterministic UX and a two-hop dynamic path for catalog-only composition
+* Offers template tools for deterministic UX and a two-hop dynamic path for catalog composition
 * Retries dynamic assembly once with validation diagnostics, then errors
 * Exposes Micrometer counters for dynamic generation / validation
+* Does **not** ship your design-system components — you author A2UI catalogs + FE renderers; we enforce on the JVM
 
 ## Running the samples
 
@@ -118,12 +121,16 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for layout, PR expectations, and formatti
 
 ## Documentation
 
-* [Platform positioning](docs/platform.md) — what we are, what builders keep, roadmap stages
-* [Getting started](docs/guides/getting-started.md)
-* [REST API](docs/rest-api.md)
-* [Dynamic generative UI](docs/guides/dynamic-generative-ui.md)
-* [Changelog](CHANGELOG.md)
-* [Backlog](BACKLOG.md) — execution order (near-term priority is locked)
+* [Platform positioning](docs/platform.md) — what we are, catalog ownership, roadmap  
+* [Getting started](docs/guides/getting-started.md)  
+* [Golden-path cookbook](docs/guides/golden-path-cookbook.md) — product loop  
+* [Action round-trip](docs/guides/action-round-trip.md) · [Flow recompose](docs/guides/flow-recompose.md) · [FE binding](docs/guides/fe-design-system-binding.md)  
+* [REST API](docs/rest-api.md)  
+* [Dynamic generative UI](docs/guides/dynamic-generative-ui.md)  
+* [Hosting actions](docs/guides/hosting-actions.md)  
+* [Platform builder batteries plan](docs/plans/phase-platform-builder-batteries.md) — next phase  
+* [Changelog](CHANGELOG.md)  
+* [Backlog](BACKLOG.md) — execution order (near-term priority is locked)  
 
 See also [CONTRIBUTING.md](CONTRIBUTING.md) for ADRs and phase plans.
 

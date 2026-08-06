@@ -1,5 +1,6 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.starter;
 
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogContribution;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.parse.A2UiMessageParser;
 import com.kutaybuyukkorukcu.a2ui.runtime.starter.advisor.A2UiAdvisorsProperties;
@@ -19,6 +20,7 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
@@ -36,10 +38,17 @@ public class A2UiRuntimeAutoConfiguration {
         return new ObjectMapper();
     }
 
+    /**
+     * Host-registered A2UI catalogs (SPI: {@link A2UiCatalogContribution}) are merged on top of
+     * the vendored basic catalog. Zero-ceremony apps that register no contributions get the
+     * basic catalog unchanged.
+     */
     @Bean
     @ConditionalOnMissingBean
-    public A2UiCatalogRegistry a2UiCatalogRegistry() {
-        return A2UiCatalogRegistry.shared();
+    public A2UiCatalogRegistry a2UiCatalogRegistry(ObjectProvider<A2UiCatalogContribution> contributions) {
+        return A2UiCatalogRegistry.withContributions(
+                A2UiCatalogRegistry.shared(),
+                contributions.orderedStream().toList());
     }
 
     @Bean
