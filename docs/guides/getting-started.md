@@ -177,6 +177,8 @@ Then open the frontend demo or hit the curl example above against
 ## Next reading
 
 * [Golden-path cookbook](golden-path-cookbook.md) — stream → action → host ack  
+* [Ops and diagnostics](ops-and-diagnostics.md)  
+* [Multi-provider Spring AI](multi-provider-spring-ai.md)  
 * [Action round-trip](action-round-trip.md) — HITL decisions  
 * [Flow recompose](flow-recompose.md) — multi-step with host state  
 * [FE design-system binding](fe-design-system-binding.md)  

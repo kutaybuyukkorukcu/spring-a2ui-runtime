@@ -128,6 +128,8 @@ output should error with diagnostics.
 ## Next reading
 
 * [Getting started](getting-started.md) — shortest first stream  
+* [Ops and diagnostics](ops-and-diagnostics.md)  
+* [Multi-provider Spring AI](multi-provider-spring-ai.md)  
 * [Action round-trip](action-round-trip.md) — HITL decision loop  
 * [Flow recompose](flow-recompose.md) — host state → next surface  
 * [Authoring templates](authoring-templates.md) — Template SPI  

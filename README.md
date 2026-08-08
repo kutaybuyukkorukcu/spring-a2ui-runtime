@@ -124,6 +124,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for layout, PR expectations, and formatti
 * [Platform positioning](docs/platform.md) — what we are, catalog ownership, roadmap  
 * [Getting started](docs/guides/getting-started.md)  
 * [Golden-path cookbook](docs/guides/golden-path-cookbook.md) — product loop  
+* [Ops and diagnostics](docs/guides/ops-and-diagnostics.md) · [Multi-provider Spring AI](docs/guides/multi-provider-spring-ai.md)  
 * [Action round-trip](docs/guides/action-round-trip.md) · [Flow recompose](docs/guides/flow-recompose.md) · [FE binding](docs/guides/fe-design-system-binding.md)  
 * [REST API](docs/rest-api.md)  
 * [Dynamic generative UI](docs/guides/dynamic-generative-ui.md)  
