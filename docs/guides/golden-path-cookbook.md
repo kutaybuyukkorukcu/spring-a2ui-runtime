@@ -1,0 +1,136 @@
+# Golden-path cookbook
+
+One sitting from a Spring Boot host to a **product loop**: stream a validated A2UI
+surface → optional utilization events → user action → host ack. Getting started
+stays the ≤15-minute first stream; this guide is the deeper path.
+
+Positioning: [Platform](../platform.md). Core MVP (Central `2.0.0`) is already
+shipped — this cookbook is for adoption, not a second runtime.
+
+## Who this is for
+
+Spring teams embedding **decision and capture** GenUI inside products they own
+(ops approval, intake, config wizards) — not building a ChatGPT clone and not
+adopting a hosted UI model.
+
+| Need | Prefer |
+|------|--------|
+| In-process Boot starter, A2UI catalog, fail-fast, your FE | **spring-a2ui** |
+| Hosted prompt → UI DSL + React SDK | Thesys C1 (different packaging) |
+| Chat shell + AG-UI + Spring AI demo path | CopilotKit (complementary shell; not our identity) |
+
+You keep design system + FE + domain DB. We own compose → validate → stream →
+fail-fast → actions.
+
+## 1. Dependency and mode
+
+```xml
+<dependency>
+  <groupId>com.kutaybuyukkorukcu.a2ui.runtime</groupId>
+  <artifactId>a2ui-runtime-spring-web-starter</artifactId>
+  <version>2.0.0</version>
+</dependency>
+```
+
+```yaml
+a2ui:
+  web:
+    runtime:
+      generation-mode: dynamic   # or template
+    stream:
+      lifecycle-events: true     # opt-in utilization
+```
+
+Wire Spring AI as usual (OpenAI is the golden path). Details:
+[Getting started](getting-started.md).
+
+## 2. Stream a surface
+
+`POST /a2ui/surface/stream` with `content` and
+`a2uiClientCapabilities.supportedCatalogIds` including the basic catalog id.
+You receive A2UI envelopes (`createSurface` / `updateComponents` / …) plus, when
+enabled, `runStarted` / `assistantText` / `toolProgress` / `runFinished`.
+
+Guide: [Native SSE utilization](native-sse-utilization.md).
+
+**Hero prompt shape (ops / HITL):** ask for an approval card with risk summary
+and Approve / Reject (or Confirm) actions — then wire those names in your
+`A2UiActionHandler`.
+
+## 3. Handle the decision (host)
+
+Implement `A2UiActionHandler`: persist or gate the write in **your** service,
+return validated A2UI messages (ack surface or data model).
+
+Guides: [Hosting actions](hosting-actions.md) ·
+[Action round-trip](action-round-trip.md).
+
+Showcase reference: `ShowcaseActionHandlerConfiguration` in
+`apps/be-transform-showcase` (`approve` / `reject` / `confirm` / `primary_action`).
+
+## 4. Multi-step without platform memory
+
+If the next surface depends on what the user already submitted, **you** keep
+that state and pass it on the next stream as `context` / instructions.
+
+Guide: [Flow recompose](flow-recompose.md).
+
+## 5. Bind your design system
+
+Map A2UI catalog types to your widgets. Basic catalog is bootstrap; production
+apps typically define their own catalogs ([a2ui.org](https://a2ui.org/guides/defining-your-own-catalog/))
+and register them with `A2UiCatalogContribution` so server validation and the
+LLM planner match your FE vocabulary.
+
+Guide: [Registering catalogs](registering-catalogs.md) ·
+[FE design-system binding](fe-design-system-binding.md) ·
+[Catalog ownership](../platform.md#catalog-ownership-a2ui-aligned).
+
+## 6. Controlled layouts (template mode)
+
+When a surface shape is known ahead of time, register it as a template
+instead of paying dynamic-mode latency/tokens every time.
+
+Guide: [Authoring templates](authoring-templates.md) — Template SPI, faster
+and deterministic vs dynamic for known surfaces.
+
+---
+
+## When not to use GenUI
+
+Prefer **static UI** (or template-only GenUI) when:
+
+- The screen is fixed, high-traffic, and pixel-critical (checkout chrome, nav)
+- Every filter/sort would become another LLM turn (drill-down analytics trap)
+- You need sub-100ms interaction with no generation budget
+- Open HTML in a foreign chat host is the distribution goal (MCP Apps — out of scope here)
+
+Prefer **template mode** over dynamic when the layout is known and you want
+faster, cheaper, deterministic fills.
+
+Prefer **dynamic** when the field set or layout must change with case context
+(intake branches, per-case approval context).
+
+## Latency and cost (honest)
+
+Dynamic composition adds model latency (often hundreds of ms to seconds) and
+uses more tokens than a text-only reply. Budget for:
+
+- Time-to-first SSE event (streaming helps perceived wait)
+- One validation retry on bad planner output (fail-fast after that)
+- Template mode when the surface shape is stable
+
+Do not weaken fail-fast with semantic “repair” of invalid catalogs — invalid
+output should error with diagnostics.
+
+---
+
+## Next reading
+
+* [Getting started](getting-started.md) — shortest first stream  
+* [Action round-trip](action-round-trip.md) — HITL decision loop  
+* [Flow recompose](flow-recompose.md) — host state → next surface  
+* [Authoring templates](authoring-templates.md) — Template SPI  
+* [Registering catalogs](registering-catalogs.md) — host A2UI catalog SPI  
+* [REST API](../rest-api.md)  
+* [Builder batteries plan](../plans/phase-platform-builder-batteries.md)  

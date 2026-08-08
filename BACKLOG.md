@@ -1,10 +1,10 @@
 # Backlog
 
-Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Later**.
+Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** → **Later (residual)**.
 
 ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)`
 
-Implementation plans (for agents): `[docs/plans/phase-0-stream-infra.md](docs/plans/phase-0-stream-infra.md)` · `[docs/plans/phase-1-template-mvp.md](docs/plans/phase-1-template-mvp.md)` · `[docs/plans/phase-2-dynamic-generative-ui.md](docs/plans/phase-2-dynamic-generative-ui.md)` · `[docs/plans/phase-2.5-scalable-dynamic-runtime.md](docs/plans/phase-2.5-scalable-dynamic-runtime.md)` · `[docs/plans/phase-release-v0.8.md](docs/plans/phase-release-v0.8.md)` · `[docs/plans/phase-x-migrating-to-v0.9.md](docs/plans/phase-x-migrating-to-v0.9.md)` · `[docs/plans/phase-product-runtime-interaction.md](docs/plans/phase-product-runtime-interaction.md)`
+Implementation plans (for agents): `[docs/plans/phase-0-stream-infra.md](docs/plans/phase-0-stream-infra.md)` · `[docs/plans/phase-1-template-mvp.md](docs/plans/phase-1-template-mvp.md)` · `[docs/plans/phase-2-dynamic-generative-ui.md](docs/plans/phase-2-dynamic-generative-ui.md)` · `[docs/plans/phase-2.5-scalable-dynamic-runtime.md](docs/plans/phase-2.5-scalable-dynamic-runtime.md)` · `[docs/plans/phase-release-v0.8.md](docs/plans/phase-release-v0.8.md)` · `[docs/plans/phase-x-migrating-to-v0.9.md](docs/plans/phase-x-migrating-to-v0.9.md)` · `[docs/plans/phase-product-runtime-interaction.md](docs/plans/phase-product-runtime-interaction.md)` · `[docs/plans/phase-platform-builder-batteries.md](docs/plans/phase-platform-builder-batteries.md)`
 
 **Branches:** `main` (Phase X hard cutover merged) · Legacy patch line `1.1.x`.
 
@@ -39,9 +39,9 @@ Ship a Maven Central Spring Boot runtime that turns prompts/intents into **valid
 
 ### Generation product (shipped)
 
-- **Dynamic (long-term GenUI):** LLM composes from the standard catalog alone — adjacency lists, data model, lifecycle envelopes — without page templates.
-- **Template (controlled GenUI):** Registered surface specs for predictable layouts; MVP bootstrap that remains GA.
-- Catalog defines **component vocabulary and prop shapes**, not page templates.
+- **Dynamic (long-term GenUI):** LLM composes from the **active** catalog — adjacency lists, data model, lifecycle envelopes — without page templates. Vendored basic catalog today; host A2UI catalog registration SPI next.  
+- **Template (controlled GenUI):** Registered surface specs for predictable layouts; MVP bootstrap that remains GA.  
+- Catalog defines **component vocabulary and prop shapes**, not page templates. Basic catalog is vendored for bootstrap; hosts author production catalogs (A2UI model) and will register them via SPI — we validate/generate, we do not ship their design system.
 
 ### Transport & errors (decided)
 
@@ -75,8 +75,8 @@ Near-term **execution order stays locked** (see header). This section only expla
 | **Patch `1.1.1`** ✅ | Dynamic GenUI is trustworthy infrastructure (forced primary tool, fail-fast tools) |
 | **Phase X (v0.9.1)** | Protocol currency — builders are not stuck on Legacy wire |
 | **Utilization on native SSE** | Text / progress / run lifecycle *around* surfaces — product UX without a second pipe |
-| **Optional foreign-client bridge** | Demand-gated adapter for third-party chat clients; never core identity |
-| **Later (below)** | SPI, multi-provider, builder DX, ops maturity — deepen the platform without blocking the path above |
+| **Platform builder batteries** | Adoption maturity after core MVP: HITL/intake docs+showcase, Template SPI, **host A2UI catalog registration SPI**, ops (incl. latency), multi-provider |
+| **Later (residual)** | v1.0 watch, multi-surface runtime, etc. — deepen further after batteries |
 
 ---
 
@@ -321,30 +321,43 @@ A2UI is a **UI payload format**. A GenUI **platform** also needs text, progress,
 
 ---
 
-## Later — platform maturity & builder focus (low priority)
+## Next — Platform builder batteries (OSS DX)
 
-Items below are **not** near-term gates. They deepen the platform so product builders spend less time on GenUI plumbing and more on product behavior.
+**Plan:** [`docs/plans/phase-platform-builder-batteries.md`](docs/plans/phase-platform-builder-batteries.md)  
+**Jobs research:** GenUI applications → **decision/capture** wedge (ops HITL, intake, config, support case); presentation jobs conceded to Thesys/CopilotKit.  
+**Catalog stance:** We ship/validate the **basic** A2UI catalog today. Slice **C2** = host **registers their A2UI catalog schemas** with the runtime (same altitude as `A2UiActionHandler`). Hosts keep renderers + design system. We do **not** become a component kit, catalog marketplace, or visual catalog/create site.
 
-### Consumer extensibility
+**Core MVP:** already shipped (`2.0.0`). This phase is batteries for OSS adoption — not a second generation runtime.
 
-Template SPI so apps register custom controlled layouts. Useful, **not** a gate for platform ambition (design systems primarily map A2UI catalog → native widgets on the FE).
+| Slice | Focus | Priority |
+|-------|--------|----------|
+| **A** | Docs-as-product: cookbook, FE binding, flow-recompose, action round-trip, when-not-to-use, latency/cost | P0 ✅ |
+| **B** | Showcase: **ops HITL primary**, context-shaped intake secondary (`fe-a2ui-demo` stays smoke client) | P0 ✅ |
+| **C** | Template SPI — host-registered controlled layouts | P1 ✅ |
+| **C2** | **Host A2UI catalog SPI** — register catalog schemas for validate/generate (not “we author catalogs”) | P1 ✅ (parallel with C) |
+| **D** | Ops guide + metrics + latency/cost / caching hygiene | P1 |
+| **E** | Multi-provider Spring AI beyond OpenAI-first | P2 |
 
-- `A2UiTemplateRegistry` SPI + authoring docs  
-- Custom catalog registration beyond standard  
-- Per-template slot schema validation
+**Extension filter:** deepen compose → validate → stream → fail-fast → actions; self-host in Boot; leave FE + domain + **catalog authoring/renderers** to builders; serve a high-gravity **decision/capture** job.
 
-### Builder focus (product DX)
+**Still non-goals:** platform memory; workflow engine; platform GenUI datastore; foreign-client bridge as core; open HTML GenUI; chat shell; drill-down-as-LLM-loop; first-party chart/table kits as identity; **awesome-catalog / shadcn-like create product we operate**.
 
-- Golden-path cookbook: Boot + web starter → first validated surface in one sitting (README alone stays the 15-minute bar)
-- FE design-system binding guide (catalog component → native widget map) — we do **not** ship FE product shells
-- Multi-provider Spring AI parity beyond OpenAI-first (Anthropic / Gemini / Groq)
-- Multi-surface apps and session/context handoff patterns
+---
 
-### Platform ops & reliability (beyond ongoing metrics)
+## Later — residual platform maturity
 
-- GenUI-oriented ops guide (stream diagnostics, redaction, actuator dashboards for generation/validation)
-- Latency / caching patterns for dynamic composition (without weakening fail-fast or reintroducing semantic repair)
-- Catalog / protocol upgrade helpers when bumping A2UI wire versions (builder migration notes)
+Items below stay **after** builder batteries (or never, if they fail the extension filter).
+
+### Deferred from batteries plan
+
+- Multi-surface / session handoff **as runtime** (docs patterns only in Slice A)  
+- A2UI v1.0 Candidate protocol bump (watch — `actionResponse` upgrades approval round-trip; separate plan when Current moves)  
+- First-party rich visualization component pack (**never** platform identity — hosts register types via catalog SPI + their FE)  
+- Catalog authoring UX / marketplace / “create your design system” site (A2UI / FE ecosystem; not us)  
+- `JSON_SCHEMA` response format mode cleanup (ongoing reliability)  
+
+~~Host A2UI catalog registration~~ → **batteries Slice C2** (SPI only — not us shipping catalogs)  
+~~Latency / caching patterns~~ → **folded into batteries Slice D** 
 
 ### Explicit non-goals (interop)
 
@@ -370,3 +383,4 @@ Template SPI so apps register custom controlled layouts. Useful, **not** a gate 
 | 2     | JSONL partial parse, dynamic stream integration, E2E arbitrary prompt |
 | 2.5   | Catalog prop validation, strict tool schema, **repair deletion**, metrics |
 | X     | v0.9 wire format, validation-failed loop, syntax healer (no semantic repair) |
+| Batteries C/C2 | Template `Builder` registration, `A2UiFixedSurfaceSpec`, `A2UiCatalogContribution` merge + validate, host-catalog negotiation, showcase `ops-approval` assembly |

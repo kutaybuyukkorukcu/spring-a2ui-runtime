@@ -1,13 +1,11 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template;
 
-import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage.ComponentDefinition;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public final class A2UiSurfaceTemplates {
 
@@ -22,63 +20,54 @@ public final class A2UiSurfaceTemplates {
     }
 
     public static A2UiSurfaceSpec textCard() {
-        return new FixedSurfaceSpec(
-                TEXT_CARD,
-                ROOT,
-                Set.of("title", "body"),
-                Set.of(),
-                A2UiSurfaceTemplates::textCardComponents,
-                List.of("title", "body"));
+        return A2UiFixedSurfaceSpec.builder(TEXT_CARD, ROOT)
+                .requiredSlots("title", "body")
+                .components(A2UiSurfaceTemplates::textCardComponents)
+                .build();
     }
 
     public static A2UiSurfaceSpec heroCta() {
-        return new FixedSurfaceSpec(
-                HERO_CTA,
-                ROOT,
-                Set.of("heading", "subtitle", "buttonLabel"),
-                Set.of("actionName"),
-                A2UiSurfaceTemplates::heroCtaComponents,
-                List.of("heading", "subtitle", "buttonLabel", "actionName"));
+        return A2UiFixedSurfaceSpec.builder(HERO_CTA, ROOT)
+                .requiredSlots("heading", "subtitle", "buttonLabel")
+                .optionalSlots("actionName")
+                .components(A2UiSurfaceTemplates::heroCtaComponents)
+                .dataModelKeys("heading", "subtitle", "buttonLabel")
+                .build();
     }
 
     public static A2UiSurfaceSpec formLogin() {
-        return new FixedSurfaceSpec(
-                FORM_LOGIN,
-                ROOT,
-                Set.of("title", "usernameLabel", "passwordLabel", "submitLabel"),
-                Set.of(),
-                A2UiSurfaceTemplates::formLoginComponents,
-                List.of("title", "usernameLabel", "passwordLabel", "submitLabel"));
+        return A2UiFixedSurfaceSpec.builder(FORM_LOGIN, ROOT)
+                .requiredSlots("title", "usernameLabel", "passwordLabel", "submitLabel")
+                .components(A2UiSurfaceTemplates::formLoginComponents)
+                .build();
     }
 
     public static A2UiSurfaceSpec weatherCard() {
-        return new FixedSurfaceSpec(
-                WEATHER_CARD,
-                ROOT,
-                Set.of("city", "temperature", "condition"),
-                Set.of("highLow"),
-                null,
-                A2UiSurfaceTemplates::weatherCardComponents,
-                List.of("city", "temperature", "condition", "highLow"));
+        return A2UiFixedSurfaceSpec.builder(WEATHER_CARD, ROOT)
+                .requiredSlots("city", "temperature", "condition")
+                .optionalSlots("highLow")
+                .components(A2UiSurfaceTemplates::weatherCardComponents)
+                .build();
     }
 
-    private static List<ComponentDefinition> textCardComponents() {
+    private static List<ComponentDefinition> textCardComponents(Map<String, String> slots) {
         return List.of(
                 column(ROOT, List.of("title-txt", "body-txt")),
                 text("title-txt", "/title", "h2"),
                 text("body-txt", "/body", null));
     }
 
-    private static List<ComponentDefinition> heroCtaComponents() {
+    private static List<ComponentDefinition> heroCtaComponents(Map<String, String> slots) {
+        String actionName = slots.getOrDefault("actionName", "primary_action");
         return List.of(
                 column(ROOT, List.of("heading-txt", "subtitle-txt", "btn-primary")),
                 text("heading-txt", "/heading", "h2"),
                 text("subtitle-txt", "/subtitle", "body"),
-                button("btn-primary", "btn-label-txt", "primary_action"),
+                button("btn-primary", "btn-label-txt", actionName),
                 text("btn-label-txt", "/buttonLabel", null));
     }
 
-    private static List<ComponentDefinition> formLoginComponents() {
+    private static List<ComponentDefinition> formLoginComponents(Map<String, String> slots) {
         return List.of(
                 column(ROOT, List.of("title-txt", "username-field", "password-field", "submit-btn")),
                 text("title-txt", "/title", "h2"),
@@ -155,70 +144,5 @@ public final class A2UiSurfaceTemplates {
         props.put("variant", "primary");
         props.put("action", Map.of("event", Map.of("name", defaultActionName)));
         return new ComponentDefinition(id, "Button", props);
-    }
-
-    private record FixedSurfaceSpec(
-            String templateId,
-            String rootComponentId,
-            Set<String> requiredSlots,
-            Set<String> optionalSlots,
-            java.util.function.Supplier<List<ComponentDefinition>> componentsSupplier,
-            java.util.function.Function<Map<String, String>, List<ComponentDefinition>> slotAwareComponentsSupplier,
-            List<String> dataModelKeys
-    ) implements A2UiSurfaceSpec {
-
-        FixedSurfaceSpec(
-                String templateId,
-                String rootComponentId,
-                Set<String> requiredSlots,
-                Set<String> optionalSlots,
-                java.util.function.Supplier<List<ComponentDefinition>> componentsSupplier,
-                List<String> dataModelKeys) {
-            this(templateId, rootComponentId, requiredSlots, optionalSlots, componentsSupplier, null, dataModelKeys);
-        }
-
-        @Override
-        public List<A2UiMessage> buildMessages(String surfaceId, Map<String, String> slots) {
-            List<ComponentDefinition> components = slotAwareComponentsSupplier != null
-                    ? slotAwareComponentsSupplier.apply(slots)
-                    : componentsSupplier.get();
-            if (HERO_CTA.equals(templateId)) {
-                components = withHeroActionName(components, slots);
-            }
-            Map<String, Object> data = new LinkedHashMap<>();
-            for (String key : dataModelKeys) {
-                if ("actionName".equals(key)) {
-                    continue;
-                }
-                String value = slots.get(key);
-                if (value != null) {
-                    data.put(key, value);
-                }
-            }
-            List<A2UiMessage> messages = new ArrayList<>();
-            messages.add(new A2UiMessage.UpdateComponents(surfaceId, components));
-            if (!data.isEmpty()) {
-                messages.add(new A2UiMessage.UpdateDataModel(surfaceId, "/", data));
-            }
-            return List.copyOf(messages);
-        }
-
-        private static List<ComponentDefinition> withHeroActionName(
-                List<ComponentDefinition> components, Map<String, String> slots) {
-            String actionName = slots.getOrDefault("actionName", "primary_action");
-            List<ComponentDefinition> updated = new ArrayList<>(components.size());
-            for (ComponentDefinition component : components) {
-                if ("btn-primary".equals(component.id())) {
-                    Map<String, Object> props = new LinkedHashMap<>();
-                    props.put("child", "btn-label-txt");
-                    props.put("variant", "primary");
-                    props.put("action", Map.of("event", Map.of("name", actionName)));
-                    updated.add(new ComponentDefinition(component.id(), "Button", props));
-                } else {
-                    updated.add(component);
-                }
-            }
-            return updated;
-        }
     }
 }

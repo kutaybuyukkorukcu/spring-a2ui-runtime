@@ -57,6 +57,40 @@ class RuntimeSurfaceE2ETest {
     }
 
     @Test
+    @DisplayName("showcase should accept approve HITL action")
+    void shouldAcceptApproveHitlAction() throws Exception {
+        mockMvc.perform(
+                        post(ACTIONS_PATH)
+                                .header(REQUEST_ID_HEADER, "req-e2e-action-approve")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"action":{"name":"approve","surfaceId":"main","sourceComponentId":"approve-btn","timestamp":"2026-05-19T00:00:00Z","context":{"changeId":"payment-config-v2.4"}}}
+                                        """))
+                .andExpect(status().isOk())
+                .andExpect(header().string(REQUEST_ID_HEADER, "req-e2e-action-approve"))
+                .andExpect(jsonPath("$.accepted").value(true))
+                .andExpect(jsonPath("$.eventType").value("actionResult"))
+                .andExpect(jsonPath("$.messages").isArray())
+                .andExpect(jsonPath("$.messages.length()").value(3))
+                .andExpect(jsonPath("$.messages[2].updateDataModel.value.status").value("approved"));
+    }
+
+    @Test
+    @DisplayName("showcase should accept reject HITL action")
+    void shouldAcceptRejectHitlAction() throws Exception {
+        mockMvc.perform(
+                        post(ACTIONS_PATH)
+                                .header(REQUEST_ID_HEADER, "req-e2e-action-reject")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"action":{"name":"reject","surfaceId":"main","sourceComponentId":"reject-btn","timestamp":"2026-05-19T00:00:00Z","context":{}}}
+                                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accepted").value(true))
+                .andExpect(jsonPath("$.messages[2].updateDataModel.value.status").value("rejected"));
+    }
+
+    @Test
     @DisplayName("showcase should accept action with confirm handler")
     void shouldAcceptActionWithConfirmHandler() throws Exception {
         mockMvc.perform(

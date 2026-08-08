@@ -23,6 +23,8 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.*;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiDynamicAssemblyService;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiDynamicComponentNormalizer;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiSurfaceAssemblyService;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiTemplateCustomizer;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiTemplateDefinition;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiTemplateRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.A2UiDynamicTools;
@@ -68,14 +70,24 @@ public class A2UiWebAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public A2UiPromptProvider a2UiPromptProvider() {
-        return new DefaultA2UiPromptProvider();
+    public A2UiPromptProvider a2UiPromptProvider(A2UiCatalogRegistry catalogRegistry) {
+        return new DefaultA2UiPromptProvider(catalogRegistry);
     }
 
+    /**
+     * Host {@link A2UiTemplateDefinition} beans and {@link A2UiTemplateCustomizer} beans are
+     * layered on top of the bootstrap templates (text-card, hero-cta, form-login, weather-card).
+     * Apps that register neither keep the zero-ceremony bootstrap set unchanged.
+     */
     @Bean
     @ConditionalOnMissingBean
-    public A2UiTemplateRegistry a2UiTemplateRegistry() {
-        return new A2UiTemplateRegistry();
+    public A2UiTemplateRegistry a2UiTemplateRegistry(
+            ObjectProvider<A2UiTemplateCustomizer> customizers,
+            ObjectProvider<A2UiTemplateDefinition> definitionBeans) {
+        A2UiTemplateRegistry.Builder builder = A2UiTemplateRegistry.builder().withBootstrapDefaults();
+        definitionBeans.orderedStream().forEach(builder::register);
+        customizers.orderedStream().forEach(customizer -> customizer.customize(builder));
+        return builder.build();
     }
 
     @Bean
@@ -251,9 +263,15 @@ public class A2UiWebAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public A2UiRequestCatalogNegotiator a2UiRequestCatalogNegotiator(A2UiCatalogRegistry catalogRegistry) {
+        return new A2UiRequestCatalogNegotiator(catalogRegistry);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     @ConditionalOnProperty(prefix = "a2ui.web.stream", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public A2UiStreamController a2UiStreamController(A2UiSurfaceService surfaceService, RequestCorrelationService requestCorrelationService, A2UiWebProperties properties, A2UiRuntimeMetrics runtimeMetrics, ObjectMapper objectMapper) {
-        return new A2UiStreamController(surfaceService, requestCorrelationService, properties, runtimeMetrics, objectMapper);
+    public A2UiStreamController a2UiStreamController(A2UiSurfaceService surfaceService, RequestCorrelationService requestCorrelationService, A2UiWebProperties properties, A2UiRuntimeMetrics runtimeMetrics, ObjectMapper objectMapper, A2UiRequestCatalogNegotiator catalogNegotiator) {
+        return new A2UiStreamController(surfaceService, requestCorrelationService, properties, runtimeMetrics, objectMapper, catalogNegotiator);
     }
 
     @Bean

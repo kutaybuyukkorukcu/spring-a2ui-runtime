@@ -21,15 +21,15 @@ const SERVER_CATALOG_ID = 'https://a2ui.org/specification/v0_9/catalogs/basic/ca
 const generationMode = import.meta.env.VITE_A2UI_GENERATION_MODE === 'dynamic' ? 'dynamic' : 'template';
 
 const TEMPLATE_SAMPLE_PROMPTS = [
-  'Show me a login form',
-  'Create a weather card for San Francisco',
-  'Display a hero section with a call to action',
+  'Show an ops approval card for deploying payment-config v2.4 with a short risk summary and Approve',
+  'Create a support intake form for a production incident (severity and summary fields)',
+  'Use the ops-approval template for a database migration change review',
 ];
 
 const DYNAMIC_SAMPLE_PROMPTS = [
-  'Build a simple greeting card that says Hello',
-  'Create a product card for a laptop with a Buy button',
-  'Design a settings panel for notification preferences',
+  'Show an ops approval surface for deploying payment-config v2.4 to production. Include a risk summary and Approve and Reject buttons.',
+  'Build a support intake form: ask for account id, severity, and a short description of the issue.',
+  'Create a change-review card summarizing a database migration with Confirm to proceed.',
 ];
 
 function createServerAlignedCatalog(): Catalog<ReactComponentImplementation> {
@@ -167,8 +167,11 @@ export function App() {
   return (
     <div className="app">
       <header>
-        <h1>A2UI Runtime Demo</h1>
-        <p>Connect to spring-a2ui-runtime backend and render A2UI v0.9.1 surfaces</p>
+        <h1>spring-a2ui demo</h1>
+        <p>
+          Smoke client for the Spring GenUI backend — ops approval and intake surfaces
+          over A2UI v0.9.1 (basic catalog).
+        </p>
         <p className="generation-mode-hint">
           Generation mode hint: <strong>{generationMode}</strong>
           {' '}(actual mode is set by the showcase Spring profile)

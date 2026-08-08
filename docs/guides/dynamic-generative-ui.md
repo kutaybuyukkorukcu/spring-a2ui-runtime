@@ -6,10 +6,12 @@ spring-a2ui supports two surface generation modes so product builders can choose
 
 | Mode | Property | Behavior |
 |------|----------|----------|
-| **Template** | `a2ui.web.runtime.generation-mode=template` | LLM selects a registered template (`selectTemplate`) and fills slots (`renderTemplate`). Fixed adjacency lists authored in the runtime. |
-| **Dynamic** (library default) | `a2ui.web.runtime.generation-mode=dynamic` | LLM composes a surface from the basic v0.9 catalog alone via two-hop tools — no page templates. |
+| **Template** | `a2ui.web.runtime.generation-mode=template` | LLM selects a registered template (`selectTemplate`) and fills slots (`renderTemplate`). Fixed adjacency lists — bootstrap templates ship with the runtime; hosts add their own via the [Template SPI](authoring-templates.md). |
+| **Dynamic** (library default) | `a2ui.web.runtime.generation-mode=dynamic` | LLM composes a surface from the **active** catalog via two-hop tools — no page templates. Default active catalog is the vendored **basic** v0.9 catalog; hosts can register additional catalogs via `A2UiCatalogContribution` (see [registering catalogs](registering-catalogs.md)). |
 
 The showcase app defaults to the `template` Spring profile for predictable demos; set the property explicitly in your own application.
+
+**Catalog note:** A2UI production apps typically define catalogs that match their design system ([a2ui.org](https://a2ui.org/guides/defining-your-own-catalog/)). spring-a2ui owns validate/generate against registered schemas; hosts author schemas + FE renderers and register them with `A2UiCatalogContribution`. See [registering catalogs](registering-catalogs.md) and [platform catalog ownership](../platform.md#catalog-ownership-a2ui-aligned).
 
 ## A2UI v0.9.1 contract
 

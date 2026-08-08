@@ -33,17 +33,20 @@ public class A2UiStreamController {
     private final A2UiWebProperties webProperties;
     private final A2UiRuntimeMetrics runtimeMetrics;
     private final ObjectMapper objectMapper;
+    private final A2UiRequestCatalogNegotiator catalogNegotiator;
 
     public A2UiStreamController(A2UiSurfaceService surfaceService,
                                 RequestCorrelationService requestCorrelationService,
                                 A2UiWebProperties webProperties,
                                 A2UiRuntimeMetrics runtimeMetrics,
-                                ObjectMapper objectMapper) {
+                                ObjectMapper objectMapper,
+                                A2UiRequestCatalogNegotiator catalogNegotiator) {
         this.surfaceService = surfaceService;
         this.requestCorrelationService = requestCorrelationService;
         this.webProperties = webProperties;
         this.runtimeMetrics = runtimeMetrics;
         this.objectMapper = objectMapper;
+        this.catalogNegotiator = catalogNegotiator;
     }
 
     @PostMapping(value = STREAM_PATH, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -53,7 +56,7 @@ public class A2UiStreamController {
         String requestId = requestCorrelationService.resolveRequestId(requestIdHeader);
 
         return Flux.defer(() -> {
-            String catalogId = A2UiRequestCatalogNegotiator.negotiateCatalogId(request);
+            String catalogId = catalogNegotiator.negotiate(request);
             return surfaceService.stream(request, requestId, catalogId);
         })
                 .map(event -> {

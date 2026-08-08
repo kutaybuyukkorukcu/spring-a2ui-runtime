@@ -8,7 +8,15 @@ import java.util.StringJoiner;
 
 public class DefaultA2UiPromptProvider implements A2UiPromptProvider {
 
-    private static final A2UiCatalogRegistry CATALOG_REGISTRY = A2UiCatalogRegistry.shared();
+    private final A2UiCatalogRegistry catalogRegistry;
+
+    public DefaultA2UiPromptProvider() {
+        this(A2UiCatalogRegistry.shared());
+    }
+
+    public DefaultA2UiPromptProvider(A2UiCatalogRegistry catalogRegistry) {
+        this.catalogRegistry = catalogRegistry != null ? catalogRegistry : A2UiCatalogRegistry.shared();
+    }
 
     private static final String SYSTEM_PROMPT_TEMPLATE = """
             You are an A2UI v0.9.1 UI generator for a Spring GenUI backend runtime. You produce A2UI v0.9.1 protocol messages.
@@ -52,12 +60,12 @@ public class DefaultA2UiPromptProvider implements A2UiPromptProvider {
     @Override
     public String createSystemPrompt(A2UiPromptContext context) {
         String catalogId = context.catalogId() != null ? context.catalogId() : A2UiCatalogIds.BASIC_V0_9;
-        Set<String> componentTypes = CATALOG_REGISTRY.componentTypesForCatalog(catalogId);
+        Set<String> componentTypes = catalogRegistry.componentTypesForCatalog(catalogId);
         if (componentTypes.isEmpty()) {
-            componentTypes = CATALOG_REGISTRY.supportedComponentTypes();
+            componentTypes = catalogRegistry.supportedComponentTypes();
         }
         String componentTypesStr = String.join(", ", componentTypes);
-        String rules = CATALOG_REGISTRY.catalogRulesText();
+        String rules = catalogRegistry.catalogRulesText();
         if (rules == null || rules.isBlank()) {
             rules = "(none)";
         }

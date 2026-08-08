@@ -50,7 +50,7 @@ a2ui:
 | Mode | Behavior |
 | ---- | -------- |
 | `template` | LLM selects a registered template and fills slots. Layout comes from Java builders. |
-| `dynamic` | LLM composes components from the basic v0.9 catalog via two-hop tools. |
+| `dynamic` | LLM composes components from the **active** catalog via two-hop tools (vendored **basic** v0.9 catalog today; host-registered A2UI catalogs when [catalog SPI](../plans/phase-platform-builder-batteries.md) ships). |
 
 Useful companion properties (defaults shown in [REST API](../rest-api.md)):
 
@@ -109,10 +109,13 @@ There is no silent fallback text surface.
 screens (login, hero CTA, weather card, …). The LLM picks among registered
 template IDs and fills slots; adjacency lists stay authored in code.
 
-**Dynamic** is for open-ended prompts where inventing layout from the catalog is
-the point. The runtime still validates every envelope against the v0.9.1 catalog
-before it reaches the client. Invalid planner output is retried once with
-diagnostics, then surfaced as `A2UI_VALIDATION_FAILED`.
+**Dynamic** is for open-ended prompts where inventing layout from the **active**
+catalog is the point. Today that is the vendored basic v0.9.1 catalog; host
+A2UI catalog registration is planned so production design-system types can be
+validated the same way (see [platform catalog ownership](../platform.md#catalog-ownership-a2ui-aligned)).
+The runtime still validates every envelope before it reaches the client.
+Invalid planner output is retried once with diagnostics, then surfaced as
+`A2UI_VALIDATION_FAILED`.
 
 You can switch modes with configuration only — same HTTP endpoint either way.
 
@@ -120,7 +123,8 @@ You can switch modes with configuration only — same HTTP endpoint either way.
 
 Any client that speaks A2UI v0.9.1 over SSE can consume the stream. This repo’s
 sample UI lives in [`apps/fe-a2ui-demo`](../../apps/fe-a2ui-demo) and uses
-`@a2ui/react`.
+`@a2ui/react` against the **basic** catalog — it is a smoke client, not where
+product catalogs are meant to live permanently.
 
 Point the demo at your host (showcase default port `5001`) and keep
 `VITE_A2UI_GENERATION_MODE` aligned with the backend profile:
@@ -172,8 +176,12 @@ Then open the frontend demo or hit the curl example above against
 
 ## Next reading
 
-* [Hosting actions](hosting-actions.md)
-* [Native SSE utilization](native-sse-utilization.md)
-* [REST API](../rest-api.md)
-* [Dynamic generative UI](dynamic-generative-ui.md)
-* [Contributing](../../CONTRIBUTING.md)
+* [Golden-path cookbook](golden-path-cookbook.md) — stream → action → host ack  
+* [Action round-trip](action-round-trip.md) — HITL decisions  
+* [Flow recompose](flow-recompose.md) — multi-step with host state  
+* [FE design-system binding](fe-design-system-binding.md)  
+* [Hosting actions](hosting-actions.md)  
+* [Native SSE utilization](native-sse-utilization.md)  
+* [REST API](../rest-api.md)  
+* [Dynamic generative UI](dynamic-generative-ui.md)  
+* [Contributing](../../CONTRIBUTING.md)  
