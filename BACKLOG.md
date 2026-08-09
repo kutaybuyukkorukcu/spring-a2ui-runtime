@@ -1,6 +1,6 @@
 # Backlog
 
-Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** → **Later (residual)**.
+Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** ✅ → **Central `2.1.0` (Template + Catalog SPI)** → **Later (residual)**.
 
 ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)`
 
@@ -39,9 +39,9 @@ Ship a Maven Central Spring Boot runtime that turns prompts/intents into **valid
 
 ### Generation product (shipped)
 
-- **Dynamic (long-term GenUI):** LLM composes from the **active** catalog — adjacency lists, data model, lifecycle envelopes — without page templates. Vendored basic catalog today; host A2UI catalog registration SPI next.  
-- **Template (controlled GenUI):** Registered surface specs for predictable layouts; MVP bootstrap that remains GA.  
-- Catalog defines **component vocabulary and prop shapes**, not page templates. Basic catalog is vendored for bootstrap; hosts author production catalogs (A2UI model) and will register them via SPI — we validate/generate, we do not ship their design system.
+- **Dynamic (long-term GenUI):** LLM composes from the **active** catalog — adjacency lists, data model, lifecycle envelopes — without page templates. Vendored **basic** catalog by default; hosts register additional A2UI catalogs via `A2UiCatalogContribution`.  
+- **Template (controlled GenUI):** Registered surface specs for predictable layouts; bootstrap set + host templates via `A2UiTemplateCustomizer`.  
+- Catalog defines **component vocabulary and prop shapes**, not page templates. Basic catalog is vendored for bootstrap; hosts author production catalogs (A2UI model) and register them via SPI — we validate/generate, we do not ship their design system.
 
 ### Transport & errors (decided)
 
@@ -61,10 +61,12 @@ Ship a Maven Central Spring Boot runtime that turns prompts/intents into **valid
 - ~~Integration model~~ → **A2UI-native SSE** (optional foreign bridges later)
 - ~~Tool API shape~~ → **Builder + runtime `@Tool` adapters**
 - ~~Is dynamic A2UI in scope?~~ → **Yes — Phase 2 (shipped)**
+- ~~Generation product: basic catalog only~~ → **basic + host `A2UiCatalogContribution` SPI** (Central `2.1.0`)
 - ~~Provider scope~~ → **OpenAI-first for MVP**; Anthropic / Gemini / Groq documented ([multi-provider guide](docs/guides/multi-provider-spring-ai.md))
 - ~~Platform vs foreign protocol-as-core~~ → **Platform**; native SSE remains identity
 - ~~v0.8 / Central `1.1.0`~~ → **Published**
 - ~~Patch `1.1.1` dynamic fail-fast~~ → **Published**
+- ~~Platform builder batteries~~ → **Shipped** (Central `2.1.0`)
 
 ### Roadmap narrative (product view)
 
@@ -75,7 +77,7 @@ Near-term **execution order stays locked** (see header). This section only expla
 | **Patch `1.1.1`** ✅ | Dynamic GenUI is trustworthy infrastructure (forced primary tool, fail-fast tools) |
 | **Phase X (v0.9.1)** | Protocol currency — builders are not stuck on Legacy wire |
 | **Utilization on native SSE** | Text / progress / run lifecycle *around* surfaces — product UX without a second pipe |
-| **Platform builder batteries** | Adoption maturity after core MVP: HITL/intake docs+showcase, Template SPI, **host A2UI catalog registration SPI**, ops (incl. latency), multi-provider |
+| **Platform builder batteries** ✅ | Adoption maturity: HITL/intake docs+showcase, Template SPI, host A2UI catalog SPI, ops, multi-provider — Central **`2.1.0`** |
 | **Later (residual)** | v1.0 watch, multi-surface runtime, etc. — deepen further after batteries |
 
 ---
@@ -321,13 +323,14 @@ A2UI is a **UI payload format**. A GenUI **platform** also needs text, progress,
 
 ---
 
-## Next — Platform builder batteries (OSS DX)
+## Done — Platform builder batteries (OSS DX)
 
+**Status:** ✅ Complete on `main`; library SemVer **`2.1.0`** publishes Template + Catalog SPIs to Maven Central.  
 **Plan:** [`docs/plans/phase-platform-builder-batteries.md`](docs/plans/phase-platform-builder-batteries.md)  
 **Jobs research:** GenUI applications → **decision/capture** wedge (ops HITL, intake, config, support case); presentation jobs conceded to Thesys/CopilotKit.  
-**Catalog stance:** We ship/validate the **basic** A2UI catalog today. Slice **C2** = host **registers their A2UI catalog schemas** with the runtime (same altitude as `A2UiActionHandler`). Hosts keep renderers + design system. We do **not** become a component kit, catalog marketplace, or visual catalog/create site.
+**Catalog stance:** We ship/validate the **basic** A2UI catalog. Slice **C2** = host **registers their A2UI catalog schemas** with the runtime (same altitude as `A2UiActionHandler`). Hosts keep renderers + design system. We do **not** become a component kit, catalog marketplace, or visual catalog/create site.
 
-**Core MVP:** already shipped (`2.0.0`). This phase is batteries for OSS adoption — not a second generation runtime.
+**Core MVP:** shipped at Central `2.0.0`. Batteries are adoption maturity on top — not a second generation runtime.
 
 | Slice | Focus | Priority |
 |-------|--------|----------|
@@ -341,6 +344,12 @@ A2UI is a **UI payload format**. A GenUI **platform** also needs text, progress,
 **Extension filter:** deepen compose → validate → stream → fail-fast → actions; self-host in Boot; leave FE + domain + **catalog authoring/renderers** to builders; serve a high-gravity **decision/capture** job.
 
 **Still non-goals:** platform memory; workflow engine; platform GenUI datastore; foreign-client bridge as core; open HTML GenUI; chat shell; drill-down-as-LLM-loop; first-party chart/table kits as identity; **awesome-catalog / shadcn-like create product we operate**.
+
+---
+
+## Next — Later (residual)
+
+No locked implementation phase. Pick from **Later** below only when demand or A2UI Current moves. Release hygiene for batteries is Central **`2.1.0`**.
 
 ---
 

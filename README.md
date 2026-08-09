@@ -14,16 +14,16 @@ If you are building generative UI on Spring, you should not have to hand-roll pr
 
 ## Status
 
-Library version **`2.0.0`** speaks **A2UI v0.9.1 Current** (hard cutover). Maven Central **`1.1.x`** remains the A2UI **v0.8 Legacy** patch line for older clients.
+Library version **`2.1.0`** speaks **A2UI v0.9.1 Current** (hard cutover from `1.1.x`). Maven Central **`1.1.x`** remains the A2UI **v0.8 Legacy** patch line for older clients.
 
-**Core MVP is shipped** (compose → validate → stream → fail-fast → actions, utilization, basic catalog). Next: [platform builder batteries](docs/plans/phase-platform-builder-batteries.md) — docs, decision/capture showcase, host Template/Catalog SPI, ops.
+**Core MVP + builder batteries are shipped** (compose → validate → stream → fail-fast → actions, utilization, basic catalog, Template SPI, host A2UI catalog SPI, decision/capture docs/showcase, ops). Residual Later items live in [`BACKLOG.md`](BACKLOG.md).
 
 Both generation modes ship:
 
 | Mode | Property | When to use it |
 | ---- | -------- | -------------- |
-| Template | `a2ui.web.runtime.generation-mode=template` | Predictable layouts from registered surface templates |
-| Dynamic | `a2ui.web.runtime.generation-mode=dynamic` | Open-ended prompts from the **active** catalog (vendored basic today; host A2UI catalog registration planned) |
+| Template | `a2ui.web.runtime.generation-mode=template` | Predictable layouts from registered surface templates (bootstrap + host via Template SPI) |
+| Dynamic | `a2ui.web.runtime.generation-mode=dynamic` | Open-ended prompts from the **active** catalog (vendored basic + host-registered catalogs) |
 
 Surfaces are streamed as **A2UI v0.9.1 envelopes over SSE** (`createSurface` / `updateComponents` / `updateDataModel`). See [Migrating to v0.9.1](docs/guides/migrating-to-v0.9.1.md). Catalog schemas + FE renderers stay with you; we validate/generate ([catalog ownership](docs/platform.md#catalog-ownership-a2ui-aligned)).
 
@@ -35,7 +35,7 @@ You do not need to build this repository to use the runtime. Add the web starter
 <dependency>
   <groupId>com.kutaybuyukkorukcu.a2ui.runtime</groupId>
   <artifactId>a2ui-runtime-spring-web-starter</artifactId>
-  <version>2.0.0</version>
+  <version>2.1.0</version>
 </dependency>
 ```
 

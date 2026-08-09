@@ -7,6 +7,25 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 
 Library versions (`2.x`) speak A2UI **protocol** v0.9.1. The `1.1.x` line remains A2UI v0.8 Legacy.
 
+## [2.1.0] — 2026-08-09
+
+Minor release: **platform builder batteries** — Template SPI, host A2UI catalog registration SPI, decision/capture docs + HITL showcase, ops and multi-provider guides. Wire stays A2UI **v0.9.1** (source-compatible with `2.0.0`).
+
+### Added
+
+- **Template SPI** — `A2UiTemplateCustomizer`, `A2UiFixedSurfaceSpec`, registry builder so hosts register controlled layouts without forking bootstrap templates ([authoring templates](docs/guides/authoring-templates.md))
+- **Host A2UI catalog SPI** — `A2UiCatalogContribution`, `A2UiCatalogRegistry.withContributions`, injectable `A2UiRequestCatalogNegotiator` for validate/generate against host schemas ([registering catalogs](docs/guides/registering-catalogs.md))
+- **Docs-as-product** — golden-path cookbook, FE design-system binding, flow-recompose, action round-trip, ops/diagnostics, multi-provider Spring AI
+- **Showcase** — ops HITL primary (`approve` / `reject` / `confirm` / `primary_action`) plus context-shaped intake; `ops-approval` template
+
+### Packages
+
+Published to Maven Central:
+
+- `com.kutaybuyukkorukcu.a2ui.runtime:a2ui-runtime-core:2.1.0`
+- `com.kutaybuyukkorukcu.a2ui.runtime:a2ui-runtime-spring-starter:2.1.0`
+- `com.kutaybuyukkorukcu.a2ui.runtime:a2ui-runtime-spring-web-starter:2.1.0`
+
 ## [2.0.0] — 2026-08-03
 
 Hard cutover to **A2UI v0.9.1 Current**. Breaking release vs `1.1.x` (v0.8 Legacy).
@@ -92,6 +111,7 @@ Published to Maven Central:
 Early publish of this repository to Maven Central (pre–Phase 0–2.5 GA).
 Kept for history; use **2.0.0** for v0.9.1 (or **1.1.1** for Legacy v0.8).
 
+[2.1.0]: https://github.com/kutaybuyukkorukcu/spring-a2ui-runtime/releases/tag/2.1.0
 [2.0.0]: https://github.com/kutaybuyukkorukcu/spring-a2ui-runtime/releases/tag/2.0.0
 [1.1.1]: https://github.com/kutaybuyukkorukcu/spring-a2ui-runtime/releases/tag/1.1.1
 [1.1.0]: https://github.com/kutaybuyukkorukcu/spring-a2ui-runtime/releases/tag/1.1.0

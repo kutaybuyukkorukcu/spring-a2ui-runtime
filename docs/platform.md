@@ -4,7 +4,7 @@ spring-a2ui is a **Spring GenUI backend runtime / platform** for OSS product bui
 
 We abstract GenUI backend infrastructure so teams can focus on product. Builders keep their design system and frontend; we own **compose → validate → stream → fail-fast → actions** on the JVM, delivered as Maven Central Spring Boot starters.
 
-**MVP status:** Core GenUI backend is shipped (Central `2.0.0` / A2UI v0.9.1) — basic catalog, template + dynamic, native SSE, utilization, actions. **Builder batteries** are landing on top: Template SPI and host A2UI catalog registration SPI now ship alongside docs, showcase jobs, and ops — adoption maturity, not a second MVP.
+**MVP status:** Core GenUI backend is shipped (Central `2.0.0` / A2UI v0.9.1) — basic catalog, template + dynamic, native SSE, utilization, actions. **Builder batteries** ship on Central **`2.1.0`**: Template SPI, host A2UI catalog registration SPI, decision/capture docs + HITL showcase, ops and multi-provider guides — adoption maturity, not a second MVP.
 
 ## What we are / are not
 
@@ -65,7 +65,7 @@ Near-term **execution order is locked** in [`BACKLOG.md`](../BACKLOG.md). Do not
 1. **Patch `1.1.1`** ✅ — dynamic path is trustworthy infrastructure  
 2. **Phase X (A2UI v0.9.1)** ✅ — protocol currency on Current wire (`2.0.0`) — **core MVP**  
 3. **Utilization on native SSE** ✅ — text / progress / run lifecycle ([plan](plans/phase-product-runtime-interaction.md), [guide](guides/native-sse-utilization.md))  
-4. **Platform builder batteries** — decision/capture docs+showcase ✅, **Template SPI** ✅, **host A2UI catalog SPI** ✅, ops next ([plan](plans/phase-platform-builder-batteries.md))  
+4. **Platform builder batteries** ✅ — decision/capture docs+showcase, **Template SPI**, **host A2UI catalog SPI**, ops, multi-provider — Central **`2.1.0`** ([plan](plans/phase-platform-builder-batteries.md))  
 5. **Later (residual)** — v1.0 watch, multi-surface runtime, etc. (see BACKLOG) — **not** “invent catalogs for hosts”
 
 ## Where to go next
@@ -84,5 +84,5 @@ Near-term **execution order is locked** in [`BACKLOG.md`](../BACKLOG.md). Do not
 - [Migrating to v0.9.1](guides/migrating-to-v0.9.1.md) — hard cutover from `1.1.x`  
 - [REST API](rest-api.md) — public HTTP surface  
 - [ADR 001](adr/001-streaming-surface-generation.md) — stream-only, fail-fast, template + dynamic  
-- [`BACKLOG.md`](../BACKLOG.md) — phases, utilization, builder batteries, Later residual  
-- [Platform builder batteries plan](plans/phase-platform-builder-batteries.md) — next execution phase  
+- [`BACKLOG.md`](../BACKLOG.md) — phases complete through batteries; Later residual  
+- [Platform builder batteries plan](plans/phase-platform-builder-batteries.md) — completed (Central `2.1.0`)  
