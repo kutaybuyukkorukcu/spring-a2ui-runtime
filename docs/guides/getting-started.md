@@ -24,7 +24,7 @@ For dynamic-mode internals, see [Dynamic generative UI](dynamic-generative-ui.md
 <dependency>
   <groupId>com.kutaybuyukkorukcu.a2ui.runtime</groupId>
   <artifactId>a2ui-runtime-spring-web-starter</artifactId>
-  <version>2.0.0</version>
+  <version>2.1.0</version>
 </dependency>
 ```
 
@@ -50,7 +50,7 @@ a2ui:
 | Mode | Behavior |
 | ---- | -------- |
 | `template` | LLM selects a registered template and fills slots. Layout comes from Java builders. |
-| `dynamic` | LLM composes components from the **active** catalog via two-hop tools (vendored **basic** v0.9 catalog today; host-registered A2UI catalogs when [catalog SPI](../plans/phase-platform-builder-batteries.md) ships). |
+| `dynamic` | LLM composes components from the **active** catalog via two-hop tools (vendored **basic** v0.9 catalog by default; register your own with the [catalog SPI](registering-catalogs.md)). |
 
 Useful companion properties (defaults shown in [REST API](../rest-api.md)):
 

@@ -1,8 +1,8 @@
 # Phase — Platform builder batteries (OSS DX)
 
-**Status:** Slices **A–E complete** (batteries phase done; Later residual remains)  
+**Status:** Slices **A–E complete**; Central **`2.1.0`** release cut for Template + Catalog SPIs  
 **Depends on:** Phase X ✅ · utilization layer ✅ · hosting-actions + utilization guides ✅  
-**Current baseline:** library SemVer **`2.0.0`**, wire **`v0.9.1`**  
+**Current baseline:** library SemVer **`2.1.0`**, wire **`v0.9.1`**  
 **Related:** [`BACKLOG.md`](../../BACKLOG.md) · [`docs/platform.md`](../platform.md) · prior plan [`phase-product-runtime-interaction.md`](phase-product-runtime-interaction.md)  
 **Strategy canvases:** `supabase-of-genui` · `genui-leverage-unstuck` · **`genui-applications-research`** (jobs → direction)
 
@@ -291,7 +291,7 @@ OSS hygiene, not wedge. Keep after A–D.
 4. **Slice D** — Ops (incl. latency/cost) ✅  
 5. **Slice E** — Multi-provider ✅  
 
-SemVer: docs-only = no bump. Template + Catalog SPI landed as source-compatible additions on top of published `2.0.0`; bump to **`2.1.0`** at the next Maven Central release cut (not required per-slice).
+SemVer: docs-only = no bump. Template + Catalog SPI landed as source-compatible additions on top of published `2.0.0`; Central release cut **`2.1.0`** publishes them.
 
 ---
 
