@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@DisplayName("Showcase ops-approval template (Template SPI)")
+@DisplayName("Showcase Ops Change Console templates (Template SPI)")
 class ShowcaseTemplateConfigurationTest {
 
     @Autowired
@@ -31,10 +31,42 @@ class ShowcaseTemplateConfigurationTest {
     private A2UiMessageValidator messageValidator;
 
     @Test
-    @DisplayName("host-registered ops-approval template stays alongside bootstrap templates")
-    void shouldRegisterOpsApprovalAlongsideBootstrapTemplates() {
+    @DisplayName("host-registered change templates stay alongside bootstrap templates")
+    void shouldRegisterOpsChangeTemplatesAlongsideBootstrapTemplates() {
         assertThat(templateRegistry.templateIds()).contains(
-                ShowcaseTemplateConfiguration.OPS_APPROVAL, "text-card", "hero-cta", "form-login", "weather-card");
+                ShowcaseTemplateConfiguration.CHANGE_INTAKE,
+                ShowcaseTemplateConfiguration.OPS_APPROVAL,
+                "text-card",
+                "hero-cta",
+                "form-login",
+                "weather-card");
+    }
+
+    @Test
+    @DisplayName("change-intake assembles a validated intake surface")
+    void shouldAssembleValidChangeIntakeSurface() {
+        List<A2UiMessage> messages = assemblyService.assemble(
+                ShowcaseTemplateConfiguration.CHANGE_INTAKE,
+                "main",
+                A2UiCatalogIds.BASIC_V0_9,
+                Map.of(
+                        "title", "Propose production change",
+                        "intro", "Review and submit payment-config v2.4 for payments-api.",
+                        "serviceLabel", "Service",
+                        "changeTypeLabel", "Change type",
+                        "summaryLabel", "Summary",
+                        "submitLabel", "Submit for review",
+                        "service", "payments-api",
+                        "changeType", "config",
+                        "summary", "Deploy payment-config v2.4 (retry max 3 to 5)"));
+
+        assertEmptyDiagnostics(messages);
+        A2UiMessage.UpdateComponents update = messages.stream()
+                .filter(A2UiMessage.UpdateComponents.class::isInstance)
+                .map(A2UiMessage.UpdateComponents.class::cast)
+                .findFirst()
+                .orElseThrow();
+        assertThat(update.components()).anyMatch(component -> "submit-btn".equals(component.id()));
     }
 
     @Test
@@ -45,6 +77,7 @@ class ShowcaseTemplateConfigurationTest {
                 "main",
                 A2UiCatalogIds.BASIC_V0_9,
                 Map.of(
+                        "title", "Review production change",
                         "summary", "Increase payment retry limit from 3 to 5",
                         "risk", "Low risk: config-only change, no schema migration",
                         "approveLabel", "Approve"));
@@ -60,6 +93,8 @@ class ShowcaseTemplateConfigurationTest {
                 "main",
                 A2UiCatalogIds.BASIC_V0_9,
                 Map.of(
+                        "title", "Review production change",
+                        "meta", "payments-api · config · chg-demo",
                         "summary", "Rotate payment provider API key",
                         "risk", "Medium risk: brief downtime during rotation",
                         "approveLabel", "Approve",

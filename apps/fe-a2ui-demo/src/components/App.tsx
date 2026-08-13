@@ -11,26 +11,21 @@ import {
   basicCatalog,
   type ReactComponentImplementation,
 } from '@a2ui/react/v0_9';
-import { streamSurface, sendAction, type StreamUtilizationEvent } from '../services/api';
-// Package exports omit CSS; load via Vite alias in vite.config.ts
+import {
+  streamSurface,
+  sendAction,
+  fetchDemoInfo,
+  extractActionResult,
+  messagesWithoutDelete,
+  type StreamUtilizationEvent,
+  type StreamContext,
+  type DemoInfo,
+} from '../services/api';
 import '@a2ui/react-v0_9-css';
 
-/** Canonical basic catalog id (vendored catalog.json). @a2ui/react's basicCatalog.id differs — remap below. */
 const SERVER_CATALOG_ID = 'https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json';
 
-const generationMode = import.meta.env.VITE_A2UI_GENERATION_MODE === 'dynamic' ? 'dynamic' : 'template';
-
-const TEMPLATE_SAMPLE_PROMPTS = [
-  'Show an ops approval card for deploying payment-config v2.4 with a short risk summary and Approve',
-  'Create a support intake form for a production incident (severity and summary fields)',
-  'Use the ops-approval template for a database migration change review',
-];
-
-const DYNAMIC_SAMPLE_PROMPTS = [
-  'Show an ops approval surface for deploying payment-config v2.4 to production. Include a risk summary and Approve and Reject buttons.',
-  'Build a support intake form: ask for account id, severity, and a short description of the issue.',
-  'Create a change-review card summarizing a database migration with Confirm to proceed.',
-];
+type StoryStep = 'idle' | 'propose' | 'review' | 'decided';
 
 function createServerAlignedCatalog(): Catalog<ReactComponentImplementation> {
   return new Catalog(
@@ -40,36 +35,76 @@ function createServerAlignedCatalog(): Catalog<ReactComponentImplementation> {
   );
 }
 
+function isRawPayload(text: string | null): boolean {
+  if (!text) return true;
+  const trimmed = text.trim();
+  return trimmed.startsWith('{') || trimmed.startsWith('[');
+}
+
 export function App() {
+  const [demoInfo, setDemoInfo] = useState<DemoInfo | null>(null);
+  const [demoInfoError, setDemoInfoError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [input, setInput] = useState('');
+  const [storyStep, setStoryStep] = useState<StoryStep>('idle');
   const [runStatus, setRunStatus] = useState<string | null>(null);
-  const [assistantText, setAssistantText] = useState<string | null>(null);
   const [toolProgress, setToolProgress] = useState<string | null>(null);
   const [surfaces, setSurfaces] = useState<SurfaceModel<ReactComponentImplementation>[]>([]);
   const processorRef = useRef<MessageProcessor<ReactComponentImplementation> | null>(null);
 
+  const applyMessages = useCallback((processor: MessageProcessor<ReactComponentImplementation>, messages: A2uiMessage[]) => {
+    for (const surfaceId of Array.from(processor.model.surfacesMap.keys())) {
+      processor.processMessages([{ version: 'v0.9', deleteSurface: { surfaceId } }]);
+    }
+    if (messages.length > 0) {
+      processor.processMessages(messages);
+    }
+    setSurfaces(Array.from(processor.model.surfacesMap.values()));
+  }, []);
+
   if (processorRef.current === null) {
     processorRef.current = new MessageProcessor(
-      // Register under the server catalogId; do not use React's non-canonical basicCatalog.id.
       [createServerAlignedCatalog()],
       async (action: A2uiClientAction) => {
         try {
           const result = await sendAction({ action });
           const processor = processorRef.current;
-          if (result.messages && result.messages.length > 0 && processor) {
-            processor.processMessages(result.messages as A2uiMessage[]);
-            setSurfaces(Array.from(processor.model.surfacesMap.values()));
+          if (!processor) return;
+
+          const inbound = messagesWithoutDelete(result.messages ?? []) as unknown as A2uiMessage[];
+          if (inbound.length > 0) {
+            applyMessages(processor, inbound);
+          }
+
+          const actionResult = extractActionResult(result.messages);
+          if (actionResult?.nextStep === 'approval') {
+            setStoryStep('review');
+            setRunStatus('Host persisted the draft and returned the approval surface.');
+          } else if (actionResult?.status === 'approved' || actionResult?.status === 'rejected') {
+            setStoryStep('decided');
+            setRunStatus(
+              actionResult.status === 'approved'
+                ? `Change ${actionResult.changeId ?? ''} approved in the host ledger.`
+                : `Change ${actionResult.changeId ?? ''} rejected — write was not applied.`,
+            );
           }
         } catch (err) {
           console.error('Action failed:', err);
+          setError(err instanceof Error ? err.message : 'Action failed');
         }
       },
     );
   }
 
   const processor = processorRef.current;
+
+  useEffect(() => {
+    void fetchDemoInfo()
+      .then(setDemoInfo)
+      .catch((err: unknown) => {
+        setDemoInfoError(err instanceof Error ? err.message : 'Failed to load demo info');
+      });
+  }, []);
 
   useEffect(() => {
     const sync = () => setSurfaces(Array.from(processor.model.surfacesMap.values()));
@@ -81,38 +116,26 @@ export function App() {
     };
   }, [processor]);
 
-  const clear = useCallback(() => {
-    for (const surfaceId of Array.from(processor.model.surfacesMap.keys())) {
-      processor.processMessages([
-        { version: 'v0.9', deleteSurface: { surfaceId } },
-      ]);
-    }
-    setSurfaces([]);
+  const clearSurfaces = useCallback(() => {
+    applyMessages(processor, []);
     setError(null);
     setRunStatus(null);
-    setAssistantText(null);
     setToolProgress(null);
-  }, [processor]);
+    setStoryStep('idle');
+  }, [processor, applyMessages]);
 
   const handleUtilizationEvent = useCallback((event: StreamUtilizationEvent) => {
     switch (event.type) {
       case 'runStarted':
-        setRunStatus('Composing surface…');
+        setRunStatus('Composing tonight’s change surface…');
         break;
       case 'runFinished':
-        setRunStatus('Surface ready');
+        setRunStatus('Surface ready — continue the change in the card below.');
         setToolProgress(null);
         break;
       case 'runError':
         setRunStatus('Run failed');
         break;
-      case 'assistantText': {
-        const payload = event.data as { delta?: string };
-        if (payload.delta) {
-          setAssistantText(payload.delta);
-        }
-        break;
-      }
       case 'toolProgress': {
         const payload = event.data as { toolName?: string; phase?: string };
         if (payload.toolName) {
@@ -126,10 +149,11 @@ export function App() {
     }
   }, []);
 
-  const generate = useCallback(async (content: string) => {
+  const generate = useCallback(async (content: string, context?: StreamContext) => {
     setLoading(true);
     setError(null);
-    clear();
+    applyMessages(processor, []);
+    setStoryStep('propose');
 
     try {
       await streamSurface(
@@ -147,40 +171,62 @@ export function App() {
         },
         (err) => setError(err),
         handleUtilizationEvent,
+        undefined,
+        context,
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
-  }, [processor, clear, handleUtilizationEvent]);
+  }, [processor, applyMessages, handleUtilizationEvent]);
 
-  const samplePrompts = generationMode === 'dynamic' ? DYNAMIC_SAMPLE_PROMPTS : TEMPLATE_SAMPLE_PROMPTS;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || loading) return;
-    void generate(input.trim());
-    setInput('');
+  const startStory = () => {
+    if (!demoInfo || loading) return;
+    void generate(demoInfo.primaryPrompt, {
+      intent: 'change_intake',
+      instructions:
+        'Tonight’s change: payments-api config deploy of payment-config v2.4. Prefill service, change type, and summary.',
+    });
   };
+
+  const generationMode = demoInfo?.generationMode ?? 'template';
 
   return (
     <div className="app">
       <header>
-        <h1>spring-a2ui demo</h1>
+        <div className="header-row">
+          <h1>{demoInfo?.productName ?? 'Ops Change Console'}</h1>
+          <span className={`mode-pill mode-pill--${generationMode}`}>
+            {generationMode === 'dynamic' ? 'Dynamic' : 'Template'}
+          </span>
+        </div>
+        <h2 className="story-title">{demoInfo?.storyTitle ?? "Tonight's change window"}</h2>
         <p>
-          Smoke client for the Spring GenUI backend — ops approval and intake surfaces
-          over A2UI v0.9.1 (basic catalog).
+          {demoInfo?.storyBlurb
+            ?? 'Propose a production change, then gate the write in your Spring host.'}
         </p>
-        <p className="generation-mode-hint">
-          Generation mode hint: <strong>{generationMode}</strong>
-          {' '}(actual mode is set by the showcase Spring profile)
-        </p>
+        {demoInfoError && (
+          <p className="demo-info-warning">
+            Demo metadata unavailable ({demoInfoError}). Start the showcase host on port 5001.
+          </p>
+        )}
       </header>
+
+      <ol className="story-steps">
+        <li className={storyStep !== 'idle' ? 'is-active' : ''}>Propose</li>
+        <li className={storyStep === 'review' || storyStep === 'decided' ? 'is-active' : ''}>Review</li>
+        <li className={storyStep === 'decided' ? 'is-active' : ''}>Decide</li>
+      </ol>
 
       <main>
         <div className="controls">
-          <button type="button" onClick={clear} disabled={loading}>Clear</button>
+          <button type="button" onClick={startStory} disabled={loading || !demoInfo}>
+            {loading ? 'Opening…' : (demoInfo?.primaryCta ?? "Open tonight's change")}
+          </button>
+          <button type="button" className="secondary-button" onClick={clearSurfaces} disabled={loading}>
+            Reset
+          </button>
         </div>
 
         {error && (
@@ -190,18 +236,17 @@ export function App() {
           </div>
         )}
 
-        {(runStatus || assistantText || toolProgress) && (
+        {(runStatus || toolProgress) && (
           <div className="a2ui-run-status">
-            {runStatus && <p>{runStatus}</p>}
+            {runStatus && !isRawPayload(runStatus) && <p>{runStatus}</p>}
             {toolProgress && <p className="a2ui-tool-progress">{toolProgress}</p>}
-            {assistantText && <p className="a2ui-assistant-text">{assistantText}</p>}
           </div>
         )}
 
         <div className="surface-container">
           {surfaces.length === 0 ? (
             <div className="a2ui-empty">
-              <p>Send a message to generate an A2UI surface.</p>
+              <p>Open tonight’s change to start the intake → approval loop.</p>
             </div>
           ) : (
             surfaces.map((surface) => (
@@ -209,41 +254,6 @@ export function App() {
             ))
           )}
         </div>
-
-        {loading && <div className="a2ui-loading">Generating...</div>}
-
-        <div className="sample-prompts">
-          <span className="sample-prompts-label">Try:</span>
-          {samplePrompts.map((prompt) => (
-            <button
-              key={prompt}
-              type="button"
-              className="sample-prompt-button"
-              disabled={loading}
-              onClick={() => void generate(prompt)}
-            >
-              {prompt}
-            </button>
-          ))}
-        </div>
-
-        <form onSubmit={handleSubmit} className="input-form">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={
-              generationMode === 'dynamic'
-                ? 'Describe any UI to generate from scratch...'
-                : 'Describe a surface to generate...'
-            }
-            disabled={loading}
-            className="input-field"
-          />
-          <button type="submit" disabled={loading || !input.trim()}>
-            {loading ? 'Generating...' : 'Send'}
-          </button>
-        </form>
       </main>
     </div>
   );

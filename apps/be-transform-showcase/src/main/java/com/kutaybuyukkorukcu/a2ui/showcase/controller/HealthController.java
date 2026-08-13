@@ -20,17 +20,18 @@ public class HealthController {
     @GetMapping("/")
     public ResponseEntity<Map<String, Object>> info() {
         return ResponseEntity.ok(Map.of(
-                "name", "A2UI Runtime Showcase Host",
+                "name", "Ops Change Console",
                 "version", "2.1.0",
-                "description", "Thin Spring Boot sample host for Spring GenUI surface serving, streaming, catalogs, and actions",
+                "description", "Spring GenUI host demo — propose and approve production changes via validated A2UI surfaces",
                 "endpoints", Map.of(
                         "health", "GET /health",
+                        "demoInfo", "GET /api/demo/info",
                         "surfaceStream", "POST /a2ui/surface/stream",
                         "catalog", "GET /a2ui/catalogs/basic-v0.9",
                         "actions", "POST /a2ui/actions"),
                 "notes", Map.of(
                         "runtimeBoundary", "Reusable routing, validation, and transport behavior lives in the runtime modules; this host stays thin.",
-                        "showcaseRole", "This app demonstrates end-to-end A2UI serving and action flows rather than acting as the product surface.")
+                        "showcaseRole", "Ops Change Console demonstrates intake → approval → host ack with Template or Dynamic generation.")
         ));
     }
 }

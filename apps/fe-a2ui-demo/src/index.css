@@ -6,6 +6,9 @@
 
 * {
   box-sizing: border-box;
+}
+
+html, body {
   margin: 0;
   padding: 0;
 }
@@ -20,15 +23,76 @@ header {
   margin-bottom: 2rem;
 }
 
+.header-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
 header h1 {
   font-size: 1.5rem;
   font-weight: 700;
-  margin-bottom: 0.25rem;
+}
+
+.mode-pill {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  background: #f1f5f9;
+}
+
+.mode-pill--dynamic {
+  border-color: #93c5fd;
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+.demo-info-warning {
+  margin-top: 0.5rem;
+  color: #b45309;
+  font-size: 0.8125rem;
+}
+
+.story-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0.75rem 0 0.35rem;
 }
 
 header p {
   font-size: 0.875rem;
   color: #64748b;
+  max-width: 42rem;
+  line-height: 1.5;
+}
+
+.story-steps {
+  display: flex;
+  gap: 0.75rem;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.25rem;
+}
+
+.story-steps li {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  padding-bottom: 0.25rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.story-steps li.is-active {
+  color: #1d4ed8;
+  border-bottom-color: #2563eb;
 }
 
 .generation-mode-hint {
@@ -68,9 +132,51 @@ header p {
 
 .controls {
   display: flex;
-  justify-content: space-between;
+  gap: 0.75rem;
   align-items: center;
   margin-bottom: 1rem;
+}
+
+.secondary-button {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: #cbd5e1;
+}
+
+.surface-container input,
+.surface-container textarea {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  background: #fff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  font: inherit;
+  color-scheme: light;
+}
+
+.surface-container textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.surface-container label {
+  display: block;
+  margin-top: 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.a2ui-run-status {
+  margin-bottom: 0.75rem;
+  font-size: 0.8125rem;
+  color: #475569;
 }
 
 .mode-toggle {

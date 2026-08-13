@@ -35,7 +35,7 @@ class HealthControllerTest {
     void rootShouldReturnApiInfo() throws Exception {
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("A2UI Runtime Showcase Host"))
+                .andExpect(jsonPath("$.name").value("Ops Change Console"))
                 .andExpect(jsonPath("$.version").value("2.1.0"))
                 .andExpect(jsonPath("$.endpoints.surfaceStream").exists())
                 .andExpect(jsonPath("$.endpoints.actions").exists())

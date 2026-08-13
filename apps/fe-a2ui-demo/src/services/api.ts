@@ -3,17 +3,39 @@ export interface StreamUtilizationEvent {
   data: unknown;
 }
 
+export interface StreamContext {
+  intent?: string;
+  preferredComponents?: string[];
+  instructions?: string;
+}
+
 interface A2UiSurfaceRequest {
   content: string;
-  context?: {
-    intent?: string;
-    preferredComponents?: string[];
-    instructions?: string;
-  };
+  context?: StreamContext;
   a2uiClientCapabilities: {
     supportedCatalogIds: string[];
     inlineCatalogs?: Record<string, unknown>[];
   };
+}
+
+export interface DemoInfo {
+  productName: string;
+  generationMode: 'template' | 'dynamic';
+  storyTitle: string;
+  storyBlurb: string;
+  primaryCta: string;
+  primaryPrompt: string;
+  samplePrompts: string[];
+}
+
+export interface ActionResultPayload {
+  action?: string;
+  status?: string;
+  changeId?: string;
+  service?: string;
+  changeType?: string;
+  summary?: string;
+  nextStep?: string;
 }
 
 const CATALOG_ID = 'https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json';
@@ -25,15 +47,25 @@ const A2UI_SURFACE_EVENTS = new Set([
   'deleteSurface',
 ]);
 
+export async function fetchDemoInfo(): Promise<DemoInfo> {
+  const response = await fetch('/api/demo/info');
+  if (!response.ok) {
+    throw new Error(`Failed to load demo info: ${response.status}`);
+  }
+  return response.json() as Promise<DemoInfo>;
+}
+
 export async function streamSurface(
   content: string,
   onMessage: (message: unknown) => void,
   onError: (error: string) => void,
   onUtilizationEvent?: (event: StreamUtilizationEvent) => void,
   signal?: AbortSignal,
+  context?: StreamContext,
 ): Promise<void> {
   const request: A2UiSurfaceRequest = {
     content,
+    context,
     a2uiClientCapabilities: {
       supportedCatalogIds: [CATALOG_ID],
     },
@@ -126,10 +158,22 @@ export async function sendAction(event: any): Promise<{ accepted: boolean; messa
   return response.json();
 }
 
-export async function fetchCatalog(): Promise<Record<string, unknown>> {
-  const response = await fetch('/a2ui/catalogs/basic-v0.9');
-  if (!response.ok) {
-    throw new Error(`Failed to fetch catalog: ${response.status}`);
+export function extractActionResult(messages: unknown[] | undefined): ActionResultPayload | null {
+  if (!messages) return null;
+  for (const message of messages) {
+    const update = message as { updateDataModel?: { path?: string; value?: ActionResultPayload } };
+    if (update.updateDataModel?.path === '/actionResult') {
+      return update.updateDataModel.value ?? null;
+    }
   }
-  return response.json();
+  return null;
 }
+
+export function messagesWithoutDelete(messages: unknown[]): A2uiLikeMessage[] {
+  return messages.filter((message) => {
+    const candidate = message as { deleteSurface?: unknown };
+    return candidate.deleteSurface == null;
+  }) as A2uiLikeMessage[];
+}
+
+type A2uiLikeMessage = Record<string, unknown>;
