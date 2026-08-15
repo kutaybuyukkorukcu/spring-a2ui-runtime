@@ -38,7 +38,7 @@ public class A2UiSurfaceAssemblyService {
 
         A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
         for (A2UiMessage message : messages) {
-            A2UiSurfaceBufferOps.apply(buffer, message);
+            buffer.apply(message);
         }
 
         if (!buffer.getOrCreateSurface(surfaceId).hasComponent(spec.rootComponentId())) {

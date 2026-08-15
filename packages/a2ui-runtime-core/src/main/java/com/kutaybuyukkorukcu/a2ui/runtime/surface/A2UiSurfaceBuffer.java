@@ -10,6 +10,15 @@ public final class A2UiSurfaceBuffer {
 
     private final Map<String, SurfaceState> surfaces = new ConcurrentHashMap<>();
 
+    public void apply(A2UiMessage message) {
+        switch (message) {
+            case A2UiMessage.CreateSurface cs -> applyCreateSurface(cs);
+            case A2UiMessage.UpdateComponents uc -> applyUpdateComponents(uc);
+            case A2UiMessage.UpdateDataModel udm -> applyUpdateDataModel(udm);
+            case A2UiMessage.DeleteSurface ds -> deleteSurface(ds.surfaceId());
+        }
+    }
+
     public SurfaceState getOrCreateSurface(String surfaceId) {
         return surfaces.computeIfAbsent(surfaceId, k -> new SurfaceState());
     }

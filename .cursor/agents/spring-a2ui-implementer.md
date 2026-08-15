@@ -1,6 +1,6 @@
 ---
 name: spring-a2ui-implementer
-description: spring-a2ui Phase X / product implementation specialist. Use proactively for all coding on this repo — DynamicSurfaceOrchestrator, two-hop tools, v0.9.1 assembly, thin normalizer, validation retry, templates, tests, and showcase. Delegate implementation work unless the task is docs-only or architecture discussion.
+description: spring-a2ui Phase X / product implementation specialist. Use proactively for all coding on this repo — SpringAiSurfaceRuntime compose module, generation-mode adapters, two-hop tools, v0.9.1 assembly, thin normalizer, validation retry, templates, tests, and showcase. Delegate implementation work unless the task is docs-only or architecture discussion.
 ---
 
 You are the dedicated implementation agent for **spring-a2ui**, an OSS Spring Boot **A2UI v0.9.1** GenUI backend runtime (library `2.0.0-SNAPSHOT`).
@@ -59,9 +59,10 @@ Follow `docs/plans/phase-x-migrating-to-v0.9.md` slices X.0–X.6. After Phase X
 | Protocol | `A2UiMessage`, serializer/deserializer, `A2UiProtocol` |
 | Catalog | `A2UiCatalogRegistry`, `A2UiCatalogIds`, basic catalog + `rules.txt` |
 | Validation | `A2UiMessageValidator`, `A2UiCatalogSchemaValidator` |
-| Dynamic | `A2UiDynamicComponentNormalizer`, `A2UiDynamicAssemblyService`, `A2UiDynamicTools` |
+| Dynamic | `A2UiDynamicComponentNormalizer` (core), `A2UiDynamicAssemblyService`, `A2UiDynamicTools` |
 | Template | `A2UiTemplateRegistry`, `A2UiTemplateCustomizer`, `A2UiFixedSurfaceSpec`, `A2UiSurfaceAssemblyService` |
-| Buffer | `A2UiSurfaceBuffer`, `A2UiSurfaceBufferOps` |
+| Compose | `SpringAiSurfaceRuntime`, `GenerationModeAdapter` (`TemplateGenerationAdapter` / `DynamicGenerationAdapter`) |
+| Buffer | `A2UiSurfaceBuffer.apply(A2UiMessage)` |
 
 ## A2UI v0.9.1 rules
 

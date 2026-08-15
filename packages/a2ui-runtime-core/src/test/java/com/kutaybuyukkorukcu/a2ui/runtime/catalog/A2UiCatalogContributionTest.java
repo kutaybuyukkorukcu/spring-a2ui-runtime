@@ -87,6 +87,22 @@ class A2UiCatalogContributionTest {
     }
 
     @Test
+    void shouldRejectHostComponentTypeUnderBasicCatalog() {
+        A2UiCatalogRegistry registry = A2UiCatalogRegistry.withContributions(
+                A2UiCatalogRegistry.shared(), List.of(statusBadgeContribution()));
+        A2UiMessageValidator validator = new A2UiMessageValidator(registry);
+
+        List<A2UiMessage> messages = List.of(
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.UpdateComponents("main", List.of(
+                        new A2UiMessage.ComponentDefinition(
+                                "root", "StatusBadge", Map.of("text", "Approved")))));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9));
+        assertThat(diagnostics).anyMatch(d -> "UNKNOWN_COMPONENT_TYPE".equals(d.code()));
+    }
+
+    @Test
     void shouldFailValidationWhenRequiredPropMissing() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.withContributions(
                 A2UiCatalogRegistry.shared(), List.of(statusBadgeContribution()));

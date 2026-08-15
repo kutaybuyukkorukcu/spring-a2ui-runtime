@@ -11,6 +11,7 @@ Library versions (`2.x`) speak A2UI **protocol** v0.9.1. The `1.1.x` line remain
 
 ### Changed
 
+- **Architecture revisions (Waves A–C)** — fail-fast type checks are catalog-scoped; action acks use the shared validator and `forVersionAndCatalog`; one compose module (`SpringAiSurfaceRuntime`) with template/dynamic adapters; dynamic normalizer, catalog `$ref` inlining, and `A2UiSurfaceBuffer.apply` live in core. Spring AI 2.0 / Boot 4 stays later ([architecture revisions](docs/plans/architecture-revisions.md))
 - **Identity** — in-product surfaces (process steps and page islands); chat is a capability of native SSE, not the promise ([ADR 002](docs/adr/002-in-product-surfaces.md))
 - **Path roles** — dynamic compose for unknown structure (engineering gravity); template mode frozen; host `assemble` for known trees
 - **Docs** — platform, cookbook, action round-trip, README, BACKLOG product direction aligned to ADR 002

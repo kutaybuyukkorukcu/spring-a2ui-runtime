@@ -1,8 +1,8 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service;
 
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiValidationContext;
-import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiValidationException;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiActionResponse;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiClientError;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiClientEvent;
@@ -61,7 +61,10 @@ public class A2UiActionService {
             messages = List.of();
         }
 
-        List<A2UiDiagnostic> diagnostics = messageValidator.validate(messages, A2UiValidationContext.forVersion(A2UiProtocol.SUPPORTED_VERSION));
+        List<A2UiDiagnostic> diagnostics = messageValidator.validate(
+                messages,
+                A2UiValidationContext.forVersionAndCatalog(
+                        A2UiProtocol.SUPPORTED_VERSION, catalogIdFrom(messages)));
         if (!diagnostics.isEmpty()) {
             throw new A2UiActionException(
                     "Action handler produced invalid A2UI messages",
@@ -72,6 +75,17 @@ public class A2UiActionService {
         runtimeMetrics.recordActionEvent("action");
 
         return A2UiActionResponse.accepted(action.name(), action.surfaceId(), action.sourceComponentId(), messages);
+    }
+
+    private static String catalogIdFrom(List<A2UiMessage> messages) {
+        for (A2UiMessage message : messages) {
+            if (message instanceof A2UiMessage.CreateSurface createSurface
+                    && createSurface.catalogId() != null
+                    && !createSurface.catalogId().isBlank()) {
+                return createSurface.catalogId();
+            }
+        }
+        return A2UiCatalogIds.BASIC_V0_9;
     }
 
     private void validateClientEvent(A2UiClientEvent event) {

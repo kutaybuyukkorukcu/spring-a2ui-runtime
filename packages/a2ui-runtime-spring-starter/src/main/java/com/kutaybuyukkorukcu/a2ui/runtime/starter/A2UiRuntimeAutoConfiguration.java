@@ -15,7 +15,6 @@ import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.GenericChatOptionsCusto
 import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.OpenAiChatOptionsCustomizer;
 import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.VertexAiGeminiChatOptionsCustomizer;
 import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -32,12 +31,6 @@ import org.springframework.core.env.Environment;
 })
 public class A2UiRuntimeAutoConfiguration {
 
-    @Bean
-    @ConditionalOnMissingBean
-    public ObjectMapper a2UiRuntimeObjectMapper() {
-        return new ObjectMapper();
-    }
-
     /**
      * Host-registered A2UI catalogs (SPI: {@link A2UiCatalogContribution}) are merged on top of
      * the vendored basic catalog. Zero-ceremony apps that register no contributions get the
@@ -53,8 +46,8 @@ public class A2UiRuntimeAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public A2UiMessageParser a2UiMessageParser(ObjectMapper objectMapper) {
-        return new A2UiMessageParser(objectMapper);
+    public A2UiMessageParser a2UiMessageParser() {
+        return new A2UiMessageParser();
     }
 
     @Bean
@@ -65,8 +58,10 @@ public class A2UiRuntimeAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public A2UiGenerationPolicyService a2UiGenerationPolicyService(A2UiGenerationPolicyProperties properties) {
-        return new A2UiGenerationPolicyService(properties);
+    public A2UiGenerationPolicyService a2UiGenerationPolicyService(
+            A2UiGenerationPolicyProperties properties,
+            Environment environment) {
+        return new A2UiGenerationPolicyService(properties, environment);
     }
 
     @Bean

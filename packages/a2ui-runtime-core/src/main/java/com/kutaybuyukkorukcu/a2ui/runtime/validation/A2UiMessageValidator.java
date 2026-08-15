@@ -157,10 +157,13 @@ public class A2UiMessageValidator {
             return;
         }
 
-        if (!catalogRegistry.supportsComponentType(componentType)) {
+        if (!isSupportedComponentType(componentType, context)) {
             Map<String, Object> details = new LinkedHashMap<>();
             details.put("componentType", componentType);
             details.put("supportedCatalogIds", List.copyOf(catalogRegistry.supportedCatalogIds()));
+            if (context != null && context.catalogId() != null && !context.catalogId().isBlank()) {
+                details.put("catalogId", context.catalogId());
+            }
             diagnostics.add(diagnostic(path + ".component", A2UiErrorCode.UNKNOWN_COMPONENT_TYPE,
                     "component type is not supported by the published catalog", details));
             return;
@@ -280,6 +283,13 @@ public class A2UiMessageValidator {
                     "update messages require a prior createSurface for the same surfaceId",
                     details));
         }
+    }
+
+    private boolean isSupportedComponentType(String componentType, A2UiValidationContext context) {
+        if (context != null && context.catalogId() != null && !context.catalogId().isBlank()) {
+            return catalogRegistry.componentTypesForCatalog(context.catalogId()).contains(componentType);
+        }
+        return catalogRegistry.supportsComponentType(componentType);
     }
 
     private A2UiDiagnostic diagnostic(String path, A2UiErrorCode code, String message) {
