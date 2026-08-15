@@ -8,22 +8,22 @@ Canonical GitHub repository: [`kutaybuyukkorukcu/spring-a2ui-runtime`](https://g
 
 A Spring Boot **GenUI backend runtime / platform** for [A2UI](https://a2ui.org/): validate catalog components, assemble surfaces, and stream them to clients over native SSE.
 
-**Vision:** abstract GenUI backend infrastructure so OSS / Spring product builders can focus on product. You keep your design system and frontend; we own compose → validate → stream → fail-fast → actions. Generative UI becomes a Maven Central dependency, not a research project. The product pipe is **A2UI-native SSE**; optional foreign-client bridges are demand-gated later and never core identity.
+**Vision:** abstract GenUI backend infrastructure so OSS / Spring product builders can focus on product. You keep your design system and frontend; we own compose → validate → stream → fail-fast → actions. Catalog-bounded **steps and islands** in a product you own — not a chat shell and not a page generator. Generative UI becomes a Maven Central dependency, not a research project. The product pipe is **A2UI-native SSE**; optional foreign-client bridges are demand-gated later and never core identity.
 
-If you are building generative UI on Spring, you should not have to hand-roll prompts, parsers, and fail-open demos. This platform owns the hard reliability path so your app can ship product behavior.
+If you are building generative UI on Spring, you should not have to hand-roll prompts, parsers, and fail-open demos. This platform owns the hard reliability path so your app can ship product behavior. Identity: [ADR 002](docs/adr/002-in-product-surfaces.md).
 
 ## Status
 
 Library version **`2.1.0`** speaks **A2UI v0.9.1 Current** (hard cutover from `1.1.x`). Maven Central **`1.1.x`** remains the A2UI **v0.8 Legacy** patch line for older clients.
 
-**Core MVP + builder batteries are shipped** (compose → validate → stream → fail-fast → actions, utilization, basic catalog, Template SPI, host A2UI catalog SPI, decision/capture docs/showcase, ops). Residual Later items live in [`BACKLOG.md`](BACKLOG.md).
+**Core MVP + builder batteries are shipped** (compose → validate → stream → fail-fast → actions, utilization, basic catalog, Template SPI, host A2UI catalog SPI, in-product surface docs/showcase, ops). Residual Later items live in [`BACKLOG.md`](BACKLOG.md).
 
-Both generation modes ship:
+Both generation modes ship. **When to use them** is [ADR 002](docs/adr/002-in-product-surfaces.md):
 
 | Mode | Property | When to use it |
 | ---- | -------- | -------------- |
-| Template | `a2ui.web.runtime.generation-mode=template` | Predictable layouts from registered surface templates (bootstrap + host via Template SPI) |
-| Dynamic | `a2ui.web.runtime.generation-mode=dynamic` | Open-ended prompts from the **active** catalog (vendored basic + host-registered catalogs) |
+| Dynamic | `a2ui.web.runtime.generation-mode=dynamic` | **Unknown structure** — this case’s tree from the **active** catalog (vendored basic + host-registered catalogs). Engineering gravity. |
+| Template | `a2ui.web.runtime.generation-mode=template` | Frozen capability: LLM selects a registered spec and fills slots. Prefer host `assemble` when the tree is already known (no model call). |
 
 Surfaces are streamed as **A2UI v0.9.1 envelopes over SSE** (`createSurface` / `updateComponents` / `updateDataModel`). See [Migrating to v0.9.1](docs/guides/migrating-to-v0.9.1.md). Catalog schemas + FE renderers stay with you; we validate/generate ([catalog ownership](docs/platform.md#catalog-ownership-a2ui-aligned)).
 
@@ -39,13 +39,13 @@ You do not need to build this repository to use the runtime. Add the web starter
 </dependency>
 ```
 
-Set a generation mode explicitly (library default is `dynamic` if omitted):
+Set a generation mode explicitly (library default is `dynamic` if omitted). Use **dynamic** when this case’s tree is not predetermined; use **template** only if you still want LLM slot-fill of a registered spec. Known acks should **assemble** in the host with no model call.
 
 ```yaml
 a2ui:
   web:
     runtime:
-      generation-mode: template   # or: dynamic
+      generation-mode: dynamic   # or: template (frozen capability)
 ```
 
 Then stream a surface:

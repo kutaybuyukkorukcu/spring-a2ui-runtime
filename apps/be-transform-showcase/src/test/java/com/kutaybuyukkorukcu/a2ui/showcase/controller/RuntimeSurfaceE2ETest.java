@@ -7,6 +7,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.A2UiSurfaceRequest;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiSurfaceRuntime;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.RequestCorrelationService;
+import com.kutaybuyukkorukcu.a2ui.showcase.demo.change.ChangeRequest;
 import com.kutaybuyukkorukcu.a2ui.showcase.demo.change.ChangeStatus;
 import com.kutaybuyukkorukcu.a2ui.showcase.demo.change.InMemoryChangeStore;
 import org.junit.jupiter.api.DisplayName;
@@ -25,6 +26,8 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -40,6 +43,7 @@ class RuntimeSurfaceE2ETest {
     private static final String ACTIONS_PATH = "/a2ui/actions";
     private static final String CATALOG_PATH = "/a2ui/catalogs/basic-v0.9";
     private static final String DEMO_INFO_PATH = "/api/demo/info";
+    private static final String RECORD_OPEN_PATH = "/api/demo/records/%s/open";
     private static final String DEFAULT_CATALOG_ID = A2UiCatalogIds.BASIC_V0_9;
 
     @Autowired
@@ -58,16 +62,75 @@ class RuntimeSurfaceE2ETest {
     private A2UiSurfaceRuntime surfaceRuntime;
 
     @Test
-    @DisplayName("showcase should serve demo info endpoint")
+    @DisplayName("showcase should serve workspace demo info with two records")
     void shouldServeDemoInfoEndpoint() throws Exception {
-        mockMvc.perform(get(DEMO_INFO_PATH))
+        MvcResult result = mockMvc.perform(get(DEMO_INFO_PATH))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.productName").value("Ops Change Console"))
-                .andExpect(jsonPath("$.generationMode").value("template"))
-                .andExpect(jsonPath("$.storyTitle").value("Tonight's change window"))
-                .andExpect(jsonPath("$.primaryCta").value("Open tonight's change"))
-                .andExpect(jsonPath("$.samplePrompts").isArray())
-                .andExpect(jsonPath("$.samplePrompts.length()").value(1));
+                .andExpect(jsonPath("$.productName").value("payments-api workspace"))
+                .andExpect(jsonPath("$.generationMode").value("dynamic"))
+                .andExpect(jsonPath("$.storyTitle").value("Your page, one slot"))
+                .andExpect(jsonPath("$.islandLabel").value("GenUI slot"))
+                .andExpect(jsonPath("$.records").isArray())
+                .andExpect(jsonPath("$.records.length()").value(2))
+                .andExpect(jsonPath("$.records[0].id").value("cfg-204"))
+                .andExpect(jsonPath("$.records[0].surfaceKind").value("assembled"))
+                .andExpect(jsonPath("$.records[0].caption").value("Layout was not generated."))
+                .andExpect(jsonPath("$.records[1].id").value("mig-311"))
+                .andExpect(jsonPath("$.records[1].surfaceKind").value("composed"))
+                .andExpect(jsonPath("$.records[1].caption").value("Composed for this case from the catalog."))
+                .andExpect(jsonPath("$.ledger").isArray())
+                .andExpect(jsonPath("$.primaryPrompt").doesNotExist())
+                .andExpect(jsonPath("$.samplePrompts").doesNotExist())
+                .andExpect(jsonPath("$.primaryCta").doesNotExist())
+                .andReturn();
+
+        JsonNode composed = objectMapper.readTree(result.getResponse().getContentAsString())
+                .path("records").get(1);
+        String content = composed.path("content").asText();
+        assertThat(content).contains("schema migration");
+        assertThat(content).containsIgnoringCase("rollback");
+        assertThat(content).doesNotContain("TextField");
+        assertThat(content).doesNotContain("submit_change");
+        String instructions = composed.path("instructions").asText();
+        assertThat(instructions).doesNotContain("TextField");
+        assertThat(instructions).contains("/notes");
+        assertThat(instructions).contains("/rollback");
+        assertThat(instructions).contains("/risk");
+        assertThat(instructions).contains("action.event.context");
+        assertThat(instructions).contains("payments-api");
+        JsonNode seeds = composed.path("dataModelSeeds");
+        assertThat(seeds.isObject()).isTrue();
+        assertThat(seeds.path("service").asText()).isEqualTo("payments-api");
+        assertThat(seeds.path("changeType").asText()).isEqualTo("migration");
+        assertThat(seeds.path("summary").asText()).contains("mig-311");
+    }
+
+    @Test
+    @DisplayName("opening known record returns assembled messages without surfaceRuntime")
+    void shouldOpenKnownRecordWithAssembledMessages() throws Exception {
+        mockMvc.perform(post(RECORD_OPEN_PATH.formatted("cfg-204")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recordId").value("cfg-204"))
+                .andExpect(jsonPath("$.surfaceKind").value("assembled"))
+                .andExpect(jsonPath("$.caption").value("Layout was not generated."))
+                .andExpect(jsonPath("$.messages").isArray())
+                .andExpect(jsonPath("$.messages.length()").value(greaterThanOrEqualTo(3)))
+                .andExpect(content().string(containsString("createSurface")))
+                .andExpect(content().string(containsString("updateComponents")))
+                .andExpect(content().string(containsString("updateDataModel")))
+                .andExpect(content().string(containsString("submit_change")));
+
+        verifyNoInteractions(surfaceRuntime);
+    }
+
+    @Test
+    @DisplayName("opening unknown record is rejected because it must be streamed")
+    void shouldRejectOpeningComposedRecord() throws Exception {
+        mockMvc.perform(post(RECORD_OPEN_PATH.formatted("mig-311")))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("/a2ui/surface/stream")));
+
+        verifyNoInteractions(surfaceRuntime);
     }
 
     @Test
@@ -92,14 +155,78 @@ class RuntimeSurfaceE2ETest {
                 .andExpect(jsonPath("$.accepted").value(true))
                 .andExpect(content().string(containsString("approve-btn")))
                 .andExpect(content().string(containsString("PENDING_APPROVAL")))
-                .andExpect(content().string(containsString("\"nextStep\":\"approval\"")));
+                .andExpect(content().string(containsString("\"nextStep\":\"approval\"")))
+                .andExpect(content().string(containsString("\"path\":\"/changeId\"")));
 
         assertThat(changeStore.latestPending()).isPresent();
         assertThat(changeStore.latestPending().orElseThrow().service()).isEqualTo("payments-api");
+
+        mockMvc.perform(get(DEMO_INFO_PATH))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ledger").isArray())
+                .andExpect(jsonPath("$.ledger.length()").value(greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.ledger[0].id").exists())
+                .andExpect(jsonPath("$.ledger[0].status").exists());
     }
 
     @Test
-    @DisplayName("showcase should accept approve HITL action after submit_change")
+    @DisplayName("submit_change with custom context values appears on the assembled approval surface")
+    void shouldAssembleApprovalFromSubmittedContextValues() throws Exception {
+        MvcResult result = mockMvc.perform(
+                        post(ACTIONS_PATH)
+                                .header(REQUEST_ID_HEADER, "req-e2e-submit-custom")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"action":{"name":"submit_change","surfaceId":"main","sourceComponentId":"submit-btn","timestamp":"2026-05-19T00:00:00Z","context":{"service":"payments-api","changeType":"migration","summary":"Cut over retry index on payments-api","notes":"Staging failed on the last run: unique constraint on retry_key.","rollback":"15-minute window; restore payments-api 2.3.","risk":"Customer-facing unique-key failure if we skip the backfill."}}}
+                                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accepted").value(true))
+                .andExpect(content().string(containsString("Cut over retry index on payments-api")))
+                .andExpect(content().string(containsString("Staging failed on the last run: unique constraint on retry_key.")))
+                .andExpect(content().string(containsString("15-minute window; restore payments-api 2.3.")))
+                .andExpect(content().string(containsString("Customer-facing unique-key failure if we skip the backfill.")))
+                .andExpect(content().string(not(containsString(
+                        "Config-only change. Staging passed. No schema migration. Retry behavior changes in production."))))
+                .andReturn();
+
+        String changeId = extractChangeId(result);
+        ChangeRequest pending = changeStore.find(changeId).orElseThrow();
+        assertThat(pending.summary()).isEqualTo("Cut over retry index on payments-api");
+        assertThat(pending.notes()).contains("unique constraint on retry_key");
+        assertThat(pending.rollback()).contains("15-minute window");
+        assertThat(pending.risk()).contains("Customer-facing unique-key failure");
+    }
+
+    @Test
+    @DisplayName("submit_change with empty context is rejected")
+    void shouldRejectSubmitChangeWithEmptyContext() throws Exception {
+        mockMvc.perform(
+                        post(ACTIONS_PATH)
+                                .header(REQUEST_ID_HEADER, "req-e2e-submit-empty")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"action":{"name":"submit_change","surfaceId":"main","sourceComponentId":"submit-btn","timestamp":"2026-05-19T00:00:00Z","context":{}}}
+                                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_USER_ACTION"));
+    }
+
+    @Test
+    @DisplayName("submit_change with unresolved path literals in context is rejected")
+    void shouldRejectSubmitChangeWithPointerShapedContext() throws Exception {
+        mockMvc.perform(
+                        post(ACTIONS_PATH)
+                                .header(REQUEST_ID_HEADER, "req-e2e-submit-pointers")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"action":{"name":"submit_change","surfaceId":"main","sourceComponentId":"submit-btn","timestamp":"2026-05-19T00:00:00Z","context":{"service":"/service","changeType":"/changeType","summary":"/summary","notes":"/notes"}}}
+                                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_USER_ACTION"));
+    }
+
+    @Test
+    @DisplayName("showcase should accept approve action after submit_change")
     void shouldAcceptApproveHitlAction() throws Exception {
         String changeId = submitChangeAndExtractId();
 
@@ -123,7 +250,7 @@ class RuntimeSurfaceE2ETest {
     }
 
     @Test
-    @DisplayName("showcase should accept reject HITL action after submit_change")
+    @DisplayName("showcase should accept reject action after submit_change")
     void shouldAcceptRejectHitlAction() throws Exception {
         String changeId = submitChangeAndExtractId();
 
@@ -142,8 +269,48 @@ class RuntimeSurfaceE2ETest {
     }
 
     @Test
-    @DisplayName("showcase should accept action with confirm handler")
-    void shouldAcceptActionWithConfirmHandler() throws Exception {
+    @DisplayName("approve without changeId is rejected")
+    void shouldRejectApproveWithoutChangeId() throws Exception {
+        submitChangeAndExtractId();
+
+        mockMvc.perform(
+                        post(ACTIONS_PATH)
+                                .header(REQUEST_ID_HEADER, "req-e2e-approve-missing-id")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"action":{"name":"approve","surfaceId":"main","sourceComponentId":"approve-btn","timestamp":"2026-05-19T00:00:00Z","context":{}}}
+                                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_USER_ACTION"));
+    }
+
+    @Test
+    @DisplayName("approve with changeId gates only that draft when two are pending")
+    void shouldApproveOnlyTheAddressedPendingChange() throws Exception {
+        String firstId = submitChangeAndExtractId();
+        String secondId = submitChange(
+                "req-e2e-submit-second",
+                "payments-api",
+                "config",
+                "Unrelated second draft");
+
+        mockMvc.perform(
+                        post(ACTIONS_PATH)
+                                .header(REQUEST_ID_HEADER, "req-e2e-action-approve-first")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"action":{"name":"approve","surfaceId":"main","sourceComponentId":"approve-btn","timestamp":"2026-05-19T00:00:00Z","context":{"changeId":"%s"}}}
+                                        """.formatted(firstId)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(firstId)));
+
+        assertThat(changeStore.find(firstId).orElseThrow().status()).isEqualTo(ChangeStatus.APPROVED);
+        assertThat(changeStore.find(secondId).orElseThrow().status()).isEqualTo(ChangeStatus.PENDING_APPROVAL);
+    }
+
+    @Test
+    @DisplayName("confirm is not a write-gate alias")
+    void shouldRejectConfirmAsUnhandled() throws Exception {
         submitChangeAndExtractId();
 
         mockMvc.perform(
@@ -153,12 +320,8 @@ class RuntimeSurfaceE2ETest {
                                 .content("""
                                         {"action":{"name":"confirm","surfaceId":"main","sourceComponentId":"confirm-btn","timestamp":"2026-05-19T00:00:00Z","context":{}}}
                                         """))
-                .andExpect(status().isOk())
-                .andExpect(header().string(REQUEST_ID_HEADER, "req-e2e-action-1"))
-                .andExpect(jsonPath("$.accepted").value(true))
-                .andExpect(jsonPath("$.eventType").value("actionResult"))
-                .andExpect(jsonPath("$.messages").isArray())
-                .andExpect(jsonPath("$.messages.length()").value(greaterThanOrEqualTo(3)));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("ACTION_NOT_HANDLED"));
     }
 
     @Test
@@ -235,16 +398,24 @@ class RuntimeSurfaceE2ETest {
     }
 
     private String submitChangeAndExtractId() throws Exception {
+        return submitChange("req-e2e-submit-for-decision", "billing-api", "migration", "Add retry index");
+    }
+
+    private String submitChange(String requestId, String service, String changeType, String summary)
+            throws Exception {
         MvcResult result = mockMvc.perform(
                         post(ACTIONS_PATH)
-                                .header(REQUEST_ID_HEADER, "req-e2e-submit-for-decision")
+                                .header(REQUEST_ID_HEADER, requestId)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                        {"action":{"name":"submit_change","surfaceId":"main","sourceComponentId":"submit-btn","timestamp":"2026-05-19T00:00:00Z","context":{"service":"billing-api","changeType":"migration","summary":"Add retry index"}}}
-                                        """))
+                                        {"action":{"name":"submit_change","surfaceId":"main","sourceComponentId":"submit-btn","timestamp":"2026-05-19T00:00:00Z","context":{"service":"%s","changeType":"%s","summary":"%s"}}}
+                                        """.formatted(service, changeType, summary)))
                 .andExpect(status().isOk())
                 .andReturn();
+        return extractChangeId(result);
+    }
 
+    private String extractChangeId(MvcResult result) throws Exception {
         JsonNode root = objectMapper.readTree(result.getResponse().getContentAsString());
         for (JsonNode message : root.path("messages")) {
             if ("/actionResult".equals(message.path("updateDataModel").path("path").asText())) {

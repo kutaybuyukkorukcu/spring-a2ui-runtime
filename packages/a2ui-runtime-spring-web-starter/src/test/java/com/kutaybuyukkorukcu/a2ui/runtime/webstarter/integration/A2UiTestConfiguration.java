@@ -1,8 +1,9 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.integration;
 
-import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.properties.A2UiWebProperties;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionHandler;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiTemplateCustomizer;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.ExampleTextCardTemplate;
 import org.mockito.Mockito;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
@@ -12,7 +13,6 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 
 import java.util.List;
 
@@ -43,5 +43,10 @@ public class A2UiTestConfiguration {
     @Bean
     public List<A2UiActionHandler> actionHandlers() {
         return List.of();
+    }
+
+    @Bean
+    public A2UiTemplateCustomizer exampleTextCardTemplateCustomizer() {
+        return builder -> builder.register(ExampleTextCardTemplate.definition());
     }
 }

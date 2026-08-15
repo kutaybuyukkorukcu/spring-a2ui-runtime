@@ -75,16 +75,15 @@ public class A2UiWebAutoConfiguration {
     }
 
     /**
-     * Host {@link A2UiTemplateDefinition} beans and {@link A2UiTemplateCustomizer} beans are
-     * layered on top of the bootstrap templates (text-card, hero-cta, form-login, weather-card).
-     * Apps that register neither keep the zero-ceremony bootstrap set unchanged.
+     * Host {@link A2UiTemplateDefinition} beans and {@link A2UiTemplateCustomizer} beans
+     * populate the registry. The library ships no templates.
      */
     @Bean
     @ConditionalOnMissingBean
     public A2UiTemplateRegistry a2UiTemplateRegistry(
             ObjectProvider<A2UiTemplateCustomizer> customizers,
             ObjectProvider<A2UiTemplateDefinition> definitionBeans) {
-        A2UiTemplateRegistry.Builder builder = A2UiTemplateRegistry.builder().withBootstrapDefaults();
+        A2UiTemplateRegistry.Builder builder = A2UiTemplateRegistry.builder();
         definitionBeans.orderedStream().forEach(builder::register);
         customizers.orderedStream().forEach(customizer -> customizer.customize(builder));
         return builder.build();

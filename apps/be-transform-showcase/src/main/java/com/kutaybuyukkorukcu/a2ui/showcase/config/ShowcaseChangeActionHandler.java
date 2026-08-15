@@ -1,8 +1,10 @@
 package com.kutaybuyukkorukcu.a2ui.showcase.config;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
+import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiErrorCode;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiUserAction;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionHandler;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiSurfaceAssemblyService;
 import com.kutaybuyukkorukcu.a2ui.showcase.demo.change.ChangeRequest;
@@ -17,17 +19,18 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 
 /**
- * Host-owned Ops Change Console actions: intake submit returns the approval surface;
- * approve/reject gate the write. Persistence stays in the Spring host.
+ * Host-owned workspace actions: intake submit persists a draft and assembles the approval
+ * surface ($0); approve/reject gate the write. Persistence stays in this Spring host.
  */
 @Component
 public class ShowcaseChangeActionHandler implements A2UiActionHandler {
 
-  private static final Set<String> SUPPORTED_ACTIONS =
-      Set.of("submit_change", "approve", "reject", "confirm", "primary_action");
+  private static final Set<String> SUPPORTED_ACTIONS = Set.of("submit_change", "approve", "reject");
 
-  private static final String DEFAULT_RISK =
+  static final String DEFAULT_RISK =
       "Config-only change. Staging passed. No schema migration. Retry behavior changes in production.";
+  static final String MIGRATION_RISK =
+      "Schema migration. Staging failed. Customer-impacting. Rollback window still required.";
 
   private final InMemoryChangeStore changeStore;
   private final A2UiSurfaceAssemblyService assemblyService;
@@ -47,24 +50,41 @@ public class ShowcaseChangeActionHandler implements A2UiActionHandler {
   public List<A2UiMessage> handle(A2UiUserAction userAction, String requestId) {
     return switch (userAction.name()) {
       case "submit_change" -> handleSubmitChange(userAction, requestId);
-      default -> handleDecision(userAction, requestId);
+      case "approve", "reject" -> handleDecision(userAction, requestId);
+      default -> throw invalidAction(
+          "Unsupported action: " + userAction.name(), Map.of("action", userAction.name()));
     };
   }
 
   private List<A2UiMessage> handleSubmitChange(A2UiUserAction userAction, String requestId) {
     Map<String, Object> context = safeContext(userAction);
-    String service = stringValue(context, "service", "payments-api");
-    String changeType = stringValue(context, "changeType", "config");
-    String summary =
-        stringValue(context, "summary", "Deploy payment-config v2.4 (retry max 3 to 5).");
+    String service = firstPresent(context, "service");
+    String changeType = firstPresent(context, "changeType", "type");
+    String notes = firstPresent(context, "notes", "migrationNotes");
+    String rollback = firstPresent(context, "rollback", "rollbackWindow");
+    String submittedRisk = firstPresent(context, "risk", "extraRisk");
+    String summary = firstPresent(context, "summary");
+    if (summary == null) {
+      summary = notes;
+    }
 
-    ChangeRequest change = changeStore.submit(service, changeType, summary);
+    if (service == null || changeType == null || summary == null) {
+      throw invalidAction(
+          "submit_change requires service, changeType, and summary (or notes) in action.context",
+          Map.of("action", "submit_change"));
+    }
+
+    String risk = submittedRisk != null ? submittedRisk : riskFor(changeType);
+
+    ChangeRequest change =
+        changeStore.submit(service, changeType, summary, notes, rollback, risk);
 
     Map<String, String> slots = new LinkedHashMap<>();
     slots.put("title", "Review production change");
     slots.put("meta", change.service() + " · " + change.changeType() + " · " + change.id());
-    slots.put("summary", change.summary());
-    slots.put("risk", DEFAULT_RISK);
+    slots.put("summary", approvalSummary(change));
+    slots.put("risk", change.risk());
+    slots.put("changeId", change.id());
     slots.put("approveLabel", "Approve change");
     slots.put("rejectLabel", "Reject");
 
@@ -82,6 +102,15 @@ public class ShowcaseChangeActionHandler implements A2UiActionHandler {
     actionResult.put("changeType", change.changeType());
     actionResult.put("summary", change.summary());
     actionResult.put("nextStep", "approval");
+    if (change.notes() != null) {
+      actionResult.put("notes", change.notes());
+    }
+    if (change.rollback() != null) {
+      actionResult.put("rollback", change.rollback());
+    }
+    if (change.risk() != null) {
+      actionResult.put("risk", change.risk());
+    }
     if (userAction.timestamp() != null) {
       actionResult.put("timestamp", userAction.timestamp());
     }
@@ -96,15 +125,27 @@ public class ShowcaseChangeActionHandler implements A2UiActionHandler {
     ChangeStatus status = rejected ? ChangeStatus.REJECTED : ChangeStatus.APPROVED;
 
     Map<String, Object> context = safeContext(userAction);
-    String changeId = stringValue(context, "changeId", null);
+    String changeId = firstPresent(context, "changeId");
+    if (changeId == null) {
+      throw invalidAction(
+          userAction.name() + " requires changeId in action.context",
+          Map.of("action", userAction.name()));
+    }
+
     ChangeRequest change =
         changeStore
             .find(changeId)
-            .or(changeStore::latestPending)
             .orElseThrow(
                 () ->
-                    new IllegalArgumentException(
-                        "No pending change found for decision action: " + userAction.name()));
+                    invalidAction(
+                        "Unknown change id: " + changeId,
+                        Map.of("action", userAction.name(), "changeId", changeId)));
+
+    if (change.status() != ChangeStatus.PENDING_APPROVAL) {
+      throw invalidAction(
+          "Change " + changeId + " is not pending approval",
+          Map.of("action", userAction.name(), "changeId", changeId, "status", change.status().name()));
+    }
 
     ChangeRequest updated = changeStore.updateStatus(change.id(), status);
 
@@ -123,11 +164,17 @@ public class ShowcaseChangeActionHandler implements A2UiActionHandler {
 
     String headline =
         rejected
-            ? "Rejected: change " + updated.id() + " was not applied. Ledger stays in this Spring host."
+            ? "Rejected: change "
+                + updated.id()
+                + " was not applied ("
+                + updated.summary()
+                + "). Ledger stays in this Spring host."
             : "Approved: change "
                 + updated.id()
                 + " recorded for "
                 + updated.service()
+                + " — "
+                + updated.summary()
                 + ". The write is gated here — not in a GenUI cloud.";
 
     return ShowcaseAckSurfaces.ack(headline, actionResult);
@@ -138,12 +185,55 @@ public class ShowcaseChangeActionHandler implements A2UiActionHandler {
     return context == null ? Map.of() : context;
   }
 
-  private static String stringValue(Map<String, Object> context, String key, String defaultValue) {
+  static String riskFor(String changeType) {
+    if (changeType != null && changeType.toLowerCase().contains("migrat")) {
+      return MIGRATION_RISK;
+    }
+    return DEFAULT_RISK;
+  }
+
+  static String approvalSummary(ChangeRequest change) {
+    StringBuilder visible = new StringBuilder(change.summary());
+    if (hasText(change.notes()) && !change.summary().contains(change.notes())) {
+      visible.append('\n').append(change.notes());
+    }
+    if (hasText(change.rollback()) && !visible.toString().contains(change.rollback())) {
+      visible.append("\nRollback: ").append(change.rollback());
+    }
+    return visible.toString();
+  }
+
+  private static String firstPresent(Map<String, Object> context, String... keys) {
+    for (String key : keys) {
+      String text = stringValue(context, key);
+      if (text != null) {
+        return text;
+      }
+    }
+    return null;
+  }
+
+  private static String stringValue(Map<String, Object> context, String key) {
     Object value = context.get(key);
     if (value == null) {
-      return defaultValue;
+      return null;
     }
     String text = String.valueOf(value).trim();
-    return text.isEmpty() ? defaultValue : text;
+    if (text.isEmpty()) {
+      return null;
+    }
+    // Unresolved JSON pointers leaked as literals ("/notes") are not domain values.
+    if (text.matches("^/[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*$")) {
+      return null;
+    }
+    return text;
+  }
+
+  private static boolean hasText(String value) {
+    return value != null && !value.isBlank();
+  }
+
+  private static A2UiActionException invalidAction(String message, Map<String, Object> details) {
+    return new A2UiActionException(message, A2UiErrorCode.INVALID_USER_ACTION.code(), details);
   }
 }

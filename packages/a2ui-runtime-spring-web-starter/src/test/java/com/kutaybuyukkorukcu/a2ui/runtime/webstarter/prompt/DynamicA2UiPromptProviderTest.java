@@ -24,6 +24,10 @@ class DynamicA2UiPromptProviderTest {
         assertThat(plannerPrompt.toLowerCase()).doesNotContain("surfaceupdate");
         assertThat(plannerPrompt).doesNotContain("BoundValue");
         assertThat(plannerPrompt).contains("Never use literalString");
+        assertThat(plannerPrompt).contains("TextField and CheckBox MUST bind value");
+        assertThat(plannerPrompt).contains("action.event.context");
+        assertThat(plannerPrompt).contains("Never put the path string itself as the value");
+        assertThat(plannerPrompt).contains("bind 'value' to a data-model path");
     }
 
     @Test

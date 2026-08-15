@@ -1,84 +1,81 @@
 # Authoring surface templates
 
-Template mode is **controlled GenUI**: a fixed component tree, filled with slot
-values. It is faster, cheaper, and fully deterministic compared to dynamic
-mode — prefer it whenever the layout for a surface is known ahead of time
-(login forms, weather cards, an ops-approval card shape).
+Template mode is a **frozen capability**: a fixed component tree, filled with
+slot values. Prefer **host `assemble`** when the layout is already known (no
+model call). Use template mode only if you still want the LLM to *select* a
+registered spec and fill slots. Near-term investment is on **dynamic** compose
+for unknown structure — [ADR 002](../adr/002-in-product-surfaces.md).
+
+The library ships **no** templates. Register your own.
 
 ## Boundary
 
 | Layer | Who owns it |
 | ----- | ----------- |
-| Bootstrap templates (`text-card`, `hero-cta`, `form-login`, `weather-card`) | spring-a2ui |
 | `A2UiTemplateRegistry` assembly, slot validation, catalog validation | spring-a2ui |
-| Your own controlled-layout templates | **Your app** |
+| Your controlled-layout templates | **Your app** |
 | `A2UiTemplateCustomizer` implementation | **Your app** |
-
-The bootstrap templates stay registered whether or not you add your own —
-zero-ceremony apps need no template configuration at all.
 
 ## SPI
 
-Register a `A2UiTemplateCustomizer` bean. It receives the
-`A2UiTemplateRegistry.Builder` already seeded with bootstrap defaults (call
-`withBootstrapDefaults()` yourself only if you build a registry outside the
-autoconfiguration):
+Register a `A2UiTemplateCustomizer` bean. The registry starts empty:
 
 ```java
 @Configuration
-public class OpsApprovalTemplateConfiguration {
+public class TextCardTemplateConfiguration {
 
     @Bean
-    public A2UiTemplateCustomizer opsApprovalTemplateCustomizer() {
-        return builder -> builder.register(opsApprovalDefinition());
+    public A2UiTemplateCustomizer textCardTemplateCustomizer() {
+        return builder -> builder.register(textCardDefinition());
     }
 
-    private static A2UiTemplateDefinition opsApprovalDefinition() {
-        A2UiSurfaceSpec spec = opsApprovalSpec();
+    private static A2UiTemplateDefinition textCardDefinition() {
+        A2UiSurfaceSpec spec = textCardSpec();
         return new A2UiTemplateDefinition(
-                "ops-approval",
-                "Ops/HITL approval card with summary, risk, and an Approve action",
+                "text-card",
+                "Title and body text card",
                 spec.requiredSlots(),
                 spec.optionalSlots(),
-                OpsApprovalTemplateConfiguration::opsApprovalSpec);
+                TextCardTemplateConfiguration::textCardSpec);
     }
 
-    private static A2UiSurfaceSpec opsApprovalSpec() {
-        return A2UiFixedSurfaceSpec.builder("ops-approval", "root")
-                .requiredSlots("summary", "risk", "approveLabel")
-                .optionalSlots("rejectLabel")
-                .components(OpsApprovalTemplateConfiguration::opsApprovalComponents)
+    private static A2UiSurfaceSpec textCardSpec() {
+        return A2UiFixedSurfaceSpec.builder("text-card", "root")
+                .requiredSlots("title", "body")
+                .components(TextCardTemplateConfiguration::textCardComponents)
                 .build();
     }
 
-    private static List<A2UiMessage.ComponentDefinition> opsApprovalComponents(Map<String, String> slots) {
-        // build your Column/Text/Button tree with A2UiMessage.ComponentDefinition
+    private static List<A2UiMessage.ComponentDefinition> textCardComponents(Map<String, String> slots) {
+        return List.of(
+                new A2UiMessage.ComponentDefinition(
+                        "root", "Column", Map.of("children", List.of("title-txt", "body-txt"), "justify", "start")),
+                new A2UiMessage.ComponentDefinition(
+                        "title-txt", "Text", Map.of("text", Map.of("path", "/title"), "variant", "h2")),
+                new A2UiMessage.ComponentDefinition(
+                        "body-txt", "Text", Map.of("text", Map.of("path", "/body"))));
     }
 }
 ```
 
-`A2UiFixedSurfaceSpec` handles the slot → data-model plumbing every fixed
-template needs (copying slot values into `updateDataModel` at `"/"`); you only
-supply the component tree, optionally shaped by the slot values (e.g. to add
-an optional Reject button only when a `rejectLabel` slot is present — see
-`ShowcaseTemplateConfiguration` in `apps/be-transform-showcase`).
+`A2UiFixedSurfaceSpec` copies slot values into `updateDataModel` at `"/"`. Shape
+the component tree from slot values when a row is optional.
 
-You can also register `A2UiTemplateDefinition` beans directly instead of a
-customizer — the auto-configuration picks up both.
+You can also register `A2UiTemplateDefinition` beans directly — the
+auto-configuration picks up both.
 
 ## Alternative: implement `A2UiSurfaceSpec` yourself
 
 `A2UiFixedSurfaceSpec` covers the common case. For anything more custom
 (computed root component, non-slot data), implement `A2UiSurfaceSpec`
-directly — see the bootstrap `A2UiSurfaceTemplates` for a reference.
+directly.
 
 ## Selection
 
-`selectTemplate` (a `@Tool`) is described as "select a registered surface
-template by id" — it is not hardcoded to the bootstrap 4. Available templates,
-descriptions, and required slots are listed for the model in the system
-prompt (`TemplateModePromptProvider`), which reads from your merged
-`A2UiTemplateRegistry` automatically.
+`selectTemplate` (a `@Tool`) selects a registered surface template by id.
+Available templates, descriptions, and required slots are listed for the model
+in the system prompt (`TemplateModePromptProvider`), which reads from your
+`A2UiTemplateRegistry`.
 
 ## Validation
 
@@ -91,7 +88,7 @@ with diagnostics — no silent repair.
 
 No new properties. Template vs dynamic mode is chosen with
 `a2ui.web.runtime.generation-mode` (see [REST API](../rest-api.md)); your
-custom templates are available whenever `generation-mode: template`.
+templates are available whenever `generation-mode: template`.
 
 ## Next reading
 
@@ -99,4 +96,3 @@ custom templates are available whenever `generation-mode: template`.
 * [Hosting actions](hosting-actions.md) — wire button actions to your services
 * [Golden-path cookbook](golden-path-cookbook.md)
 * [Platform](../platform.md) — template vs dynamic generation modes
-* [Builder batteries plan](../plans/phase-platform-builder-batteries.md) — Slice C

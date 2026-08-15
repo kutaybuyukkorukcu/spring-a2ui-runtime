@@ -98,7 +98,7 @@ do not re-run the LLM unless **you** call back into your own services.
 
 ## Wiring with Spring Data (example)
 
-Ops / HITL style — your service owns the write gate:
+Host-owned write gate — your service owns persistence:
 
 ```java
 @Service
@@ -127,7 +127,7 @@ in your handler or service layer; the runtime does not manage product sessions.
 
 ## Next reading
 
-* [Action round-trip](action-round-trip.md) — HITL decision loop  
+* [Action round-trip](action-round-trip.md) — click → host write gate → ack  
 * [Flow recompose](flow-recompose.md) — host state → next surface  
 * [Authoring templates](authoring-templates.md) — layout SPI  
 * [Registering catalogs](registering-catalogs.md) — component vocabulary SPI  

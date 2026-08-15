@@ -58,8 +58,8 @@ tokens than a text-only reply.
 
 | Pattern | Guidance |
 |---------|----------|
-| Prefer **template** when layout is known | Faster, cheaper, deterministic fills |
-| Prefer **dynamic** when fields must change with case | Budget for compose + one validation retry |
+| Prefer **host `assemble`** when layout is known | No model call; deterministic fills |
+| Prefer **dynamic** when this case’s tree is unknown | Budget for compose + one validation retry |
 | Stream early | Clients should render progressive SSE envelopes |
 | Cache | Cache **host domain results**, not invalid A2UI. Do not cache fail-open “repaired” surfaces |
 | Semantic cache of surfaces | Optional at the host: same intent → reuse prior *validated* messages; never skip validation |
@@ -71,8 +71,8 @@ and catalog safety.
 
 Nested component trees are where models drop required props. spring-a2ui uses
 **flat adjacency lists** + catalog-derived tool constraints + strict validation.
-Keep host catalogs shallow when possible; prefer template mode for deep known
-layouts ([authoring templates](authoring-templates.md)).
+Keep host catalogs shallow when possible; assemble known deep layouts in the
+host ([authoring templates](authoring-templates.md) if you still use template mode).
 
 ## Next reading
 

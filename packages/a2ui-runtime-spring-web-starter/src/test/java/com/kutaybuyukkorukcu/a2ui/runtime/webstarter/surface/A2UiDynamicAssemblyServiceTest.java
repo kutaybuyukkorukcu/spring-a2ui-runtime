@@ -93,6 +93,20 @@ class A2UiDynamicAssemblyServiceTest {
     }
 
     @Test
+    void shouldRejectTextFieldMissingValue() {
+        RenderA2UiArgs args = new RenderA2UiArgs(
+                "planner-surface",
+                "root",
+                List.of(Map.of("id", "root", "component", "TextField", "label", "Notes")),
+                null);
+
+        assertThatThrownBy(() -> assemblyService.assemble(args, A2UiCatalogIds.BASIC_V0_9, "main"))
+                .isInstanceOf(SurfaceExecutionException.class)
+                .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
+                .isEqualTo(SurfaceErrorCodes.A2UI_VALIDATION_FAILED);
+    }
+
+    @Test
     void shouldCoerceActionStringToEventObject() {
         RenderA2UiArgs args = new RenderA2UiArgs(
                 "planner-surface",

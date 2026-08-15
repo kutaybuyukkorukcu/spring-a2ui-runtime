@@ -5,7 +5,7 @@ spring:
   application:
     name: a2ui-showcase-host
   profiles:
-    default: template
+    default: dynamic
 
   ai:
     openai:

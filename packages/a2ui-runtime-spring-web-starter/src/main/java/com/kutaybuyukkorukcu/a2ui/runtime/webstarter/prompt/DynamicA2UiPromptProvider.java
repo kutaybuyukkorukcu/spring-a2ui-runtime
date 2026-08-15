@@ -61,6 +61,8 @@ public final class DynamicA2UiPromptProvider {
                 - Button requires child (Text component id) and action — use action string shorthand or {event:{name}}.
                 - Dynamic values are native JSON strings/numbers/booleans, or {"path":"/..."}. Never use literalString/literalNumber.
                 - Bind dynamic Text and labels with path objects like {"path":"/regionSales/North"} — never {data.regionSales.North}.
+                - TextField and CheckBox MUST bind value to a data-model path: {"path":"/fieldName"}. Labels may be a literal or a path. A TextField with only label is not editable.
+                - Submit/primary Buttons that collect a form MUST set action.event.context mapping each field the host needs, e.g. {"summary":{"path":"/summary"},"notes":{"path":"/notes"}}. Never put the path string itself as the value ("/notes") — the client sends that literal instead of the typed text. A Button with only event.name yields empty context {}.
                 - Do not emit empty {} objects; every component must have meaningful props.
                 - Populate data-bound props in the data object when the UI needs dynamic values.
                 - Do not emit A2UI wire protocol envelopes or lifecycle commits; only call renderA2Ui.

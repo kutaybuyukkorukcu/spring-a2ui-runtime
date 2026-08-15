@@ -60,7 +60,7 @@ Follow `docs/plans/phase-x-migrating-to-v0.9.md` slices X.0–X.6. After Phase X
 | Catalog | `A2UiCatalogRegistry`, `A2UiCatalogIds`, basic catalog + `rules.txt` |
 | Validation | `A2UiMessageValidator`, `A2UiCatalogSchemaValidator` |
 | Dynamic | `A2UiDynamicComponentNormalizer`, `A2UiDynamicAssemblyService`, `A2UiDynamicTools` |
-| Template | `A2UiSurfaceTemplates`, `A2UiSurfaceAssemblyService` |
+| Template | `A2UiTemplateRegistry`, `A2UiTemplateCustomizer`, `A2UiFixedSurfaceSpec`, `A2UiSurfaceAssemblyService` |
 | Buffer | `A2UiSurfaceBuffer`, `A2UiSurfaceBufferOps` |
 
 ## A2UI v0.9.1 rules

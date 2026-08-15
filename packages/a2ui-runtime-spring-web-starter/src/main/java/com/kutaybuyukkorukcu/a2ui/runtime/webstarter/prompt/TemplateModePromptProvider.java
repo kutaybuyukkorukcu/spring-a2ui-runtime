@@ -26,9 +26,8 @@ public final class TemplateModePromptProvider {
                 Available templates:
                 %s
                 
-                Use renderTemplate with string slot values only. For hero-cta, actionName is optional (defaults to primary_action).
-                For weather-card: use plausible values from general knowledge for the requested city and date.
-                Never use placeholders like "--", "N/A", or "unknown". Omit optional highLow if you cannot estimate a range.
+                Use renderTemplate with string slot values only.
+                Never use placeholders like "--", "N/A", or "unknown". Omit optional slots you cannot fill.
                 """.formatted(templates);
     }
 

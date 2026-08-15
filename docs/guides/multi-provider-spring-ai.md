@@ -121,7 +121,7 @@ Use this before calling a non-OpenAI stack “production ready”:
 5. [ ] (Optional) Dynamic profile: one successful surface; if tools flake, stay on template  
 6. [ ] Actuator: `a2ui.template.rendered` or `a2ui.dynamic.surface.generated` increments ([ops](ops-and-diagnostics.md))
 
-Showcase HITL path: [Action round-trip](action-round-trip.md).
+Showcase write-gate path: [Action round-trip](action-round-trip.md).
 
 ## Honest limits
 

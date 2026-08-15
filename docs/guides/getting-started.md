@@ -37,20 +37,23 @@ You still need a normal Spring AI chat setup (for example
 
 ## 2. Choose a generation mode
 
-Set the mode explicitly in configuration (library default is `dynamic` if omitted):
+Set the mode explicitly in configuration (library default is `dynamic` if omitted).
+Use **dynamic** when this case’s tree is not predetermined. Template mode is a
+frozen capability (LLM selects a registered spec). Known acks should host
+`assemble` with no model call — [ADR 002](../adr/002-in-product-surfaces.md).
 
 ```yaml
 a2ui:
   web:
     base-path: /a2ui
     runtime:
-      generation-mode: template   # or dynamic
+      generation-mode: dynamic   # or template
 ```
 
 | Mode | Behavior |
 | ---- | -------- |
+| `dynamic` | LLM composes from the **active** catalog via two-hop tools (vendored **basic** v0.9 by default; register your own with the [catalog SPI](registering-catalogs.md)). |
 | `template` | LLM selects a registered template and fills slots. Layout comes from Java builders. |
-| `dynamic` | LLM composes components from the **active** catalog via two-hop tools (vendored **basic** v0.9 catalog by default; register your own with the [catalog SPI](registering-catalogs.md)). |
 
 Useful companion properties (defaults shown in [REST API](../rest-api.md)):
 
@@ -179,7 +182,7 @@ Then open the frontend demo or hit the curl example above against
 * [Golden-path cookbook](golden-path-cookbook.md) — stream → action → host ack  
 * [Ops and diagnostics](ops-and-diagnostics.md)  
 * [Multi-provider Spring AI](multi-provider-spring-ai.md)  
-* [Action round-trip](action-round-trip.md) — HITL decisions  
+* [Action round-trip](action-round-trip.md) — click → host write gate → ack  
 * [Flow recompose](flow-recompose.md) — multi-step with host state  
 * [FE design-system binding](fe-design-system-binding.md)  
 * [Hosting actions](hosting-actions.md)  

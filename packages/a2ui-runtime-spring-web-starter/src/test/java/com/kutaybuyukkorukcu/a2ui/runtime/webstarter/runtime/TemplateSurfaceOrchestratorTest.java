@@ -9,8 +9,8 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionExcep
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.TemplateModePromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiSurfaceAssemblyService;
-import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiSurfaceTemplates;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiTemplateRegistry;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.ExampleTextCardTemplate;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.A2UiTemplateTools;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,7 +44,9 @@ class TemplateSurfaceOrchestratorTest {
         requestSpec = mock(ChatClient.ChatClientRequestSpec.class);
         callResponseSpec = mock(ChatClient.CallResponseSpec.class);
 
-        A2UiTemplateRegistry registry = new A2UiTemplateRegistry();
+        A2UiTemplateRegistry registry = A2UiTemplateRegistry.builder()
+                .register(ExampleTextCardTemplate.definition())
+                .build();
         A2UiSurfaceAssemblyService assemblyService =
                 new A2UiSurfaceAssemblyService(registry, new A2UiMessageValidator());
         templateTools = new A2UiTemplateTools(registry, assemblyService, A2UiRuntimeMetrics.noop());
@@ -75,7 +77,7 @@ class TemplateSurfaceOrchestratorTest {
         });
         when(requestSpec.call()).thenAnswer(invocation -> {
             templateTools.renderTemplate(
-                    A2UiSurfaceTemplates.TEXT_CARD,
+                    ExampleTextCardTemplate.ID,
                     Map.of("title", "News", "body", "Latest updates"),
                     new ToolContext(toolContextRef.get()));
             return callResponseSpec;

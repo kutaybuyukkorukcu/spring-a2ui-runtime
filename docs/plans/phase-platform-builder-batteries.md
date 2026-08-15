@@ -6,6 +6,8 @@
 **Related:** [`BACKLOG.md`](../../BACKLOG.md) · [`docs/platform.md`](../platform.md) · prior plan [`phase-product-runtime-interaction.md`](phase-product-runtime-interaction.md)  
 **Strategy canvases:** `supabase-of-genui` · `genui-leverage-unstuck` · **`genui-applications-research`** (jobs → direction)
 
+> **Identity supersession (2026-08-15):** living positioning is [ADR 002](../adr/002-in-product-surfaces.md) and [platform.md](../platform.md). This plan’s “decision + capture / ops HITL hero” was the batteries-era wedge. Do not treat it as current identity. Template SPI shipped here remains supported as a **frozen capability**.
+
 ---
 
 ## Goal

@@ -13,8 +13,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Host-registered Template SPI examples for the Ops Change Console: controlled intake and
- * approval layouts layered on the bootstrap template set.
+ * Host-registered templates used by {@code assemble} (known island, $0) and post-submit
+ * approval. Not a second walkthrough of the same form.
  */
 @Configuration
 public class ShowcaseTemplateConfiguration {
@@ -34,7 +34,7 @@ public class ShowcaseTemplateConfiguration {
     A2UiSurfaceSpec spec = changeIntakeSpec();
     return new A2UiTemplateDefinition(
         CHANGE_INTAKE,
-        "Ops change intake — capture service, change type, and summary before approval",
+        "Known change intake — capture service, change type, and summary before approval",
         spec.requiredSlots(),
         spec.optionalSlots(),
         ShowcaseTemplateConfiguration::changeIntakeSpec);
@@ -44,7 +44,7 @@ public class ShowcaseTemplateConfiguration {
     A2UiSurfaceSpec spec = opsApprovalSpec();
     return new A2UiTemplateDefinition(
         OPS_APPROVAL,
-        "Ops change approval — summarize the proposed write, show risk, and gate Approve/Reject",
+        "Change approval — summarize the proposed write, show risk, and gate Approve/Reject",
         spec.requiredSlots(),
         spec.optionalSlots(),
         ShowcaseTemplateConfiguration::opsApprovalSpec);
@@ -68,7 +68,7 @@ public class ShowcaseTemplateConfiguration {
 
   private static A2UiSurfaceSpec opsApprovalSpec() {
     return A2UiFixedSurfaceSpec.builder(OPS_APPROVAL, "root")
-        .requiredSlots("title", "summary", "risk", "approveLabel")
+        .requiredSlots("title", "summary", "risk", "approveLabel", "changeId")
         .optionalSlots("rejectLabel", "meta")
         .components(ShowcaseTemplateConfiguration::opsApprovalComponents)
         .build();
@@ -84,7 +84,14 @@ public class ShowcaseTemplateConfiguration {
         textField("service-field", "/serviceLabel", "/service", "shortText"),
         textField("type-field", "/changeTypeLabel", "/changeType", "shortText"),
         textField("summary-field", "/summaryLabel", "/summary", "longText"),
-        button("submit-btn", "submit-label-txt", "submit_change"),
+        button(
+            "submit-btn",
+            "submit-label-txt",
+            "submit_change",
+            Map.of(
+                "service", "/service",
+                "changeType", "/changeType",
+                "summary", "/summary")),
         text("submit-label-txt", "/submitLabel", null));
   }
 
@@ -112,10 +119,11 @@ public class ShowcaseTemplateConfiguration {
     }
     components.add(text("summary-txt", "/summary", "body"));
     components.add(text("risk-txt", "/risk", "caption"));
-    components.add(button("approve-btn", "approve-label-txt", "approve"));
+    Map<String, String> decisionContext = Map.of("changeId", "/changeId");
+    components.add(button("approve-btn", "approve-label-txt", "approve", decisionContext));
     components.add(text("approve-label-txt", "/approveLabel", null));
     if (hasReject) {
-      components.add(button("reject-btn", "reject-label-txt", "reject"));
+      components.add(button("reject-btn", "reject-label-txt", "reject", decisionContext));
       components.add(text("reject-label-txt", "/rejectLabel", null));
     }
     return List.copyOf(components);
@@ -154,11 +162,19 @@ public class ShowcaseTemplateConfiguration {
     return new ComponentDefinition(id, "TextField", props);
   }
 
-  private static ComponentDefinition button(String id, String childId, String actionName) {
+  private static ComponentDefinition button(
+      String id, String childId, String actionName, Map<String, String> contextPaths) {
+    Map<String, Object> event = new LinkedHashMap<>();
+    event.put("name", actionName);
+    if (contextPaths != null && !contextPaths.isEmpty()) {
+      Map<String, Object> context = new LinkedHashMap<>();
+      contextPaths.forEach((key, path) -> context.put(key, Map.of("path", path)));
+      event.put("context", context);
+    }
     Map<String, Object> props = new LinkedHashMap<>();
     props.put("child", childId);
     props.put("variant", "primary");
-    props.put("action", Map.of("event", Map.of("name", actionName)));
+    props.put("action", Map.of("event", event));
     return new ComponentDefinition(id, "Button", props);
   }
 }

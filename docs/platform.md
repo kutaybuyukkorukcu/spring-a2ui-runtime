@@ -4,7 +4,9 @@ spring-a2ui is a **Spring GenUI backend runtime / platform** for OSS product bui
 
 We abstract GenUI backend infrastructure so teams can focus on product. Builders keep their design system and frontend; we own **compose → validate → stream → fail-fast → actions** on the JVM, delivered as Maven Central Spring Boot starters.
 
-**MVP status:** Core GenUI backend is shipped (Central `2.0.0` / A2UI v0.9.1) — basic catalog, template + dynamic, native SSE, utilization, actions. **Builder batteries** ship on Central **`2.1.0`**: Template SPI, host A2UI catalog registration SPI, decision/capture docs + HITL showcase, ops and multi-provider guides — adoption maturity, not a second MVP.
+**MVP status:** Core GenUI backend is shipped (Central `2.0.0` / A2UI v0.9.1) — basic catalog, template + dynamic, native SSE, utilization, actions. **Builder batteries** ship on Central **`2.1.0`**: Template SPI, host A2UI catalog registration SPI, in-product surface docs + showcase, ops and multi-provider guides — adoption maturity, not a second MVP.
+
+**Promise:** catalog-bounded **steps and islands** in a product the builder owns — validated, streamed, fail-fast, then their write path. Identity: [ADR 002](adr/002-in-product-surfaces.md).
 
 ## What we are / are not
 
@@ -24,7 +26,7 @@ We abstract GenUI backend infrastructure so teams can focus on product. Builders
 |---------------|--------|
 | Product logic and domain services | Generation (template + dynamic) |
 | Design system, FE renderer, **A2UI catalog schemas they author** | Validation against registered catalogs, assembly, SSE envelopes |
-| App chrome / chat shell (if any) | Fail-fast errors, retry bounds, metrics |
+| App chrome / chat shell (if any) — capability, not our identity | Fail-fast errors, retry bounds, metrics |
 | Choice of Spring AI chat model | `POST /a2ui/actions` ingress |
 | `A2UiActionHandler`, `A2UiTemplateCustomizer`, `A2UiCatalogContribution` | Routing / envelope checks around those SPIs |
 
@@ -49,14 +51,17 @@ We do **not** plan: first-party rich component kits as product identity, an “a
 
 | Mode | Role |
 |------|------|
-| **Template** (controlled GenUI) | Predictable layouts from registered surface specs — bootstrap set + host templates via `A2UiTemplateCustomizer` ([guide](guides/authoring-templates.md)) |
-| **Dynamic** (declarative GenUI) | LLM composes from the **active** catalog — basic by default, plus any host-registered catalogs ([guide](guides/registering-catalogs.md)) |
+| **Dynamic** (declarative compose) | Engine for **unknown structure** — this case’s tree from the **active** catalog ([guide](guides/dynamic-generative-ui.md)). Engineering gravity. Predetermined layouts through the planner are misuse. |
+| **Template** (controlled fill) | Frozen capability: LLM selects a registered spec and fills slots ([guide](guides/authoring-templates.md)). No near-term product investment. |
+| **Host `assemble`** | Known tree, **no** model call. Preferred for acks and confirm-only islands. |
 
 Open-ended GenUI (arbitrary HTML / remote applets) is out of scope unless we explicitly decide otherwise.
 
 ## Product wedge (jobs)
 
-GenUI marketing often emphasizes **presentation** (charts, booking, commerce). Our Spring/OSS fit is **decision + capture** inside products builders ship: ops / HITL approval, context-shaped intake, config wizards, support/internal case surfaces. Presentation-first hosted GenUI and React chat shells are adjacent products — not our identity. Detail: [builder batteries plan](plans/phase-platform-builder-batteries.md).
+**Genre: in-product surfaces** — a catalog-bounded region in a product builders already ship. Placements: a **step** in a host-owned process, or an **island** on a page (dynamically loaded slot). Native SSE into *their* chat is a capability, not the hunt.
+
+We do not name verticals (ops, HITL, intake, shop) as identity; those are costumes. We do not replace page chrome or happy-path checkout. We do not own their database — surfaces carry **surface state**; the host supplies truth. Presentation-first hosted GenUI and React chat shells are adjacent products. Detail: [ADR 002](adr/002-in-product-surfaces.md).
 
 ## Roadmap stages (outcomes)
 
@@ -65,7 +70,7 @@ Near-term **execution order is locked** in [`BACKLOG.md`](../BACKLOG.md). Do not
 1. **Patch `1.1.1`** ✅ — dynamic path is trustworthy infrastructure  
 2. **Phase X (A2UI v0.9.1)** ✅ — protocol currency on Current wire (`2.0.0`) — **core MVP**  
 3. **Utilization on native SSE** ✅ — text / progress / run lifecycle ([plan](plans/phase-product-runtime-interaction.md), [guide](guides/native-sse-utilization.md))  
-4. **Platform builder batteries** ✅ — decision/capture docs+showcase, **Template SPI**, **host A2UI catalog SPI**, ops, multi-provider — Central **`2.1.0`** ([plan](plans/phase-platform-builder-batteries.md))  
+4. **Platform builder batteries** ✅ — in-product surface docs+showcase, **Template SPI**, **host A2UI catalog SPI**, ops, multi-provider — Central **`2.1.0`** ([plan](plans/phase-platform-builder-batteries.md))  
 5. **Later (residual)** — v1.0 watch, multi-surface runtime, etc. (see BACKLOG) — **not** “invent catalogs for hosts”
 
 ## Where to go next
@@ -74,7 +79,7 @@ Near-term **execution order is locked** in [`BACKLOG.md`](../BACKLOG.md). Do not
 - [Golden-path cookbook](guides/golden-path-cookbook.md) — stream → utilization → action → host ack  
 - [Ops and diagnostics](guides/ops-and-diagnostics.md) — metrics, fail-fast playbook, latency/cost  
 - [Multi-provider Spring AI](guides/multi-provider-spring-ai.md) — OpenAI default; Groq/Anthropic/Gemini recipes  
-- [Action round-trip](guides/action-round-trip.md) — HITL / ops approval loop  
+- [Action round-trip](guides/action-round-trip.md) — click → host write gate → ack surface  
 - [Flow recompose](guides/flow-recompose.md) — host state → next surface  
 - [FE design-system binding](guides/fe-design-system-binding.md) — catalog → widgets  
 - [Authoring templates](guides/authoring-templates.md) — Template SPI  
@@ -83,6 +88,7 @@ Near-term **execution order is locked** in [`BACKLOG.md`](../BACKLOG.md). Do not
 - [Native SSE utilization](guides/native-sse-utilization.md) — run / text / tool progress events  
 - [Migrating to v0.9.1](guides/migrating-to-v0.9.1.md) — hard cutover from `1.1.x`  
 - [REST API](rest-api.md) — public HTTP surface  
-- [ADR 001](adr/001-streaming-surface-generation.md) — stream-only, fail-fast, template + dynamic  
+- [ADR 001](adr/001-streaming-surface-generation.md) — stream-only, fail-fast, template + dynamic mechanisms  
+- [ADR 002](adr/002-in-product-surfaces.md) — in-product surfaces; when to compose vs assemble  
 - [`BACKLOG.md`](../BACKLOG.md) — phases complete through batteries; Later residual  
 - [Platform builder batteries plan](plans/phase-platform-builder-batteries.md) — completed (Central `2.1.0`)  

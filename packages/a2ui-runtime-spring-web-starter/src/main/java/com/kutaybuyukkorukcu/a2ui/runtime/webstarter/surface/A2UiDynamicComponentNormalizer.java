@@ -303,11 +303,20 @@ public class A2UiDynamicComponentNormalizer {
             throw new IllegalArgumentException("action must be an object or string");
         }
 
-        // Already v0.9 shape
+        // Already v0.9 shape — still coerce event.context path shorthand
         if (actionMap.containsKey("event") || actionMap.containsKey("functionCall")) {
             Map<String, Object> copied = new LinkedHashMap<>();
             for (Map.Entry<?, ?> entry : actionMap.entrySet()) {
                 copied.put(String.valueOf(entry.getKey()), entry.getValue());
+            }
+            Object event = copied.get("event");
+            if (event instanceof Map<?, ?> eventMap) {
+                Map<String, Object> normalizedEvent = copyMap(eventMap);
+                Object context = normalizedEvent.get("context");
+                if (context != null) {
+                    normalizedEvent.put("context", normalizeActionContext(context));
+                }
+                copied.put("event", normalizedEvent);
             }
             return copied;
         }
@@ -332,16 +341,20 @@ public class A2UiDynamicComponentNormalizer {
 
     @SuppressWarnings("unchecked")
     private Object normalizeActionContext(Object context) {
-        if (context instanceof Map<?, ?>) {
-            return context;
+        if (context instanceof Map<?, ?> contextMap) {
+            Map<String, Object> coerced = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : contextMap.entrySet()) {
+                coerced.put(String.valueOf(entry.getKey()), coercePathShorthand(entry.getValue()));
+            }
+            return coerced;
         }
         // Legacy list of {key, value} → object map
         if (context instanceof List<?> contextItems) {
             Map<String, Object> asMap = new LinkedHashMap<>();
             for (Object contextItem : contextItems) {
-                if (contextItem instanceof Map<?, ?> contextMap) {
-                    Object key = contextMap.get("key");
-                    Object value = contextMap.get("value");
+                if (contextItem instanceof Map<?, ?> itemMap) {
+                    Object key = itemMap.get("key");
+                    Object value = itemMap.get("value");
                     if (key != null) {
                         asMap.put(String.valueOf(key), coercePathShorthand(value));
                     }

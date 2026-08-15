@@ -7,6 +7,17 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 
 Library versions (`2.x`) speak A2UI **protocol** v0.9.1. The `1.1.x` line remains A2UI v0.8 Legacy.
 
+## [Unreleased]
+
+### Changed
+
+- **Identity** — in-product surfaces (process steps and page islands); chat is a capability of native SSE, not the promise ([ADR 002](docs/adr/002-in-product-surfaces.md))
+- **Path roles** — dynamic compose for unknown structure (engineering gravity); template mode frozen; host `assemble` for known trees
+- **Docs** — platform, cookbook, action round-trip, README, BACKLOG product direction aligned to ADR 002
+- **Showcase** — payments-api workspace: known record `cfg-204` host-assembled ($0), unknown record `mig-311` dynamically composed from case context; one island; host ledger write gate (`submit_change` / `approve` / `reject` only; no empty-context defaults; decision buttons bind `changeId`)
+- **Form capture** — TextField `value` path is required; submit Buttons must declare `action.event.context` maps; showcase handler persists submitted values (including notes/rollback/risk) into the next assembled surface
+- **Templates** — library no longer ships bootstrap templates (`text-card`, `hero-cta`, `form-login`, `weather-card`). Register your own via `A2UiTemplateCustomizer`; the registry starts empty
+
 ## [2.1.0] — 2026-08-09
 
 Minor release: **platform builder batteries** — Template SPI, host A2UI catalog registration SPI, decision/capture docs + HITL showcase, ops and multi-provider guides. Wire stays A2UI **v0.9.1** (source-compatible with `2.0.0`).

@@ -145,6 +145,31 @@ class A2UiMessageValidatorTest {
     }
 
     @Test
+    void shouldRejectTextFieldMissingRequiredValue() {
+        ComponentDefinition textField = new ComponentDefinition(
+                "root", "TextField", Map.of("label", "Summary"));
+        List<A2UiMessage> messages = List.of(
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.UpdateComponents("main", List.of(textField)));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9));
+        assertThat(diagnostics).anyMatch(d -> "MISSING_REQUIRED_PROP".equals(d.code()));
+    }
+
+    @Test
+    void shouldAcceptTextFieldWithValuePath() {
+        ComponentDefinition textField = new ComponentDefinition(
+                "root",
+                "TextField",
+                Map.of("label", "Summary", "value", Map.of("path", "/summary")));
+        List<A2UiMessage> messages = List.of(
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.UpdateComponents("main", List.of(textField)));
+        assertThat(validator.validate(messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9)))
+                .isEmpty();
+    }
+
+    @Test
     void shouldRejectTextWithUnknownProp() {
         ComponentDefinition text = new ComponentDefinition(
                 "root", "Text", Map.of("text", "Hi", "notARealProp", true));

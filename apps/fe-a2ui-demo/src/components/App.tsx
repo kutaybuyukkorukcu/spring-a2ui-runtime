@@ -15,17 +15,19 @@ import {
   streamSurface,
   sendAction,
   fetchDemoInfo,
+  openAssembledRecord,
   extractActionResult,
   messagesWithoutDelete,
+  applyDataModelSeeds,
+  resolveActionContext,
   type StreamUtilizationEvent,
-  type StreamContext,
   type DemoInfo,
+  type DemoRecord,
+  type LedgerEntry,
 } from '../services/api';
 import '@a2ui/react-v0_9-css';
 
 const SERVER_CATALOG_ID = 'https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json';
-
-type StoryStep = 'idle' | 'propose' | 'review' | 'decided';
 
 function createServerAlignedCatalog(): Catalog<ReactComponentImplementation> {
   return new Catalog(
@@ -41,16 +43,45 @@ function isRawPayload(text: string | null): boolean {
   return trimmed.startsWith('{') || trimmed.startsWith('[');
 }
 
+function ledgerFromAction(result: ReturnType<typeof extractActionResult>): LedgerEntry | null {
+  if (!result?.changeId || !result.status) return null;
+  const status = result.status === 'approved' || result.status === 'rejected'
+    ? result.status.toUpperCase()
+    : result.status;
+  return {
+    id: result.changeId,
+    status,
+    service: result.service,
+    changeType: result.changeType,
+  };
+}
+
+function mergeLedger(current: LedgerEntry[], incoming: LedgerEntry): LedgerEntry[] {
+  const rest = current.filter((row) => row.id !== incoming.id);
+  return [incoming, ...rest];
+}
+
 export function App() {
   const [demoInfo, setDemoInfo] = useState<DemoInfo | null>(null);
   const [demoInfoError, setDemoInfoError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [storyStep, setStoryStep] = useState<StoryStep>('idle');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [islandCaption, setIslandCaption] = useState<string | null>(null);
   const [runStatus, setRunStatus] = useState<string | null>(null);
   const [toolProgress, setToolProgress] = useState<string | null>(null);
+  const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [surfaces, setSurfaces] = useState<SurfaceModel<ReactComponentImplementation>[]>([]);
   const processorRef = useRef<MessageProcessor<ReactComponentImplementation> | null>(null);
+
+  const refreshLedger = useCallback(async () => {
+    try {
+      const info = await fetchDemoInfo();
+      setLedger(info.ledger ?? []);
+    } catch {
+      // Host page already has the last action result; skip a failed refresh.
+    }
+  }, []);
 
   const applyMessages = useCallback((processor: MessageProcessor<ReactComponentImplementation>, messages: A2uiMessage[]) => {
     for (const surfaceId of Array.from(processor.model.surfacesMap.keys())) {
@@ -67,8 +98,15 @@ export function App() {
       [createServerAlignedCatalog()],
       async (action: A2uiClientAction) => {
         try {
-          const result = await sendAction({ action });
           const processor = processorRef.current;
+          const resolved = processor
+            ? resolveActionContext(action, (surfaceId, path) => {
+                const surface = processor.model.surfacesMap.get(surfaceId)
+                  ?? Array.from(processor.model.surfacesMap.values())[0];
+                return surface?.dataModel.get(path);
+              })
+            : action;
+          const result = await sendAction({ action: resolved });
           if (!processor) return;
 
           const inbound = messagesWithoutDelete(result.messages ?? []) as unknown as A2uiMessage[];
@@ -77,11 +115,15 @@ export function App() {
           }
 
           const actionResult = extractActionResult(result.messages);
+          const row = ledgerFromAction(actionResult);
+          if (row) {
+            setLedger((current) => mergeLedger(current, row));
+          }
+          void refreshLedger();
+
           if (actionResult?.nextStep === 'approval') {
-            setStoryStep('review');
             setRunStatus('Host persisted the draft and returned the approval surface.');
           } else if (actionResult?.status === 'approved' || actionResult?.status === 'rejected') {
-            setStoryStep('decided');
             setRunStatus(
               actionResult.status === 'approved'
                 ? `Change ${actionResult.changeId ?? ''} approved in the host ledger.`
@@ -100,7 +142,10 @@ export function App() {
 
   useEffect(() => {
     void fetchDemoInfo()
-      .then(setDemoInfo)
+      .then((info) => {
+        setDemoInfo(info);
+        setLedger(info.ledger ?? []);
+      })
       .catch((err: unknown) => {
         setDemoInfoError(err instanceof Error ? err.message : 'Failed to load demo info');
       });
@@ -121,16 +166,17 @@ export function App() {
     setError(null);
     setRunStatus(null);
     setToolProgress(null);
-    setStoryStep('idle');
+    setSelectedId(null);
+    setIslandCaption(null);
   }, [processor, applyMessages]);
 
   const handleUtilizationEvent = useCallback((event: StreamUtilizationEvent) => {
     switch (event.type) {
       case 'runStarted':
-        setRunStatus('Composing tonight’s change surface…');
+        setRunStatus('Composing island for this case…');
         break;
       case 'runFinished':
-        setRunStatus('Surface ready — continue the change in the card below.');
+        setRunStatus('Island ready.');
         setToolProgress(null);
         break;
       case 'runError':
@@ -149,11 +195,15 @@ export function App() {
     }
   }, []);
 
-  const generate = useCallback(async (content: string, context?: StreamContext) => {
+  const composeRecord = useCallback(async (record: DemoRecord) => {
+    const content = record.content;
+    if (!content) {
+      setError('Composed record is missing case content.');
+      return;
+    }
     setLoading(true);
     setError(null);
     applyMessages(processor, []);
-    setStoryStep('propose');
 
     try {
       await streamSurface(
@@ -172,8 +222,18 @@ export function App() {
         (err) => setError(err),
         handleUtilizationEvent,
         undefined,
-        context,
+        {
+          intent: 'case_island',
+          instructions: record.instructions,
+        },
       );
+
+      if (record.dataModelSeeds) {
+        processor.processMessages(
+          applyDataModelSeeds(record.dataModelSeeds) as unknown as A2uiMessage[],
+        );
+        setSurfaces(Array.from(processor.model.surfacesMap.values()));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -181,30 +241,43 @@ export function App() {
     }
   }, [processor, applyMessages, handleUtilizationEvent]);
 
-  const startStory = () => {
-    if (!demoInfo || loading) return;
-    void generate(demoInfo.primaryPrompt, {
-      intent: 'change_intake',
-      instructions:
-        'Tonight’s change: payments-api config deploy of payment-config v2.4. Prefill service, change type, and summary.',
-    });
-  };
+  const openRecord = useCallback(async (record: DemoRecord) => {
+    if (loading) return;
+    setSelectedId(record.id);
+    setIslandCaption(record.caption);
+    setError(null);
+    setToolProgress(null);
+    setRunStatus(null);
+    applyMessages(processor, []);
 
-  const generationMode = demoInfo?.generationMode ?? 'template';
+    if (record.surfaceKind === 'assembled') {
+      setLoading(true);
+      try {
+        const opened = await openAssembledRecord(record.id);
+        applyMessages(processor, opened.messages as A2uiMessage[]);
+        setIslandCaption(opened.caption);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to open record');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    await composeRecord(record);
+  }, [loading, processor, applyMessages, composeRecord]);
+
+  const records = demoInfo?.records ?? [];
+  const selectedRecord = records.find((record) => record.id === selectedId);
 
   return (
     <div className="app">
       <header>
-        <div className="header-row">
-          <h1>{demoInfo?.productName ?? 'Ops Change Console'}</h1>
-          <span className={`mode-pill mode-pill--${generationMode}`}>
-            {generationMode === 'dynamic' ? 'Dynamic' : 'Template'}
-          </span>
-        </div>
-        <h2 className="story-title">{demoInfo?.storyTitle ?? "Tonight's change window"}</h2>
+        <h1>{demoInfo?.productName ?? 'payments-api workspace'}</h1>
+        <h2 className="story-title">{demoInfo?.storyTitle ?? 'Your page, one slot'}</h2>
         <p>
           {demoInfo?.storyBlurb
-            ?? 'Propose a production change, then gate the write in your Spring host.'}
+            ?? 'This workspace is the product you own. The island is the only region that speaks A2UI.'}
         </p>
         {demoInfoError && (
           <p className="demo-info-warning">
@@ -213,48 +286,99 @@ export function App() {
         )}
       </header>
 
-      <ol className="story-steps">
-        <li className={storyStep !== 'idle' ? 'is-active' : ''}>Propose</li>
-        <li className={storyStep === 'review' || storyStep === 'decided' ? 'is-active' : ''}>Review</li>
-        <li className={storyStep === 'decided' ? 'is-active' : ''}>Decide</li>
-      </ol>
-
-      <main>
-        <div className="controls">
-          <button type="button" onClick={startStory} disabled={loading || !demoInfo}>
-            {loading ? 'Opening…' : (demoInfo?.primaryCta ?? "Open tonight's change")}
-          </button>
-          <button type="button" className="secondary-button" onClick={clearSurfaces} disabled={loading}>
+      <div className="workspace">
+        <aside className="record-panel">
+          <h3>Records</h3>
+          <ul className="record-list">
+            {records.map((record) => (
+              <li key={record.id}>
+                <button
+                  type="button"
+                  className={`record-row${selectedId === record.id ? ' is-selected' : ''}`}
+                  onClick={() => void openRecord(record)}
+                  disabled={loading || !demoInfo}
+                  aria-current={selectedId === record.id ? 'true' : undefined}
+                >
+                  <span className="record-id">{record.id}</span>
+                  <span className="record-title">{record.title}</span>
+                  <span className="record-flags">{record.flags.join(' · ')}</span>
+                  <span className="record-kind">{record.surfaceKind}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <button type="button" className="secondary-button reset-button" onClick={clearSurfaces} disabled={loading}>
             Reset
           </button>
-        </div>
+        </aside>
 
-        {error && (
-          <div className="a2ui-error">
-            <h3>Error</h3>
-            <p>{error}</p>
+        <section className="island" aria-label={demoInfo?.islandLabel ?? 'GenUI slot'}>
+          <div className="island-header">
+            <span className="island-label">{demoInfo?.islandLabel ?? 'GenUI slot'}</span>
+            {islandCaption && <span className="island-caption">{islandCaption}</span>}
           </div>
-        )}
 
-        {(runStatus || toolProgress) && (
-          <div className="a2ui-run-status">
-            {runStatus && !isRawPayload(runStatus) && <p>{runStatus}</p>}
-            {toolProgress && <p className="a2ui-tool-progress">{toolProgress}</p>}
-          </div>
-        )}
-
-        <div className="surface-container">
-          {surfaces.length === 0 ? (
-            <div className="a2ui-empty">
-              <p>Open tonight’s change to start the intake → approval loop.</p>
+          {error && (
+            <div className="a2ui-error">
+              <h3>Error</h3>
+              <p>{error}</p>
             </div>
-          ) : (
-            surfaces.map((surface) => (
-              <A2uiSurface key={surface.id} surface={surface} />
-            ))
           )}
-        </div>
-      </main>
+
+          {(runStatus || toolProgress) && (
+            <div className="a2ui-run-status">
+              {runStatus && !isRawPayload(runStatus) && <p>{runStatus}</p>}
+              {toolProgress && <p className="a2ui-tool-progress">{toolProgress}</p>}
+            </div>
+          )}
+
+          <div className="surface-container">
+            {surfaces.length === 0 ? (
+              <div className="a2ui-empty">
+                <p>
+                  {loading
+                    ? (selectedRecord?.surfaceKind === 'composed'
+                      ? 'Composing island for this case…'
+                      : 'Filling slot…')
+                    : 'Select a record. This slot is the only region that speaks A2UI.'}
+                </p>
+              </div>
+            ) : (
+              surfaces.map((surface) => (
+                <A2uiSurface key={surface.id} surface={surface} />
+              ))
+            )}
+          </div>
+        </section>
+      </div>
+
+      <section className="ledger" aria-label="Host ledger">
+        <h3>Ledger</h3>
+        {ledger.length === 0 ? (
+          <p className="ledger-empty">No writes yet. Submitting from the island persists here — in this Spring host.</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Id</th>
+                <th>Status</th>
+                <th>Service</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ledger.map((row) => (
+                <tr key={row.id}>
+                  <td><code>{row.id}</code></td>
+                  <td>{row.status}</td>
+                  <td>{row.service ?? '—'}</td>
+                  <td>{row.changeType ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
     </div>
   );
 }

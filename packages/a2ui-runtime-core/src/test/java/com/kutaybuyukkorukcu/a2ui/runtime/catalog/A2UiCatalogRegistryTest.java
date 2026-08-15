@@ -100,10 +100,25 @@ class A2UiCatalogRegistryTest {
     }
 
     @Test
+    void shouldReturnRequiredPropsForTextField() {
+        A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
+        Set<String> required = registry.requiredProps(A2UiCatalogIds.BASIC_V0_9, "TextField");
+        assertThat(required).containsExactlyInAnyOrder("label", "value");
+    }
+
+    @Test
     void shouldReturnRequiredPropsForCheckBox() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
         Set<String> required = registry.requiredProps(A2UiCatalogIds.BASIC_V0_9, "CheckBox");
         assertThat(required).containsExactlyInAnyOrder("label", "value");
+    }
+
+    @Test
+    void shouldInstructTextFieldValuePathAndButtonContextInCatalogRules() {
+        A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
+        String rules = registry.catalogRulesText();
+        assertThat(rules).contains("bind 'value' to a data-model path");
+        assertThat(rules).contains("action.event.context");
     }
 
     @Test
