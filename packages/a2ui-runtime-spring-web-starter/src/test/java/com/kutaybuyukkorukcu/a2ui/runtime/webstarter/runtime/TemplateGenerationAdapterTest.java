@@ -82,10 +82,12 @@ class TemplateGenerationAdapterTest {
             return requestSpec;
         });
         when(requestSpec.call()).thenAnswer(invocation -> {
+            ToolContext toolContext = new ToolContext(toolContextRef.get());
+            templateTools.selectTemplate(ExampleTextCardTemplate.ID, "test", toolContext);
             templateTools.renderTemplate(
                     ExampleTextCardTemplate.ID,
                     Map.of("title", "News", "body", "Latest updates"),
-                    new ToolContext(toolContextRef.get()));
+                    toolContext);
             return callResponseSpec;
         });
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show a news card", null, null);

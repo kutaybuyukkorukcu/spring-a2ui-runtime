@@ -3,7 +3,7 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRefSchemas;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
-import java.util.ArrayList;
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiMaps;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -108,7 +108,6 @@ public final class A2UiToolSchemaGenerator {
         return componentsSchema;
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, Object> buildComponentTypeProps(String catalogId, String componentType) {
         Map<String, Object> catalogSchema = catalogRegistry.componentSchema(catalogId, componentType);
         Map<String, Object> adaptedProps = new LinkedHashMap<>();
@@ -120,14 +119,13 @@ public final class A2UiToolSchemaGenerator {
                     continue;
                 }
                 if (entry.getValue() instanceof Map<?, ?> propSchema) {
-                    adaptedProps.put(propName, adaptPropSchema(propName, (Map<String, Object>) propSchema));
+                    adaptedProps.put(propName, adaptPropSchema(propName, A2UiMaps.copyOf(propSchema)));
                 }
             }
         }
         return adaptedProps;
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, Object> adaptPropSchema(String propName, Map<String, Object> catalogPropSchema) {
         if ("children".equals(propName)) {
             return withDescription(A2UiCatalogRefSchemas.childListSchema(),
@@ -148,7 +146,7 @@ public final class A2UiToolSchemaGenerator {
                 return inlined;
             }
         }
-        Map<String, Object> copied = deepCopyMap(catalogPropSchema);
+        Map<String, Object> copied = A2UiMaps.deepCopy(catalogPropSchema);
         copied.remove("$ref");
         return copied;
     }
@@ -156,30 +154,6 @@ public final class A2UiToolSchemaGenerator {
     private static Map<String, Object> withDescription(Map<String, Object> schema, String description) {
         Map<String, Object> copy = new LinkedHashMap<>(schema);
         copy.put("description", description);
-        return copy;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Map<String, Object> deepCopyMap(Map<String, Object> source) {
-        Map<String, Object> copy = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : source.entrySet()) {
-            Object value = entry.getValue();
-            if (value instanceof Map<?, ?> nested) {
-                copy.put(entry.getKey(), deepCopyMap((Map<String, Object>) nested));
-            } else if (value instanceof List<?> list) {
-                List<Object> listCopy = new ArrayList<>(list.size());
-                for (Object item : list) {
-                    if (item instanceof Map<?, ?> nestedItem) {
-                        listCopy.add(deepCopyMap((Map<String, Object>) nestedItem));
-                    } else {
-                        listCopy.add(item);
-                    }
-                }
-                copy.put(entry.getKey(), listCopy);
-            } else {
-                copy.put(entry.getKey(), value);
-            }
-        }
         return copy;
     }
 }

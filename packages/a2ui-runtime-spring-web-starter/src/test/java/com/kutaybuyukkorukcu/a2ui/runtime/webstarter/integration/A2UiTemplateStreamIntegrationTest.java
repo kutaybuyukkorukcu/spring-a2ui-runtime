@@ -62,10 +62,12 @@ class A2UiTemplateStreamIntegrationTest {
             return requestSpec;
         });
         doAnswer(invocation -> {
+            ToolContext toolContext = new ToolContext(toolContextRef.get());
+            templateTools.selectTemplate(ExampleTextCardTemplate.ID, "test", toolContext);
             templateTools.renderTemplate(
                     ExampleTextCardTemplate.ID,
                     Map.of("title", "Sign in", "body", "Use your workspace credentials."),
-                    new ToolContext(toolContextRef.get()));
+                    toolContext);
             return callResponseSpec;
         }).when(requestSpec).call();
     }

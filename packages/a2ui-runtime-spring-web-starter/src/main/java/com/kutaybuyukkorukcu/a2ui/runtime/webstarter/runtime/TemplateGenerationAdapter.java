@@ -10,6 +10,11 @@ import org.springframework.ai.chat.client.ChatClient;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Template-mode generation: {@code selectTemplate} then {@code renderTemplate}.
+ *
+ * @apiNote internal — not a host SPI; remains public until a major version.
+ */
 public final class TemplateGenerationAdapter implements GenerationModeAdapter {
 
     public static final String DEFAULT_SURFACE_ID = "main";

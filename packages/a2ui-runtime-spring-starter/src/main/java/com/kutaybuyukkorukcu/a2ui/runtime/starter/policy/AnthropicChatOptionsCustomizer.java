@@ -4,9 +4,6 @@ import org.springframework.ai.anthropic.AnthropicChatOptions;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
-import org.springframework.util.StringUtils;
-
-import java.util.Objects;
 
 public class AnthropicChatOptionsCustomizer implements A2UiChatOptionsCustomizer {
 
@@ -21,12 +18,10 @@ public class AnthropicChatOptionsCustomizer implements A2UiChatOptionsCustomizer
                 ? AnthropicChatOptions.fromOptions(anthropic)
                 : AnthropicChatOptions.builder().build();
 
-        if (StringUtils.hasText(policy.getModel())) {
-            options.setModel(Objects.requireNonNull(policy.getModel()));
-        }
-        options.setTemperature(policy.getTemperature());
-        options.setTopP(policy.getTopP());
-        options.setMaxTokens(policy.getMaxTokens());
+        A2UiChatOptionsApply.textIfPresent(policy.getModel(), options::setModel);
+        A2UiChatOptionsApply.ifPresent(policy.getTemperature(), options::setTemperature);
+        A2UiChatOptionsApply.ifPresent(policy.getTopP(), options::setTopP);
+        A2UiChatOptionsApply.ifPresent(policy.getMaxTokens(), options::setMaxTokens);
         return options;
     }
 
