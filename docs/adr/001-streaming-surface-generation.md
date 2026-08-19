@@ -6,7 +6,7 @@
 | Accepted | 2026-07-12 |
 | Deciders | spring-a2ui maintainers |
 
-**Product-role note (2026-08-15):** this ADR’s *mechanisms* stand (stream-only SSE, fail-fast, template tools + dynamic compose). **What we sell, when to use each path, and what the showcase may prove** are superseded by [ADR 002](002-in-product-surfaces.md). Dynamic is the engine for unknown structure, not a license to compose predetermined layouts. Template mode is a frozen capability.
+**Product-role note (2026-08-15):** this ADR’s *mechanisms* stand (stream-only SSE, fail-fast, template tools + dynamic compose). **What we sell, when to use each path, and what the showcase may prove** are superseded by [ADR 002](002-in-product-surfaces.md). Dynamic is the engine for unknown structure, not a license to compose predetermined layouts. Template mode is a frozen capability. The `A2UiSurfaceTemplates.weatherCard()` snippet below is historical — that class was removed; register a host spec and `assemble`, or use template mode against your registry.
 
 ## Clarification: dynamic A2UI is the product; Option A is the MVP bootstrap
 

@@ -8,6 +8,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionExcep
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiPromptContext;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.DynamicA2UiPromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiRuntimeEventCollector;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.ChatClientFactories;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiDynamicAssemblyService;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.RenderA2UiArgs;
@@ -209,11 +210,7 @@ public class A2UiDynamicTools {
     }
 
     private ChatClient createPlannerClient() {
-        ChatClient.Builder builder = chatClientBuilder.clone();
-        for (Advisor advisor : advisors) {
-            builder = builder.defaultAdvisors(advisor);
-        }
-        return builder.build();
+        return ChatClientFactories.cloneWithAdvisors(chatClientBuilder, advisors);
     }
 
     private DynamicRenderSession requireSession(ToolContext toolContext) {

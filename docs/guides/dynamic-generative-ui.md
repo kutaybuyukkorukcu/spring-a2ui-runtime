@@ -79,33 +79,33 @@ Micrometer counters (also via Actuator: `GET /actuator/metrics/<name>` when `met
 
 ## Running the showcase
 
-The `be-transform-showcase` app ships Spring profiles:
+The `be-transform-showcase` app defaults to **dynamic** (one island: known
+record assembled, unknown record composed). `application-template.yml` is a
+frozen-capability smoke, not the hero.
 
 ```bash
-# Template mode (default)
+# Dynamic island demo (default)
 ./mvnw -pl apps/be-transform-showcase spring-boot:run
 
-# Dynamic mode
-./mvnw -pl apps/be-transform-showcase spring-boot:run -Dspring-boot.run.arguments="--spring.profiles.active=dynamic"
+# Template mode (optional smoke)
+./mvnw -pl apps/be-transform-showcase spring-boot:run -Dspring-boot.run.arguments="--spring.profiles.active=template"
 ```
 
 Profile files:
 
+- `application.yml` — `spring.profiles.default: dynamic`
 - `application-template.yml` — `generation-mode: template`
 - `application-dynamic.yml` — `generation-mode: dynamic`
 
-Base `application.yml` sets `spring.profiles.default: template`.
-
 ## Frontend demo toggle
 
-The `fe-a2ui-demo` app reads `VITE_A2UI_GENERATION_MODE`:
+The `fe-a2ui-demo` app reads `VITE_A2UI_GENERATION_MODE` (default `dynamic`):
 
 ```bash
-# Template samples (default)
 npm run dev
 
-# Dynamic open-ended prompts + UI hint
-VITE_A2UI_GENERATION_MODE=dynamic npm run dev
+# Template smoke
+VITE_A2UI_GENERATION_MODE=template npm run dev
 ```
 
 Start the backend with the matching profile so generation mode aligns on both sides.

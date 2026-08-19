@@ -15,10 +15,14 @@ import reactor.core.scheduler.Schedulers;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Compose module: ChatClient hop, lifecycle collector, and fail-fast around
- * template vs dynamic {@link GenerationModeAdapter}s.
+ * the active {@link GenerationModeAdapter}. Auto-config registers only the
+ * adapter for {@code a2ui.web.runtime.generation-mode}. A custom
+ * {@link A2UiSurfaceRuntime} bean bypasses assembly validation by design —
+ * the default adapters validate inside assembly before messages reach this pipe.
  *
  * @apiNote internal — not a host SPI; remains public until a major version.
  */
@@ -28,8 +32,7 @@ public class SpringAiSurfaceRuntime implements A2UiSurfaceRuntime {
     private final List<Advisor> advisors;
     private final Environment environment;
     private final A2UiWebProperties properties;
-    private final GenerationModeAdapter templateAdapter;
-    private final GenerationModeAdapter dynamicAdapter;
+    private final GenerationModeAdapter generationAdapter;
     private final boolean lifecycleEventsEnabled;
 
     public SpringAiSurfaceRuntime(
@@ -37,14 +40,12 @@ public class SpringAiSurfaceRuntime implements A2UiSurfaceRuntime {
             List<Advisor> advisors,
             Environment environment,
             A2UiWebProperties properties,
-            GenerationModeAdapter templateAdapter,
-            GenerationModeAdapter dynamicAdapter) {
+            GenerationModeAdapter generationAdapter) {
         this.chatClientBuilder = chatClientBuilder;
         this.advisors = advisors == null ? List.of() : advisors;
         this.environment = environment;
         this.properties = properties;
-        this.templateAdapter = templateAdapter;
-        this.dynamicAdapter = dynamicAdapter;
+        this.generationAdapter = Objects.requireNonNull(generationAdapter, "generationAdapter");
         this.lifecycleEventsEnabled = properties != null && properties.getStream().isLifecycleEvents();
     }
 
@@ -58,7 +59,7 @@ public class SpringAiSurfaceRuntime implements A2UiSurfaceRuntime {
 
     @Override
     public Flux<A2UiRuntimeEvent> stream(A2UiSurfaceRequest request, String requestId, String catalogId) {
-        GenerationModeAdapter adapter = isTemplateMode() ? templateAdapter : dynamicAdapter;
+        GenerationModeAdapter adapter = generationAdapter;
         return Mono.fromCallable(() -> {
                     A2UiRuntimeEventCollector collector = lifecycleEventsEnabled
                             ? new A2UiRuntimeEventCollector(requestId, true)
@@ -82,16 +83,8 @@ public class SpringAiSurfaceRuntime implements A2UiSurfaceRuntime {
                 .flatMapMany(Flux::fromIterable);
     }
 
-    private boolean isTemplateMode() {
-        return properties != null && "template".equalsIgnoreCase(properties.getRuntime().getGenerationMode());
-    }
-
     private ChatClient createClient() {
-        ChatClient.Builder builder = chatClientBuilder.clone();
-        for (Advisor advisor : advisors) {
-            builder = builder.defaultAdvisors(advisor);
-        }
-        return builder.build();
+        return ChatClientFactories.cloneWithAdvisors(chatClientBuilder, advisors);
     }
 
     private static List<A2UiRuntimeEvent> toRuntimeEvents(

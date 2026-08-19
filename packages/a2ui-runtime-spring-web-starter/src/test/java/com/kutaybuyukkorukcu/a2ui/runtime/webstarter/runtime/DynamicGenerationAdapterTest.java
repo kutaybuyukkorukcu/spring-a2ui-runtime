@@ -65,7 +65,6 @@ class DynamicGenerationAdapterTest {
                 List.of(),
                 new StandardEnvironment(),
                 new A2UiWebProperties(),
-                mock(GenerationModeAdapter.class),
                 new DynamicGenerationAdapter(new DynamicA2UiPromptProvider(), dynamicTools));
 
         when(builder.clone()).thenReturn(builder);

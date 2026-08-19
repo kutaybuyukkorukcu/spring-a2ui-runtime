@@ -86,7 +86,7 @@ Sample apps under `apps/` (`be-transform-showcase`, `fe-a2ui-demo`) are for loca
 
 * Streams A2UI v0.9.1 envelopes (`createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface`) over SSE
 * Negotiates catalogs from client capabilities and pins `catalogId` on `createSurface`
-* Validates messages against the **active** catalog (vendored basic v0.9 today, including component properties; host catalog registration planned)
+* Validates messages against the **active** catalog (vendored basic v0.9 today, plus host-registered catalogs via [`A2UiCatalogContribution`](docs/guides/registering-catalogs.md))
 * Fails fast with SSE `event: error` — no silent fallback surfaces
 * Offers template tools for deterministic UX and a two-hop dynamic path for catalog composition
 * Retries dynamic assembly once with validation diagnostics, then errors
@@ -98,12 +98,12 @@ Sample apps under `apps/` (`be-transform-showcase`, `fe-a2ui-demo`) are for loca
 ```shell
 export OPENAI_API_KEY=...
 
-# Backend — template profile (showcase default)
+# Backend — dynamic island demo (showcase default)
 mvn -pl apps/be-transform-showcase spring-boot:run
 
-# Backend — dynamic profile
+# Backend — template profile (frozen-capability smoke)
 mvn -pl apps/be-transform-showcase spring-boot:run \
-  -Dspring-boot.run.arguments="--spring.profiles.active=dynamic"
+  -Dspring-boot.run.arguments="--spring.profiles.active=template"
 
 # Frontend
 cd apps/fe-a2ui-demo && npm install && npm run dev
@@ -129,7 +129,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for layout, PR expectations, and formatti
 * [REST API](docs/rest-api.md)  
 * [Dynamic generative UI](docs/guides/dynamic-generative-ui.md)  
 * [Hosting actions](docs/guides/hosting-actions.md)  
-* [Platform builder batteries plan](docs/plans/phase-platform-builder-batteries.md) — next phase  
+* [Platform builder batteries plan](docs/plans/phase-platform-builder-batteries.md) — completed (Central `2.1.0`)  
 * [Changelog](CHANGELOG.md)  
 * [Backlog](BACKLOG.md) — execution order (near-term priority is locked)  
 

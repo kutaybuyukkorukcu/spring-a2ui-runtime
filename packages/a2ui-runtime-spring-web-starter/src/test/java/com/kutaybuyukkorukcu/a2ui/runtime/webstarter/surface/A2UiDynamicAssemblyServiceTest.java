@@ -1,6 +1,8 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface;
 
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogContribution;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage.ComponentDefinition;
 import com.kutaybuyukkorukcu.a2ui.runtime.surface.A2UiDynamicComponentNormalizer;
@@ -155,5 +157,40 @@ class A2UiDynamicAssemblyServiceTest {
         assertThatThrownBy(() -> assemblyService.assemble(args, A2UiCatalogIds.BASIC_V0_9, "main"))
                 .isInstanceOf(SurfaceExecutionException.class)
                 .hasMessageContaining("must not be null");
+    }
+
+    @Test
+    void shouldRejectHostTypeUnderBasicCatalog() {
+        String hostCatalog = "https://example.com/catalogs/host/1.0";
+        A2UiMessageValidator hostAwareValidator = new A2UiMessageValidator(
+                A2UiCatalogRegistry.withContributions(
+                        A2UiCatalogRegistry.shared(),
+                        List.of(new A2UiCatalogContribution() {
+                            @Override
+                            public String catalogId() {
+                                return hostCatalog;
+                            }
+
+                            @Override
+                            public Map<String, Map<String, Object>> componentSchemas() {
+                                return Map.of("StatusBadge", Map.of(
+                                        "type", "object",
+                                        "additionalProperties", false,
+                                        "required", List.of("text"),
+                                        "properties", Map.of("text", Map.of("type", "string"))));
+                            }
+                        })));
+        A2UiDynamicAssemblyService hostAwareAssembly =
+                new A2UiDynamicAssemblyService(new A2UiDynamicComponentNormalizer(), hostAwareValidator);
+        RenderA2UiArgs args = new RenderA2UiArgs(
+                "planner-surface",
+                "root",
+                List.of(Map.of("id", "root", "component", "StatusBadge", "text", "Approved")),
+                null);
+
+        assertThatThrownBy(() -> hostAwareAssembly.assemble(args, A2UiCatalogIds.BASIC_V0_9, "main"))
+                .isInstanceOf(SurfaceExecutionException.class)
+                .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
+                .isEqualTo(SurfaceErrorCodes.A2UI_VALIDATION_FAILED);
     }
 }

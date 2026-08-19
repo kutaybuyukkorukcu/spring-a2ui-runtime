@@ -1,6 +1,6 @@
 # Backlog
 
-Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** ✅ → **Central `2.1.0` (Template + Catalog SPI)** → **Architecture revisions** → **Later (residual)**.
+Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** ✅ → **Central `2.1.0` (Template + Catalog SPI)** ✅ → **Architecture revisions** ✅ → **Later (residual)**.
 
 ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)` · `[docs/adr/002-in-product-surfaces.md](docs/adr/002-in-product-surfaces.md)`
 
@@ -40,7 +40,7 @@ Ship a Maven Central Spring Boot runtime that turns host intent plus context int
 ### Generation product (shipped)
 
 - **Dynamic (unknown structure):** LLM composes from the **active** catalog — adjacency lists, data model, lifecycle envelopes — without page templates. Vendored **basic** catalog by default; hosts register additional A2UI catalogs via `A2UiCatalogContribution`. Engineering gravity. Predetermined layouts through the planner are misuse.
-- **Template (frozen capability):** Registered surface specs; LLM selects and fills slots. Bootstrap set + host templates via `A2UiTemplateCustomizer`. No near-term product investment. Prefer host `assemble` when the tree is already known (no model call).
+- **Template (frozen capability):** Registered surface specs; LLM selects and fills slots via `A2UiTemplateCustomizer` / `A2UiSurfaceSpec` / `A2UiFixedSurfaceSpec`. The registry starts empty — the library ships no bootstrap templates. No near-term product investment. Prefer host `assemble` when the tree is already known (no model call).
 - Catalog defines **component vocabulary and prop shapes**, not page templates. Basic catalog is vendored for bootstrap; hosts author production catalogs (A2UI model) and register them via SPI — we validate/generate, we do not ship their design system.
 
 ### Transport & errors (decided)
@@ -52,7 +52,7 @@ Ship a Maven Central Spring Boot runtime that turns host intent plus context int
 
 ### Tool API (decided)
 
-- **Hybrid:** fluent builder / template registry (`A2UiSurfaceTemplates`, `A2UiSurfaceSpec`) + thin runtime-owned `@Tool` adapters.
+- **Hybrid:** fluent builder / template registry (`A2UiSurfaceSpec`, `A2UiFixedSurfaceSpec`) + thin runtime-owned `@Tool` adapters.
 - Do **not** expose `@Tool → List<A2UiMessage>` as the primary consumer API.
 
 ### Resolved
@@ -126,6 +126,8 @@ Each template: fixed `surfaceUpdate` adjacency list → slot-driven `dataModelUp
 - Wire `A2UiSurfaceBuffer` before `beginRendering`
 - Orchestrator integration test (mock ChatClient → template → SSE events)
 - Metrics: `a2ui.template.rendered` (`a2ui.stream.error` via existing transform failure metrics)
+
+Completed-phase class names (`TemplateSurfaceOrchestrator`, `DynamicSurfaceOrchestrator`, `A2UiSurfaceBufferOps`) were superseded by compose adapters in architecture revisions (`SpringAiSurfaceRuntime` + `GenerationModeAdapter`).
 
 **Plan:** `[docs/plans/phase-1-template-mvp.md](docs/plans/phase-1-template-mvp.md)`
 

@@ -68,10 +68,18 @@ public class A2UiMessageValidator {
         return validateSingle(message, A2UiValidationContext.empty());
     }
 
+    /**
+     * Validates one envelope. Catalog is taken from {@code context}, else inferred when
+     * {@code message} is {@code CreateSurface}. Empty context keeps the global type union
+     * and skips prop checks — pass {@link A2UiValidationContext#forCatalog(String)} for
+     * catalog-scoped fail-fast on {@code updateComponents}.
+     */
     public List<A2UiDiagnostic> validateSingle(A2UiMessage message, A2UiValidationContext context) {
         List<A2UiDiagnostic> diagnostics = new ArrayList<>();
         validateVersion(context, diagnostics);
-        validateMessage(message, "$[0]", context, diagnostics);
+        A2UiValidationContext resolved = resolveCatalogContext(
+                context, message == null ? List.of() : List.of(message));
+        validateMessage(message, "$[0]", resolved, diagnostics);
         return diagnostics;
     }
 
@@ -298,7 +306,14 @@ public class A2UiMessageValidator {
         return A2UiValidationContext.forVersionAndCatalog(version, catalogId);
     }
 
-    private static String catalogIdFrom(List<A2UiMessage> messages) {
+    /**
+     * Catalog id from the first {@code CreateSurface} in {@code messages}, else {@code null}.
+     * {@link #validateSingle} and batch {@link #validate} use this when the context has no catalog.
+     */
+    public static String catalogIdFrom(List<A2UiMessage> messages) {
+        if (messages == null) {
+            return null;
+        }
         for (A2UiMessage message : messages) {
             if (message instanceof A2UiMessage.CreateSurface createSurface
                     && createSurface.catalogId() != null

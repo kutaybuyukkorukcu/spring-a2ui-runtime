@@ -157,9 +157,7 @@ public final class A2UiSurfaceBuffer {
                     return;
                 }
                 if (value instanceof Map<?, ?> map) {
-                    for (Map.Entry<?, ?> entry : map.entrySet()) {
-                        dataModel.put(String.valueOf(entry.getKey()), entry.getValue());
-                    }
+                    dataModel.putAll(A2UiMaps.deepCopy(map));
                     return;
                 }
                 throw new IllegalArgumentException("root data model value must be an object");
@@ -182,28 +180,41 @@ public final class A2UiSurfaceBuffer {
         private void setDataAtPath(String[] parts, Object value) {
             Map<String, Object> current = dataModel;
             for (int i = 0; i < parts.length - 1; i++) {
-                Object next = current.get(parts[i]);
-                if (!(next instanceof Map<?, ?> map)) {
-                    next = new LinkedHashMap<String, Object>();
-                    current.put(parts[i], next);
-                    current = A2UiMaps.asMutable((Map<?, ?>) next);
-                } else {
-                    current = A2UiMaps.asMutable(map);
+                current = childMap(current, parts[i], true);
+                if (current == null) {
+                    return;
                 }
             }
-            current.put(parts[parts.length - 1], value);
+            current.put(parts[parts.length - 1], A2UiMaps.copyValue(value));
         }
 
         private void deleteAtPath(String[] parts) {
             Map<String, Object> current = dataModel;
             for (int i = 0; i < parts.length - 1; i++) {
-                Object next = current.get(parts[i]);
-                if (!(next instanceof Map<?, ?> map)) {
+                current = childMap(current, parts[i], false);
+                if (current == null) {
                     return;
                 }
-                current = A2UiMaps.asMutable(map);
             }
             current.remove(parts[parts.length - 1]);
+        }
+
+        private Map<String, Object> childMap(Map<String, Object> parent, String key, boolean create) {
+            Object next = parent.get(key);
+            if (!(next instanceof Map<?, ?> map)) {
+                if (!create) {
+                    return null;
+                }
+                Map<String, Object> created = new LinkedHashMap<>();
+                parent.put(key, created);
+                return created;
+            }
+            if (next instanceof LinkedHashMap<?, ?>) {
+                return A2UiMaps.asMutable(map);
+            }
+            Map<String, Object> copy = A2UiMaps.deepCopy(map);
+            parent.put(key, copy);
+            return copy;
         }
 
         public Object getDataAtPath(String path) {

@@ -105,6 +105,18 @@ class A2UiSurfaceBufferTest {
     }
 
     @Test
+    void shouldPatchNestedImmutableMapWithoutThrowing() {
+        A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
+        buffer.applyCreateSurface(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9));
+        buffer.applyUpdateDataModel(new A2UiMessage.UpdateDataModel(
+                "main", "/", Map.of("user", Map.of("name", "Alice"))));
+        buffer.applyUpdateDataModel(new A2UiMessage.UpdateDataModel("main", "/user/name", "Bob"));
+
+        A2UiSurfaceBuffer.SurfaceState state = buffer.getSurface("main");
+        assertThat(state.getDataAtPath("/user/name")).isEqualTo("Bob");
+    }
+
+    @Test
     void getDataAtRootShouldReturnCopyNotLiveMap() {
         A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
         buffer.applyCreateSurface(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9));

@@ -47,6 +47,8 @@ mvn -pl apps/be-transform-showcase spring-boot:run \
   -Dspring-boot.run.arguments="--spring.profiles.active=template"
 ```
 
+The template profile is optional frozen-capability smoke; the showcase default is dynamic.
+
 ```yaml
 spring:
   ai:

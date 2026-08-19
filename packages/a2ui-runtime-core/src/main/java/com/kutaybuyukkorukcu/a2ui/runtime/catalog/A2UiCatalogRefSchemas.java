@@ -14,37 +14,24 @@ public final class A2UiCatalogRefSchemas {
     }
 
     public static Map<String, Object> inline(String ref) {
-        if (refContains(ref, "DynamicString")) {
-            return dynamicStringSchema();
+        String defName = defName(ref);
+        if (defName == null) {
+            return null;
         }
-        if (refContains(ref, "DynamicNumber")) {
-            return dynamicNumberSchema();
-        }
-        if (refContains(ref, "DynamicBoolean")) {
-            return dynamicBooleanSchema();
-        }
-        if (refContains(ref, "DynamicStringList")) {
-            return dynamicStringListSchema();
-        }
-        if (refContains(ref, "DynamicValue")) {
-            return dynamicValueSchema();
-        }
-        if (refContains(ref, "DataBinding")) {
-            return dataBindingSchema();
-        }
-        if (refContains(ref, "ComponentId")) {
-            return Map.of("type", "string");
-        }
-        if (refContains(ref, "ChildList")) {
-            return childListSchema();
-        }
-        if (refContains(ref, "Action")) {
-            return actionSchema();
-        }
-        if (refContains(ref, "Checkable") || refContains(ref, "CheckRule") || refContains(ref, "FunctionCall")) {
-            return Map.of("type", "object", "additionalProperties", true);
-        }
-        return null;
+        return switch (defName) {
+            case "DynamicStringList" -> dynamicStringListSchema();
+            case "DynamicString" -> dynamicStringSchema();
+            case "DynamicNumber" -> dynamicNumberSchema();
+            case "DynamicBoolean" -> dynamicBooleanSchema();
+            case "DynamicValue" -> dynamicValueSchema();
+            case "DataBinding" -> dataBindingSchema();
+            case "ComponentId" -> Map.of("type", "string");
+            case "ChildList" -> childListSchema();
+            case "Action" -> actionSchema();
+            case "Checkable", "CheckRule", "FunctionCall" ->
+                    Map.of("type", "object", "additionalProperties", true);
+            default -> null;
+        };
     }
 
     public static Map<String, Object> dataBindingSchema() {
@@ -146,7 +133,21 @@ public final class A2UiCatalogRefSchemas {
         return schema;
     }
 
-    private static boolean refContains(String ref, String fragment) {
-        return ref != null && ref.contains(fragment);
+    /**
+     * Last path segment of a catalog {@code $ref}, so {@code DynamicStringList} does not
+     * match as {@code DynamicString}.
+     */
+    private static String defName(String ref) {
+        if (ref == null || ref.isBlank()) {
+            return null;
+        }
+        int defs = ref.lastIndexOf("#/$defs/");
+        if (defs >= 0) {
+            String name = ref.substring(defs + "#/$defs/".length());
+            return name.isBlank() ? null : name;
+        }
+        int slash = ref.lastIndexOf('/');
+        String name = slash >= 0 ? ref.substring(slash + 1) : ref;
+        return name.isBlank() ? null : name;
     }
 }

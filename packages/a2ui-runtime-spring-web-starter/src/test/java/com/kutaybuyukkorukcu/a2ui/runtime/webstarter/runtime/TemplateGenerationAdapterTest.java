@@ -59,8 +59,7 @@ class TemplateGenerationAdapterTest {
                 List.of(),
                 new StandardEnvironment(),
                 properties,
-                new TemplateGenerationAdapter(new TemplateModePromptProvider(registry), templateTools),
-                mock(GenerationModeAdapter.class));
+                new TemplateGenerationAdapter(new TemplateModePromptProvider(registry), templateTools));
 
         when(builder.clone()).thenReturn(builder);
         when(builder.defaultAdvisors(any(org.springframework.ai.chat.client.advisor.api.Advisor.class)))

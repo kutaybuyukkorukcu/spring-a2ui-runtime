@@ -34,6 +34,10 @@ public final class A2UiMaps {
         return copy;
     }
 
+    public static Object copyValue(Object value) {
+        return deepCopyValue(value);
+    }
+
     public static Map<String, Object> deepCopy(Map<?, ?> source) {
         Map<String, Object> copy = new LinkedHashMap<>();
         if (source == null) {

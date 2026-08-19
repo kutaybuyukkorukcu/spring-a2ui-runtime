@@ -41,7 +41,7 @@ class SpringAiSurfaceRuntimeTest {
         when(dynamicAdapter.generate(any(), any(), any())).thenReturn(List.of(createSurface));
         when(dynamicAdapter.missingSurfaceMessage()).thenReturn("missing");
 
-        SpringAiSurfaceRuntime runtime = createRuntime(new A2UiWebProperties());
+        SpringAiSurfaceRuntime runtime = createRuntime(new A2UiWebProperties(), dynamicAdapter);
 
         StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
                 .assertNext(event -> {
@@ -61,20 +61,19 @@ class SpringAiSurfaceRuntimeTest {
         when(templateAdapter.generate(any(), any(), any())).thenReturn(List.of(
                 new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9)));
 
-        SpringAiSurfaceRuntime runtime = createRuntime(properties);
+        SpringAiSurfaceRuntime runtime = createRuntime(properties, templateAdapter);
 
         StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
                 .expectNextCount(1)
                 .verifyComplete();
     }
 
-    private SpringAiSurfaceRuntime createRuntime(A2UiWebProperties properties) {
+    private SpringAiSurfaceRuntime createRuntime(A2UiWebProperties properties, GenerationModeAdapter adapter) {
         return new SpringAiSurfaceRuntime(
                 builder,
                 List.of(),
                 new StandardEnvironment(),
                 properties,
-                templateAdapter,
-                dynamicAdapter);
+                adapter);
     }
 }

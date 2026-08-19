@@ -10,9 +10,9 @@ import java.util.Map;
  * Builds per-request {@link ChatOptions} that force a specific OpenAI tool choice
  * ({@code generateA2Ui} on the primary hop, {@code renderA2Ui} on the planner hop).
  * <p>
- * Fail-closed: if OpenAI ChatOptions cannot be constructed, throws
- * {@link SurfaceExecutionException} with {@code TOOL_CHOICE_UNAVAILABLE} instead of
- * returning empty options.
+ * When OpenAI ChatOptions is on the classpath, construction failure is fail-closed
+ * ({@code TOOL_CHOICE_UNAVAILABLE}). When OpenAI types are absent, returns empty
+ * {@link ChatOptions} so Anthropic/Vertex hosts can continue (provider customizers apply).
  *
  * @apiNote internal — not a host SPI; remains public until a major version.
  */
@@ -42,11 +42,7 @@ public final class A2UiForcedToolChoiceFactory {
 
     static ChatOptions requireForcedOptions(ChatOptions options, String toolName) {
         if (options == null) {
-            throw new SurfaceExecutionException(
-                    "Forced tool choice for " + toolName
-                            + " requires OpenAI ChatOptions on the classpath; dynamic compose cannot skip tool forcing",
-                    SurfaceErrorCodes.TOOL_CHOICE_UNAVAILABLE,
-                    Map.of("toolName", toolName));
+            throw failClosed(toolName);
         }
         return options;
     }
@@ -54,13 +50,32 @@ public final class A2UiForcedToolChoiceFactory {
     private static ChatOptions forcedToolChoice(String toolName) {
         try {
             return requireForcedOptions(OpenAiForcedToolChoice.create(toolName), toolName);
+        } catch (NoClassDefFoundError ex) {
+            return optionsWhenOpenAiTypesMissing();
+        } catch (ClassNotFoundException ex) {
+            return optionsWhenOpenAiTypesMissing();
         } catch (ReflectiveOperationException ex) {
-            throw new SurfaceExecutionException(
-                    "Forced tool choice for " + toolName
-                            + " requires OpenAI ChatOptions on the classpath; dynamic compose cannot skip tool forcing",
-                    SurfaceErrorCodes.TOOL_CHOICE_UNAVAILABLE,
-                    Map.of("toolName", toolName));
+            throw failClosed(toolName);
         }
+    }
+
+    static ChatOptions optionsWhenOpenAiTypesMissing() {
+        return ChatOptions.builder().build();
+    }
+
+    static SurfaceExecutionException failClosed(String toolName) {
+        return new SurfaceExecutionException(
+                "Forced tool choice for " + toolName
+                        + " requires OpenAI ChatOptions on the classpath; dynamic compose cannot skip tool forcing",
+                SurfaceErrorCodes.TOOL_CHOICE_UNAVAILABLE,
+                Map.of("toolName", toolName));
+    }
+
+    static ChatOptions afterOpenAiLookupFailure(String toolName, Throwable failure) {
+        if (failure instanceof ClassNotFoundException || failure instanceof NoClassDefFoundError) {
+            return optionsWhenOpenAiTypesMissing();
+        }
+        throw failClosed(toolName);
     }
 
     private static final class OpenAiForcedToolChoice {

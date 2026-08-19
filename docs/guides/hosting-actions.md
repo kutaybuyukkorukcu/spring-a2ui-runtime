@@ -80,7 +80,7 @@ Common patterns:
    product flows).
 
 The showcase uses pattern (2) for a visible confirmation card. See
-`ShowcaseActionHandlerConfiguration` in `apps/be-transform-showcase`.
+`ShowcaseChangeActionHandler` in `apps/be-transform-showcase`.
 
 ## Typical flow
 

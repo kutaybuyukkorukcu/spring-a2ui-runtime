@@ -28,7 +28,7 @@ fail-fast → actions.
 <dependency>
   <groupId>com.kutaybuyukkorukcu.a2ui.runtime</groupId>
   <artifactId>a2ui-runtime-spring-web-starter</artifactId>
-  <version>2.0.0</version>
+  <version>2.1.0</version>
 </dependency>
 ```
 
@@ -92,8 +92,15 @@ Guide: [Registering catalogs](registering-catalogs.md) ·
 ## 6. Known trees (assemble or template)
 
 When a surface shape is known ahead of time, **assemble** it in the host
-(no model call) — acks, confirm-only islands. Template mode remains a frozen
-capability if you still want the LLM to select a registered spec and fill slots.
+(no model call) — acks, confirm-only islands:
+
+```java
+List<A2UiMessage> messages = assemblyService.assemble(
+        "text-card", surfaceId, catalogId, Map.of("title", "Done", "body", "Saved."));
+```
+
+Template mode remains a frozen capability if you still want the LLM to select a
+registered spec and fill slots.
 
 Guide: [Authoring templates](authoring-templates.md).
 

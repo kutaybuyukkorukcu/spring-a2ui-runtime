@@ -38,7 +38,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.Environment;
 
@@ -103,25 +103,73 @@ public class A2UiWebAutoConfiguration {
         return new A2UiDynamicAssemblyService(componentNormalizer, messageValidator, objectMapper);
     }
 
-    @Bean
-    @ConditionalOnMissingBean
-    public DynamicA2UiPromptProvider dynamicA2UiPromptProvider(A2UiCatalogRegistry catalogRegistry) {
-        return new DynamicA2UiPromptProvider(catalogRegistry);
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnProperty(
+            prefix = "a2ui.web.runtime",
+            name = "generation-mode",
+            havingValue = "dynamic",
+            matchIfMissing = true)
+    static class DynamicComposeConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean
+        public DynamicA2UiPromptProvider dynamicA2UiPromptProvider(A2UiCatalogRegistry catalogRegistry) {
+            return new DynamicA2UiPromptProvider(catalogRegistry);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        public A2UiDynamicTools a2UiDynamicTools(
+                ChatClient.Builder chatClientBuilder,
+                ObjectProvider<Advisor> advisors,
+                DynamicA2UiPromptProvider dynamicPromptProvider,
+                A2UiDynamicAssemblyService dynamicAssemblyService,
+                A2UiRuntimeMetrics runtimeMetrics,
+                A2UiCatalogRegistry catalogRegistry) {
+            return new A2UiDynamicTools(
+                    chatClientBuilder,
+                    resolveAdvisors(advisors),
+                    dynamicPromptProvider,
+                    dynamicAssemblyService,
+                    runtimeMetrics,
+                    catalogRegistry);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean(name = "dynamicGenerationAdapter")
+        public GenerationModeAdapter dynamicGenerationAdapter(
+                DynamicA2UiPromptProvider dynamicPromptProvider,
+                A2UiDynamicTools dynamicTools) {
+            return new DynamicGenerationAdapter(dynamicPromptProvider, dynamicTools);
+        }
     }
 
-    @Bean
-    @ConditionalOnMissingBean
-    public TemplateModePromptProvider templateModePromptProvider(A2UiTemplateRegistry templateRegistry) {
-        return new TemplateModePromptProvider(templateRegistry);
-    }
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnProperty(prefix = "a2ui.web.runtime", name = "generation-mode", havingValue = "template")
+    static class TemplateComposeConfiguration {
 
-    @Bean
-    @ConditionalOnMissingBean
-    public A2UiTemplateTools a2UiTemplateTools(
-            A2UiTemplateRegistry templateRegistry,
-            A2UiSurfaceAssemblyService assemblyService,
-            A2UiRuntimeMetrics runtimeMetrics) {
-        return new A2UiTemplateTools(templateRegistry, assemblyService, runtimeMetrics);
+        @Bean
+        @ConditionalOnMissingBean
+        public TemplateModePromptProvider templateModePromptProvider(A2UiTemplateRegistry templateRegistry) {
+            return new TemplateModePromptProvider(templateRegistry);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        public A2UiTemplateTools a2UiTemplateTools(
+                A2UiTemplateRegistry templateRegistry,
+                A2UiSurfaceAssemblyService assemblyService,
+                A2UiRuntimeMetrics runtimeMetrics) {
+            return new A2UiTemplateTools(templateRegistry, assemblyService, runtimeMetrics);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean(name = "templateGenerationAdapter")
+        public GenerationModeAdapter templateGenerationAdapter(
+                TemplateModePromptProvider templateModePromptProvider,
+                A2UiTemplateTools templateTools) {
+            return new TemplateGenerationAdapter(templateModePromptProvider, templateTools);
+        }
     }
 
     /**
@@ -141,54 +189,18 @@ public class A2UiWebAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public A2UiDynamicTools a2UiDynamicTools(
-            ChatClient.Builder chatClientBuilder,
-            ObjectProvider<Advisor> advisors,
-            DynamicA2UiPromptProvider dynamicPromptProvider,
-            A2UiDynamicAssemblyService dynamicAssemblyService,
-            A2UiRuntimeMetrics runtimeMetrics,
-            A2UiCatalogRegistry catalogRegistry) {
-        return new A2UiDynamicTools(
-                chatClientBuilder,
-                resolveAdvisors(advisors),
-                dynamicPromptProvider,
-                dynamicAssemblyService,
-                runtimeMetrics,
-                catalogRegistry);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean(name = "dynamicGenerationAdapter")
-    public GenerationModeAdapter dynamicGenerationAdapter(
-            DynamicA2UiPromptProvider dynamicPromptProvider,
-            A2UiDynamicTools dynamicTools) {
-        return new DynamicGenerationAdapter(dynamicPromptProvider, dynamicTools);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean(name = "templateGenerationAdapter")
-    public GenerationModeAdapter templateGenerationAdapter(
-            TemplateModePromptProvider templateModePromptProvider,
-            A2UiTemplateTools templateTools) {
-        return new TemplateGenerationAdapter(templateModePromptProvider, templateTools);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
     public A2UiSurfaceRuntime a2UiSurfaceRuntime(
             ChatClient.Builder chatClientBuilder,
             ObjectProvider<Advisor> advisors,
             Environment environment,
             A2UiWebProperties properties,
-            @Qualifier("templateGenerationAdapter") GenerationModeAdapter templateGenerationAdapter,
-            @Qualifier("dynamicGenerationAdapter") GenerationModeAdapter dynamicGenerationAdapter) {
+            GenerationModeAdapter generationAdapter) {
         return new SpringAiSurfaceRuntime(
                 chatClientBuilder,
                 resolveAdvisors(advisors),
                 environment,
                 properties,
-                templateGenerationAdapter,
-                dynamicGenerationAdapter);
+                generationAdapter);
     }
 
     private static List<Advisor> resolveAdvisors(ObjectProvider<Advisor> advisors) {

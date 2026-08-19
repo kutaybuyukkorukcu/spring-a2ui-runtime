@@ -57,6 +57,23 @@ class A2UiForcedToolChoiceFactoryTest {
                 .isEqualTo(SurfaceErrorCodes.TOOL_CHOICE_UNAVAILABLE);
     }
 
+    @Test
+    void shouldSkipForceWhenOpenAiTypesAreMissing() {
+        ChatOptions options = A2UiForcedToolChoiceFactory.afterOpenAiLookupFailure(
+                "generateA2Ui", new ClassNotFoundException("OpenAiChatOptions"));
+        assertThat(options).isNotNull();
+        assertThat(isOpenAiChatOptions(options)).isFalse();
+    }
+
+    @Test
+    void shouldFailClosedWhenOpenAiTypesPresentButConstructionFails() {
+        assertThatThrownBy(() -> A2UiForcedToolChoiceFactory.afterOpenAiLookupFailure(
+                "generateA2Ui", new NoSuchMethodException("builder")))
+                .isInstanceOf(SurfaceExecutionException.class)
+                .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
+                .isEqualTo(SurfaceErrorCodes.TOOL_CHOICE_UNAVAILABLE);
+    }
+
     private static boolean isOpenAiChatOptions(ChatOptions options) {
         return options.getClass().getName().equals("org.springframework.ai.openai.OpenAiChatOptions");
     }

@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class A2UiActionService {
 
@@ -24,18 +25,10 @@ public class A2UiActionService {
     private final A2UiRuntimeMetrics runtimeMetrics;
     private final A2UiMessageValidator messageValidator;
 
-    public A2UiActionService(List<A2UiActionHandler> actionHandlers) {
-        this(actionHandlers, A2UiRuntimeMetrics.noop(), new A2UiMessageValidator());
-    }
-
-    public A2UiActionService(List<A2UiActionHandler> actionHandlers, A2UiRuntimeMetrics runtimeMetrics) {
-        this(actionHandlers, runtimeMetrics, new A2UiMessageValidator());
-    }
-
     public A2UiActionService(List<A2UiActionHandler> actionHandlers, A2UiRuntimeMetrics runtimeMetrics, A2UiMessageValidator messageValidator) {
         this.actionHandlers = actionHandlers == null ? List.of() : List.copyOf(actionHandlers);
         this.runtimeMetrics = runtimeMetrics == null ? A2UiRuntimeMetrics.noop() : runtimeMetrics;
-        this.messageValidator = messageValidator;
+        this.messageValidator = Objects.requireNonNull(messageValidator, "messageValidator");
     }
 
     public A2UiActionResponse handleClientEvent(A2UiClientEvent event, String requestId) {
@@ -78,14 +71,8 @@ public class A2UiActionService {
     }
 
     private static String catalogIdFrom(List<A2UiMessage> messages) {
-        for (A2UiMessage message : messages) {
-            if (message instanceof A2UiMessage.CreateSurface createSurface
-                    && createSurface.catalogId() != null
-                    && !createSurface.catalogId().isBlank()) {
-                return createSurface.catalogId();
-            }
-        }
-        return A2UiCatalogIds.BASIC_V0_9;
+        String catalogId = A2UiMessageValidator.catalogIdFrom(messages);
+        return catalogId == null ? A2UiCatalogIds.BASIC_V0_9 : catalogId;
     }
 
     private void validateClientEvent(A2UiClientEvent event) {

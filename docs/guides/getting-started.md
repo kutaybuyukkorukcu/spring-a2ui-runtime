@@ -45,7 +45,6 @@ frozen capability (LLM selects a registered spec). Known acks should host
 ```yaml
 a2ui:
   web:
-    base-path: /a2ui
     runtime:
       generation-mode: dynamic   # or template
 ```
@@ -53,7 +52,7 @@ a2ui:
 | Mode | Behavior |
 | ---- | -------- |
 | `dynamic` | LLM composes from the **active** catalog via two-hop tools (vendored **basic** v0.9 by default; register your own with the [catalog SPI](registering-catalogs.md)). |
-| `template` | LLM selects a registered template and fills slots. Layout comes from Java builders. |
+| `template` | LLM selects a registered template and fills slots. Layout comes from Java builders. The library ships **no** templates — register yours first ([authoring templates](authoring-templates.md)). |
 
 Useful companion properties (defaults shown in [REST API](../rest-api.md)):
 
@@ -61,10 +60,11 @@ Useful companion properties (defaults shown in [REST API](../rest-api.md)):
 | -------- | ------- | ------- |
 | `a2ui.web.enabled` | `true` | Master switch for `/a2ui` endpoints |
 | `a2ui.web.stream.enabled` | `true` | SSE stream endpoint |
-| `a2ui.web.stream.timeout-ms` | `120000` | Stream timeout |
-| `a2ui.web.stream.lifecycle-events` | `false` | Emit run/text/tool utilization events (see [utilization guide](../guides/native-sse-utilization.md)) |
+| `a2ui.web.stream.lifecycle-events` | `false` | Emit run/text/tool utilization events (see [utilization guide](native-sse-utilization.md)) |
 | `a2ui.web.actions.enabled` | `true` | `POST /a2ui/actions` |
 | `a2ui.web.catalog.enabled` | `true` | Catalog GET endpoint |
+
+`a2ui.web.base-path` and `a2ui.web.stream.timeout-ms` exist on the properties type but are **unread** (deprecated; no remapping). Do not rely on them for a 30s stream timeout.
 
 ## 3. Stream a surface
 
@@ -108,19 +108,22 @@ There is no silent fallback text surface.
 
 ## 4. Template vs dynamic in practice
 
-**Template** is the right starting point when you care about design-system-shaped
-screens (login, hero CTA, weather card, …). The LLM picks among registered
-template IDs and fills slots; adjacency lists stay authored in code.
+**Dynamic** is the starting point when this case’s tree is not predetermined.
+The LLM composes from the **active** catalog (vendored basic v0.9.1, plus any
+host catalogs you [register](registering-catalogs.md)). Invalid planner output
+is retried once with diagnostics, then surfaced as `A2UI_VALIDATION_FAILED`.
 
-**Dynamic** is for open-ended prompts where inventing layout from the **active**
-catalog is the point. Today that is the vendored basic v0.9.1 catalog; host
-A2UI catalog registration is planned so production design-system types can be
-validated the same way (see [platform catalog ownership](../platform.md#catalog-ownership-a2ui-aligned)).
-The runtime still validates every envelope before it reaches the client.
-Invalid planner output is retried once with diagnostics, then surfaced as
-`A2UI_VALIDATION_FAILED`.
+**Host `assemble`** is the right path when the tree is already known (acks,
+confirm-only islands): register a spec, inject `A2UiSurfaceAssemblyService`,
+return messages from a controller or action handler — no model call. See
+[Authoring templates](authoring-templates.md#assemble-from-the-host-no-model).
 
-You can switch modes with configuration only — same HTTP endpoint either way.
+**Template mode** (`generation-mode: template`) is a frozen capability: the LLM
+*selects* a host-registered spec and fills slots. The library ships **no**
+templates; an empty registry fails with `Unknown template id`.
+
+You can switch compose modes with configuration only — same HTTP endpoint
+either way. Known trees should still assemble in the host.
 
 ## 5. Wire a client
 
@@ -129,17 +132,16 @@ sample UI lives in [`apps/fe-a2ui-demo`](../../apps/fe-a2ui-demo) and uses
 `@a2ui/react` against the **basic** catalog — it is a smoke client, not where
 product catalogs are meant to live permanently.
 
-Point the demo at your host (showcase default port `5001`) and keep
-`VITE_A2UI_GENERATION_MODE` aligned with the backend profile:
+Point the demo at your host (showcase default port `5001`). Backend default is
+dynamic; keep `VITE_A2UI_GENERATION_MODE` aligned if you switch profiles:
 
 ```bash
-# backend
-mvn -pl apps/be-transform-showcase spring-boot:run \
-  -Dspring-boot.run.arguments="--spring.profiles.active=dynamic"
+# backend (dynamic default)
+mvn -pl apps/be-transform-showcase spring-boot:run
 
 # frontend
 cd apps/fe-a2ui-demo
-VITE_A2UI_GENERATION_MODE=dynamic npm run dev
+npm run dev
 ```
 
 Client actions go to `POST /a2ui/actions`. See [Hosting actions](hosting-actions.md) for

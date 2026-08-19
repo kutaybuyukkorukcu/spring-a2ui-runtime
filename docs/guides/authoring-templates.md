@@ -64,6 +64,22 @@ the component tree from slot values when a row is optional.
 You can also register `A2UiTemplateDefinition` beans directly — the
 auto-configuration picks up both.
 
+## Assemble from the host (no model)
+
+When the tree is already known, inject `A2UiSurfaceAssemblyService` and call
+`assemble` from a controller or `A2UiActionHandler`. This does **not** require
+`generation-mode: template`.
+
+```java
+List<A2UiMessage> messages = assemblyService.assemble(
+        "text-card",
+        "main",
+        A2UiCatalogIds.BASIC_V0_9,
+        Map.of("title", "Ready", "body", "Change submitted."));
+```
+
+Template **mode** is only for LLM select+fill of a registered spec.
+
 ## Alternative: implement `A2UiSurfaceSpec` yourself
 
 `A2UiFixedSurfaceSpec` covers the common case. For anything more custom
@@ -86,9 +102,10 @@ with diagnostics — no silent repair.
 
 ## Configuration
 
-No new properties. Template vs dynamic mode is chosen with
-`a2ui.web.runtime.generation-mode` (see [REST API](../rest-api.md)); your
-templates are available whenever `generation-mode: template`.
+No new properties. Template vs dynamic **compose** is chosen with
+`a2ui.web.runtime.generation-mode` (see [REST API](../rest-api.md)). Host
+`assemble` works in either mode. Template **mode** only lists your registry
+for LLM select+fill.
 
 ## Next reading
 

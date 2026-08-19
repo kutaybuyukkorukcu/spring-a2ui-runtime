@@ -4,7 +4,8 @@ Public HTTP surface for the spring-a2ui **GenUI backend platform**: catalog nego
 
 ## Base Path
 
-All endpoints are under `/a2ui` by default. Configurable via `a2ui.web.base-path`.
+All endpoints are under `/a2ui` by default. `a2ui.web.base-path` is **unread**
+(deprecated); do not expect it to change the mapping.
 
 ## Endpoints
 
@@ -20,11 +21,10 @@ X-A2UI-Request-Id: <optional-client-request-id>
 **Request:**
 ```json
 {
-  "content": "Show me a login form",
+  "content": "Show the next step for this case",
   "context": {
-    "intent": "authentication",
-    "preferredComponents": ["TextField", "Button"],
-    "instructions": "Use dark theme"
+    "intent": "case-review",
+    "instructions": "Use only catalog types the client advertised"
   },
   "a2uiClientCapabilities": {
     "supportedCatalogIds": ["https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"]
@@ -138,9 +138,9 @@ Optional `createSurface.sendDataModel` (default `false`): when `true`, clients s
 | Property | Default | Description |
 |----------|---------|-------------|
 | `a2ui.web.enabled` | `true` | Enable/disable all web endpoints |
-| `a2ui.web.base-path` | `/a2ui` | Base path for all endpoints |
+| `a2ui.web.base-path` | `/a2ui` | **Unused / deprecated** — property exists, not applied |
 | `a2ui.web.stream.enabled` | `true` | Enable/disable SSE streaming endpoint |
-| `a2ui.web.stream.timeout-ms` | `120000` | SSE stream timeout in milliseconds |
+| `a2ui.web.stream.timeout-ms` | `120000` | **Unused / deprecated** — property exists, not applied |
 | `a2ui.web.stream.lifecycle-events` | `false` | Emit run/text/tool utilization events on the stream |
 | `a2ui.web.actions.enabled` | `true` | Enable/disable action handling endpoint |
 | `a2ui.web.catalog.enabled` | `true` | Enable/disable catalog serving endpoint |

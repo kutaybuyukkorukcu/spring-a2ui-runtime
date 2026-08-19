@@ -18,7 +18,7 @@ We abstract GenUI backend infrastructure so teams can focus on product. Builders
 | SPI host for actions, templates, and A2UI catalogs | An A2UI component marketplace, catalog SaaS, or shadcn-like design-system builder |
 
 **Product pipe:** A2UI-native SSE (`POST /a2ui/surface/stream`).  
-**Not planned:** foreign-client bridge / AG-UI translation module — builders integrate with native SSE (or wrap in their own adapter).
+Optional **foreign-client bridges** are demand-gated later and never core identity — builders integrate with native SSE (or wrap in their own adapter).
 
 ## What builders keep vs what we own
 
@@ -71,7 +71,8 @@ Near-term **execution order is locked** in [`BACKLOG.md`](../BACKLOG.md). Do not
 2. **Phase X (A2UI v0.9.1)** ✅ — protocol currency on Current wire (`2.0.0`) — **core MVP**  
 3. **Utilization on native SSE** ✅ — text / progress / run lifecycle ([plan](plans/phase-product-runtime-interaction.md), [guide](guides/native-sse-utilization.md))  
 4. **Platform builder batteries** ✅ — in-product surface docs+showcase, **Template SPI**, **host A2UI catalog SPI**, ops, multi-provider — Central **`2.1.0`** ([plan](plans/phase-platform-builder-batteries.md))  
-5. **Later (residual)** — v1.0 watch, multi-surface runtime, etc. (see BACKLOG) — **not** “invent catalogs for hosts”
+5. **Architecture revisions** ✅ — catalog-scoped fail-fast, one compose module, wire hygiene in core ([plan](plans/architecture-revisions.md))  
+6. **Later (residual)** — Spring AI hop adapter, starter split, Boot 4, v1.0 watch (see BACKLOG) — **not** “invent catalogs for hosts”
 
 ## Where to go next
 

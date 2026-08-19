@@ -72,10 +72,7 @@ public final class A2UiCatalogSchemaValidator {
 
         List<A2UiDiagnostic> diagnostics = new ArrayList<>(errors.size());
         for (ValidationMessage error : errors) {
-            A2UiDiagnostic diagnostic = toDiagnostic(error, componentType, pathPrefix);
-            if (diagnostic != null) {
-                diagnostics.add(diagnostic);
-            }
+            diagnostics.add(toDiagnostic(error, componentType, pathPrefix));
         }
         return diagnostics;
     }
@@ -228,7 +225,7 @@ public final class A2UiCatalogSchemaValidator {
         String errorType = error.getType();
         String instancePath = formatPath(error.getInstanceLocation().toString(), pathPrefix);
         String message = error.getMessage();
-        A2UiErrorCode code = mapErrorCode(errorType, message);
+        A2UiErrorCode code = mapErrorCode(errorType, error);
 
         Map<String, Object> details = new LinkedHashMap<>();
         details.put("componentType", componentType);
@@ -245,25 +242,24 @@ public final class A2UiCatalogSchemaValidator {
                 details);
     }
 
-    private A2UiErrorCode mapErrorCode(String errorType, String message) {
+    private A2UiErrorCode mapErrorCode(String errorType, ValidationMessage error) {
         return switch (errorType) {
             case "required" -> A2UiErrorCode.MISSING_REQUIRED_PROP;
             case "additionalProperties" -> A2UiErrorCode.UNKNOWN_PROP;
             case "enum" -> A2UiErrorCode.INVALID_ENUM_VALUE;
-            case "type", "oneOf" -> isPathOrDynamicContext(message)
+            case "oneOf" -> A2UiErrorCode.INVALID_BOUND_VALUE;
+            case "type" -> isPathBindingFailure(error)
                     ? A2UiErrorCode.INVALID_BOUND_VALUE
                     : A2UiErrorCode.INVALID_PROP_TYPE;
             default -> A2UiErrorCode.INVALID_COMPONENT_PAYLOAD;
         };
     }
 
-    private boolean isPathOrDynamicContext(String message) {
-        return message != null && (
-                message.contains("path")
-                        || message.contains("oneOf")
-                        || message.contains("string")
-                        || message.contains("number")
-                        || message.contains("boolean"));
+    private boolean isPathBindingFailure(ValidationMessage error) {
+        String schemaLocation = error.getSchemaLocation() != null
+                ? error.getSchemaLocation().toString()
+                : "";
+        return schemaLocation.contains("DataBinding") || schemaLocation.contains("/path");
     }
 
     private String formatPath(String instancePath, String pathPrefix) {
