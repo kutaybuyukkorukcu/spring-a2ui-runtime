@@ -76,7 +76,10 @@ public class GenericChatOptionsCustomizer implements A2UiChatOptionsCustomizer {
         try {
             Method method = target.getClass().getMethod(methodName, parameterType);
             method.invoke(target, value);
-        } catch (NoSuchMethodException ignored) {
+        } catch (NoSuchMethodException ex) {
+            throw new IllegalStateException(
+                    "Failed to apply deterministic option " + methodName + " on " + target.getClass().getName(),
+                    ex);
         } catch (ReflectiveOperationException ex) {
             throw new IllegalStateException("Failed to apply deterministic option " + methodName + " on " + target.getClass().getName(), ex);
         }

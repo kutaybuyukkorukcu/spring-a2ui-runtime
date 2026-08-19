@@ -1,7 +1,7 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.integration;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.A2UiSurfaceRequest;
-import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiSurfaceTemplates;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.ExampleTextCardTemplate;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.A2UiTemplateTools;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,14 +62,12 @@ class A2UiTemplateStreamIntegrationTest {
             return requestSpec;
         });
         doAnswer(invocation -> {
+            ToolContext toolContext = new ToolContext(toolContextRef.get());
+            templateTools.selectTemplate(ExampleTextCardTemplate.ID, "test", toolContext);
             templateTools.renderTemplate(
-                    A2UiSurfaceTemplates.FORM_LOGIN,
-                    Map.of(
-                            "title", "Sign in",
-                            "usernameLabel", "Email",
-                            "passwordLabel", "Password",
-                            "submitLabel", "Continue"),
-                    new ToolContext(toolContextRef.get()));
+                    ExampleTextCardTemplate.ID,
+                    Map.of("title", "Sign in", "body", "Use your workspace credentials."),
+                    toolContext);
             return callResponseSpec;
         }).when(requestSpec).call();
     }

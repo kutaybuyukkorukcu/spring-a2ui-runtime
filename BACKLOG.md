@@ -1,10 +1,10 @@
 # Backlog
 
-Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** ✅ → **Central `2.1.0` (Template + Catalog SPI)** → **Later (residual)**.
+Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** ✅ → **Central `2.1.0` (Template + Catalog SPI)** ✅ → **Architecture revisions** ✅ → **Later (residual)**.
 
-ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)`
+ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)` · `[docs/adr/002-in-product-surfaces.md](docs/adr/002-in-product-surfaces.md)`
 
-Implementation plans (for agents): `[docs/plans/phase-0-stream-infra.md](docs/plans/phase-0-stream-infra.md)` · `[docs/plans/phase-1-template-mvp.md](docs/plans/phase-1-template-mvp.md)` · `[docs/plans/phase-2-dynamic-generative-ui.md](docs/plans/phase-2-dynamic-generative-ui.md)` · `[docs/plans/phase-2.5-scalable-dynamic-runtime.md](docs/plans/phase-2.5-scalable-dynamic-runtime.md)` · `[docs/plans/phase-release-v0.8.md](docs/plans/phase-release-v0.8.md)` · `[docs/plans/phase-x-migrating-to-v0.9.md](docs/plans/phase-x-migrating-to-v0.9.md)` · `[docs/plans/phase-product-runtime-interaction.md](docs/plans/phase-product-runtime-interaction.md)` · `[docs/plans/phase-platform-builder-batteries.md](docs/plans/phase-platform-builder-batteries.md)`
+Implementation plans (for agents): `[docs/plans/phase-0-stream-infra.md](docs/plans/phase-0-stream-infra.md)` · `[docs/plans/phase-1-template-mvp.md](docs/plans/phase-1-template-mvp.md)` · `[docs/plans/phase-2-dynamic-generative-ui.md](docs/plans/phase-2-dynamic-generative-ui.md)` · `[docs/plans/phase-2.5-scalable-dynamic-runtime.md](docs/plans/phase-2.5-scalable-dynamic-runtime.md)` · `[docs/plans/phase-release-v0.8.md](docs/plans/phase-release-v0.8.md)` · `[docs/plans/phase-x-migrating-to-v0.9.md](docs/plans/phase-x-migrating-to-v0.9.md)` · `[docs/plans/phase-product-runtime-interaction.md](docs/plans/phase-product-runtime-interaction.md)` · `[docs/plans/phase-platform-builder-batteries.md](docs/plans/phase-platform-builder-batteries.md)` · `[docs/plans/architecture-revisions.md](docs/plans/architecture-revisions.md)`
 
 **Branches:** `main` (Phase X hard cutover merged) · Legacy patch line `1.1.x`.
 
@@ -16,11 +16,11 @@ Implementation plans (for agents): `[docs/plans/phase-0-stream-infra.md](docs/pl
 
 Be the **backend GenUI platform for OSS / Spring product builders**: teams keep their design system and frontend; spring-a2ui owns generation, catalog validation, streaming, fail-fast errors, and the hard reliability path — so generative UI is a dependency, not a research project.
 
-We abstract **GenUI backend** complexity (compose → validate → stream → actions) on the JVM so builders can focus on product. Positioning home: [`docs/platform.md`](docs/platform.md).
+**Promise:** catalog-bounded **steps and islands** in a product they own — validated, streamed, fail-fast, then their write path ([ADR 002](docs/adr/002-in-product-surfaces.md)). We abstract **GenUI backend** complexity (compose → validate → stream → actions) on the JVM so builders can focus on product. Positioning home: [`docs/platform.md`](docs/platform.md).
 
 ### Mission
 
-Ship a Maven Central Spring Boot runtime that turns prompts/intents into **validated A2UI surfaces** (plus a small set of utilization events around them), with dual **template + dynamic** modes, A2UI-native SSE by default, and FE-agnostic delivery — without forcing teams onto a foreign chat protocol or FE shell.
+Ship a Maven Central Spring Boot runtime that turns host intent plus context into **validated A2UI surfaces** (plus a small set of utilization events around them), with **dynamic compose** for unknown structure, **template** as a frozen capability, A2UI-native SSE by default, and FE-agnostic delivery — without forcing teams onto a foreign chat protocol or FE shell.
 
 ### What we are / are not
 
@@ -28,7 +28,7 @@ Ship a Maven Central Spring Boot runtime that turns prompts/intents into **valid
 |--------|------------|
 | Spring-native **A2UI generation runtime + platform** | The A2UI grammar owner (Google / [a2ui.org](https://a2ui.org/)) |
 | Fail-fast, catalog-bounded surface producer | A foreign agent↔app interaction protocol as core identity |
-| Backend abstraction for GenUI product teams | A React/chat product shell |
+| Backend abstraction for GenUI product teams | A React/chat product shell (SSE into *their* chat is a capability) |
 
 **Identity:** Spring GenUI backend platform.  
 **We do not** rebuild our core around third-party chat/agent-UI protocols. Optional **interop bridges** later are adapters only — not the product identity.
@@ -39,8 +39,8 @@ Ship a Maven Central Spring Boot runtime that turns prompts/intents into **valid
 
 ### Generation product (shipped)
 
-- **Dynamic (long-term GenUI):** LLM composes from the **active** catalog — adjacency lists, data model, lifecycle envelopes — without page templates. Vendored **basic** catalog by default; hosts register additional A2UI catalogs via `A2UiCatalogContribution`.  
-- **Template (controlled GenUI):** Registered surface specs for predictable layouts; bootstrap set + host templates via `A2UiTemplateCustomizer`.  
+- **Dynamic (unknown structure):** LLM composes from the **active** catalog — adjacency lists, data model, lifecycle envelopes — without page templates. Vendored **basic** catalog by default; hosts register additional A2UI catalogs via `A2UiCatalogContribution`. Engineering gravity. Predetermined layouts through the planner are misuse.
+- **Template (frozen capability):** Registered surface specs; LLM selects and fills slots via `A2UiTemplateCustomizer` / `A2UiSurfaceSpec` / `A2UiFixedSurfaceSpec`. The registry starts empty — the library ships no bootstrap templates. No near-term product investment. Prefer host `assemble` when the tree is already known (no model call).
 - Catalog defines **component vocabulary and prop shapes**, not page templates. Basic catalog is vendored for bootstrap; hosts author production catalogs (A2UI model) and register them via SPI — we validate/generate, we do not ship their design system.
 
 ### Transport & errors (decided)
@@ -52,7 +52,7 @@ Ship a Maven Central Spring Boot runtime that turns prompts/intents into **valid
 
 ### Tool API (decided)
 
-- **Hybrid:** fluent builder / template registry (`A2UiSurfaceTemplates`, `A2UiSurfaceSpec`) + thin runtime-owned `@Tool` adapters.
+- **Hybrid:** fluent builder / template registry (`A2UiSurfaceSpec`, `A2UiFixedSurfaceSpec`) + thin runtime-owned `@Tool` adapters.
 - Do **not** expose `@Tool → List<A2UiMessage>` as the primary consumer API.
 
 ### Resolved
@@ -77,7 +77,7 @@ Near-term **execution order stays locked** (see header). This section only expla
 | **Patch `1.1.1`** ✅ | Dynamic GenUI is trustworthy infrastructure (forced primary tool, fail-fast tools) |
 | **Phase X (v0.9.1)** | Protocol currency — builders are not stuck on Legacy wire |
 | **Utilization on native SSE** | Text / progress / run lifecycle *around* surfaces — product UX without a second pipe |
-| **Platform builder batteries** ✅ | Adoption maturity: HITL/intake docs+showcase, Template SPI, host A2UI catalog SPI, ops, multi-provider — Central **`2.1.0`** |
+| **Platform builder batteries** ✅ | Adoption maturity: in-product surface docs+showcase, Template SPI, host A2UI catalog SPI, ops, multi-provider — Central **`2.1.0`** |
 | **Later (residual)** | v1.0 watch, multi-surface runtime, etc. — deepen further after batteries |
 
 ---
@@ -126,6 +126,8 @@ Each template: fixed `surfaceUpdate` adjacency list → slot-driven `dataModelUp
 - Wire `A2UiSurfaceBuffer` before `beginRendering`
 - Orchestrator integration test (mock ChatClient → template → SSE events)
 - Metrics: `a2ui.template.rendered` (`a2ui.stream.error` via existing transform failure metrics)
+
+Completed-phase class names (`TemplateSurfaceOrchestrator`, `DynamicSurfaceOrchestrator`, `A2UiSurfaceBufferOps`) were superseded by compose adapters in architecture revisions (`SpringAiSurfaceRuntime` + `GenerationModeAdapter`).
 
 **Plan:** `[docs/plans/phase-1-template-mvp.md](docs/plans/phase-1-template-mvp.md)`
 
@@ -327,7 +329,7 @@ A2UI is a **UI payload format**. A GenUI **platform** also needs text, progress,
 
 **Status:** ✅ Complete on `main`; library SemVer **`2.1.0`** publishes Template + Catalog SPIs to Maven Central.  
 **Plan:** [`docs/plans/phase-platform-builder-batteries.md`](docs/plans/phase-platform-builder-batteries.md)  
-**Jobs research:** GenUI applications → **decision/capture** wedge (ops HITL, intake, config, support case); presentation jobs conceded to Thesys/CopilotKit.  
+**Jobs research (historical):** decision/capture wedge. **Current identity:** [ADR 002](docs/adr/002-in-product-surfaces.md) — in-product surfaces (steps and islands); do not treat ops HITL as the box.  
 **Catalog stance:** We ship/validate the **basic** A2UI catalog. Slice **C2** = host **registers their A2UI catalog schemas** with the runtime (same altitude as `A2UiActionHandler`). Hosts keep renderers + design system. We do **not** become a component kit, catalog marketplace, or visual catalog/create site.
 
 **Core MVP:** shipped at Central `2.0.0`. Batteries are adoption maturity on top — not a second generation runtime.
@@ -347,9 +349,40 @@ A2UI is a **UI payload format**. A GenUI **platform** also needs text, progress,
 
 ---
 
+## Architecture revisions
+
+**Status:** Waves A–C complete. Later items (Spring AI adapter, starter split, Boot 4) stay unstarted.  
+**Plan:** [`docs/plans/architecture-revisions.md`](docs/plans/architecture-revisions.md)  
+**Does not reopen** [ADR 001](docs/adr/001-streaming-surface-generation.md) / [ADR 002](docs/adr/002-in-product-surfaces.md): dual generation modes stay; template remains a frozen capability; dynamic stays gravity; native SSE + fail-fast stay. Demos out of scope.
+
+Fail-fast must mean **this catalog**. Then collapse the compose pipe and pull wire hygiene into core. Spring AI 2.0 / Boot 4 stays later.
+
+### Wave A — fail-fast means this catalog
+
+- [x] **A1** Catalog-scoped component type checks (`componentTypesForCatalog` when `catalogId` is present)
+- [x] **A2** Action path injects the shared validator; acks validate `forVersionAndCatalog` (infer catalog from `CreateSurface`, else basic)
+- [x] **A3** Stream façade `validateSingle` uses `forCatalog` (drop the duplicate only in Wave B)
+- [x] **A4** Delete dead prompt seam + unused `createClient`; one `generationMode` owner; parser `ObjectMapper` actually parses
+
+### Wave B — collapse the compose pipe
+
+- [x] **B** One compose module owns client clone, lifecycle, fail-fast, event mapping. Template and dynamic sit behind the generation-mode seam as adapters. Assembly becomes the validate owner.
+
+### Wave C — wire hygiene in core
+
+- [x] **C** Move dynamic normalizer + shared catalog schema inlining into core; fold `A2UiSurfaceBufferOps` into `A2UiSurfaceBuffer.apply`
+
+### Later (this track — do not start)
+
+- Spring AI adapter (ChatClient / tools / forced tool-choice / ChatOptions behind one hop)
+- Split catalog wiring from the AI starter so host `assemble` does not pull Spring AI
+- Spring AI **2.0.0 GA** / Boot 4 — blocked on the adapter; do not bump `1.1.0-M2` first
+
+---
+
 ## Next — Later (residual)
 
-No locked implementation phase. Pick from **Later** below only when demand or A2UI Current moves. Release hygiene for batteries is Central **`2.1.0`**.
+No locked implementation phase after architecture revisions. Pick from **Later** below only when demand or A2UI Current moves. Release hygiene for batteries is Central **`2.1.0`**.
 
 ---
 

@@ -1,6 +1,8 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiRuntimeEventCollector;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiSurfaceAssemblyService;
@@ -11,6 +13,11 @@ import org.springframework.ai.tool.annotation.Tool;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Spring AI tools for template-mode compose ({@code selectTemplate}, {@code renderTemplate}).
+ *
+ * @apiNote internal — not a host SPI; remains public until a major version.
+ */
 public class A2UiTemplateTools {
 
     public static final String SESSION_CONTEXT_KEY = "a2ui.templateRenderSession";
@@ -48,6 +55,19 @@ public class A2UiTemplateTools {
         A2UiRuntimeEventCollector collector = session.eventCollector();
         collector.toolStart("renderTemplate");
         try {
+            String selected = session.selectedTemplateId();
+            if (selected == null || selected.isBlank()) {
+                throw new SurfaceExecutionException(
+                        "selectTemplate must be called before renderTemplate",
+                        SurfaceErrorCodes.TRANSFORM_FAILED,
+                        Map.of("templateId", templateId == null ? "" : templateId));
+            }
+            if (!selected.equals(templateId)) {
+                throw new SurfaceExecutionException(
+                        "renderTemplate templateId must match the selected template",
+                        SurfaceErrorCodes.TRANSFORM_FAILED,
+                        Map.of("selectedTemplateId", selected, "templateId", templateId == null ? "" : templateId));
+            }
             List<A2UiMessage> messages = assemblyService.assemble(
                     templateId, session.surfaceId(), session.catalogId(), slots);
             session.setRenderedMessages(messages);

@@ -1,8 +1,12 @@
 # Flow recompose
 
-Multi-step GenUI **without** a platform memory or session store. The host owns
-collected state; each stream call is steered with that state via request
-`context`.
+Multi-step **in-product surfaces** without a platform memory or session store.
+The host owns collected state; each stream (or assemble) is steered with that
+state via request `context`. This is one **placement** (a process step). The
+other first-class placement is an **island** on a page they already ship.
+Identity: [ADR 002](../adr/002-in-product-surfaces.md).
+
+We do **not** ship a workflow engine.
 
 ## Why this pattern
 
@@ -51,6 +55,7 @@ into `instructions` — keep PII policies yours.
 - Cross-request memory engine or preference learning as a platform feature  
 - Workflow engine / Camunda-lite  
 - Automatic “UI that understands me” without host logic  
+- Fetching or storing their system of record (surface state only)  
 
 ## Related
 

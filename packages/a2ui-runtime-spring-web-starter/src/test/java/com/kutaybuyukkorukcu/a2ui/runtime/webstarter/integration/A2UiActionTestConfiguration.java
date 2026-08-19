@@ -32,7 +32,9 @@ public class A2UiActionTestConfiguration {
     @Bean
     public ChatClient.Builder chatClientBuilder() {
         ChatClient.Builder builder = Mockito.mock(ChatClient.Builder.class);
+        Mockito.when(builder.clone()).thenReturn(builder);
         Mockito.when(builder.defaultAdvisors(Mockito.any(Advisor.class))).thenReturn(builder);
+        Mockito.when(builder.build()).thenReturn(Mockito.mock(ChatClient.class));
         return builder;
     }
 

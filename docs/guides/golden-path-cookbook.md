@@ -9,9 +9,9 @@ shipped — this cookbook is for adoption, not a second runtime.
 
 ## Who this is for
 
-Spring teams embedding **decision and capture** GenUI inside products they own
-(ops approval, intake, config wizards) — not building a ChatGPT clone and not
-adopting a hosted UI model.
+Spring teams embedding **catalog-bounded surfaces** inside products they own —
+a process step or a slot on a page they already ship — not building a ChatGPT
+clone and not adopting a hosted UI model. Identity: [ADR 002](../adr/002-in-product-surfaces.md).
 
 | Need | Prefer |
 |------|--------|
@@ -28,7 +28,7 @@ fail-fast → actions.
 <dependency>
   <groupId>com.kutaybuyukkorukcu.a2ui.runtime</groupId>
   <artifactId>a2ui-runtime-spring-web-starter</artifactId>
-  <version>2.0.0</version>
+  <version>2.1.0</version>
 </dependency>
 ```
 
@@ -53,9 +53,10 @@ enabled, `runStarted` / `assistantText` / `toolProgress` / `runFinished`.
 
 Guide: [Native SSE utilization](native-sse-utilization.md).
 
-**Hero prompt shape (ops / HITL):** ask for an approval card with risk summary
-and Approve / Reject (or Confirm) actions — then wire those names in your
-`A2UiActionHandler`.
+**Hero shape:** stream (or host-assemble) a surface into a **region of their
+product**, with actions named for your `A2UiActionHandler`. Do not prompt the
+model with a widget list you already know. Pass **case context**; compose only
+when this instance’s tree is unknown.
 
 ## 3. Handle the decision (host)
 
@@ -65,8 +66,10 @@ return validated A2UI messages (ack surface or data model).
 Guides: [Hosting actions](hosting-actions.md) ·
 [Action round-trip](action-round-trip.md).
 
-Showcase reference: `ShowcaseActionHandlerConfiguration` in
-`apps/be-transform-showcase` (`approve` / `reject` / `confirm` / `primary_action`).
+Showcase reference: `ShowcaseChangeActionHandler` in
+`apps/be-transform-showcase` (submit → host `assemble` of the next surface →
+approve / reject write gate). Submit Buttons need `event.context` path maps so
+`action.context` carries field values into that assemble.
 
 ## 4. Multi-step without platform memory
 
@@ -86,30 +89,36 @@ Guide: [Registering catalogs](registering-catalogs.md) ·
 [FE design-system binding](fe-design-system-binding.md) ·
 [Catalog ownership](../platform.md#catalog-ownership-a2ui-aligned).
 
-## 6. Controlled layouts (template mode)
+## 6. Known trees (assemble or template)
 
-When a surface shape is known ahead of time, register it as a template
-instead of paying dynamic-mode latency/tokens every time.
+When a surface shape is known ahead of time, **assemble** it in the host
+(no model call) — acks, confirm-only islands:
 
-Guide: [Authoring templates](authoring-templates.md) — Template SPI, faster
-and deterministic vs dynamic for known surfaces.
+```java
+List<A2UiMessage> messages = assemblyService.assemble(
+        "text-card", surfaceId, catalogId, Map.of("title", "Done", "body", "Saved."));
+```
+
+Template mode remains a frozen capability if you still want the LLM to select a
+registered spec and fill slots.
+
+Guide: [Authoring templates](authoring-templates.md).
 
 ---
 
 ## When not to use GenUI
 
-Prefer **static UI** (or template-only GenUI) when:
+Prefer **static UI** (hand-written chrome) when:
 
 - The screen is fixed, high-traffic, and pixel-critical (checkout chrome, nav)
 - Every filter/sort would become another LLM turn (drill-down analytics trap)
 - You need sub-100ms interaction with no generation budget
 - Open HTML in a foreign chat host is the distribution goal (MCP Apps — out of scope here)
 
-Prefer **template mode** over dynamic when the layout is known and you want
-faster, cheaper, deterministic fills.
+Prefer **host `assemble`** (or frozen template mode) when the layout is known
+before the user shows up.
 
-Prefer **dynamic** when the field set or layout must change with case context
-(intake branches, per-case approval context).
+Prefer **dynamic** only when this case’s field set or tree is not predetermined.
 
 ## Latency and cost (honest)
 
@@ -118,7 +127,7 @@ uses more tokens than a text-only reply. Budget for:
 
 - Time-to-first SSE event (streaming helps perceived wait)
 - One validation retry on bad planner output (fail-fast after that)
-- Template mode when the surface shape is stable
+- Host `assemble` when the surface shape is already known — do not pay the planner for that tree
 
 Do not weaken fail-fast with semantic “repair” of invalid catalogs — invalid
 output should error with diagnostics.
@@ -130,7 +139,7 @@ output should error with diagnostics.
 * [Getting started](getting-started.md) — shortest first stream  
 * [Ops and diagnostics](ops-and-diagnostics.md)  
 * [Multi-provider Spring AI](multi-provider-spring-ai.md)  
-* [Action round-trip](action-round-trip.md) — HITL decision loop  
+* [Action round-trip](action-round-trip.md) — click → host write gate → ack  
 * [Flow recompose](flow-recompose.md) — host state → next surface  
 * [Authoring templates](authoring-templates.md) — Template SPI  
 * [Registering catalogs](registering-catalogs.md) — host A2UI catalog SPI  

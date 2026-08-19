@@ -31,11 +31,11 @@ bean:
 
 ```java
 @Bean
-public A2UiCatalogContribution hitlCatalogContribution() {
+public A2UiCatalogContribution statusBadgeCatalogContribution() {
     return new A2UiCatalogContribution() {
         @Override
         public String catalogId() {
-            return "https://example.com/catalogs/hitl/1.0";
+            return "https://example.com/catalogs/status/1.0";
         }
 
         @Override

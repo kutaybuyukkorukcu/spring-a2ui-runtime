@@ -1,9 +1,12 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool;
 
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.prompt.ChatOptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class A2UiForcedToolChoiceFactoryTest {
 
@@ -44,6 +47,31 @@ class A2UiForcedToolChoiceFactoryTest {
         Object toolChoice = readToolChoice(options);
         assertThat(toolChoice).isNotNull();
         assertThat(String.valueOf(toolChoice)).contains("renderA2Ui");
+    }
+
+    @Test
+    void shouldFailClosedWhenForcedOptionsAreUnavailable() {
+        assertThatThrownBy(() -> A2UiForcedToolChoiceFactory.requireForcedOptions(null, "generateA2Ui"))
+                .isInstanceOf(SurfaceExecutionException.class)
+                .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
+                .isEqualTo(SurfaceErrorCodes.TOOL_CHOICE_UNAVAILABLE);
+    }
+
+    @Test
+    void shouldSkipForceWhenOpenAiTypesAreMissing() {
+        ChatOptions options = A2UiForcedToolChoiceFactory.afterOpenAiLookupFailure(
+                "generateA2Ui", new ClassNotFoundException("OpenAiChatOptions"));
+        assertThat(options).isNotNull();
+        assertThat(isOpenAiChatOptions(options)).isFalse();
+    }
+
+    @Test
+    void shouldFailClosedWhenOpenAiTypesPresentButConstructionFails() {
+        assertThatThrownBy(() -> A2UiForcedToolChoiceFactory.afterOpenAiLookupFailure(
+                "generateA2Ui", new NoSuchMethodException("builder")))
+                .isInstanceOf(SurfaceExecutionException.class)
+                .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
+                .isEqualTo(SurfaceErrorCodes.TOOL_CHOICE_UNAVAILABLE);
     }
 
     private static boolean isOpenAiChatOptions(ChatOptions options) {

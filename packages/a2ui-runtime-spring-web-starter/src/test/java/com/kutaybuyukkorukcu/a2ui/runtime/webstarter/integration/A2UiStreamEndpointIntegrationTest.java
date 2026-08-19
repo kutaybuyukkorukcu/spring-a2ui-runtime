@@ -143,4 +143,30 @@ class A2UiStreamEndpointIntegrationTest {
                     assertThat(body).contains("event:done");
                 });
     }
+
+    @Test
+    void shouldEmitJsonSafeErrorWhenMessageContainsQuotes() {
+        when(surfaceRuntime.stream(any(), anyString(), anyString()))
+                .thenReturn(Flux.error(new SurfaceExecutionException(
+                        "bad \"quote\" and \\ slash\nnewline",
+                        SurfaceErrorCodes.TRANSFORM_FAILED,
+                        null)));
+
+        webTestClient.post()
+                .uri("/a2ui/surface/stream")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.TEXT_EVENT_STREAM)
+                .bodyValue(new A2UiSurfaceRequest("test content", null, null))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(String.class)
+                .value(body -> {
+                    assertThat(body).contains("event:error");
+                    assertThat(body).contains("\\\"quote\\\"");
+                    assertThat(body).contains("\\\\ slash");
+                    assertThat(body).contains("\\nnewline");
+                    assertThat(body).contains(SurfaceErrorCodes.TRANSFORM_FAILED);
+                    assertThat(body).contains("event:done");
+                });
+    }
 }

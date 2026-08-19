@@ -1,5 +1,6 @@
 package com.kutaybuyukkorukcu.a2ui.showcase.controller;
 
+import com.kutaybuyukkorukcu.a2ui.showcase.demo.ShowcaseWorkspace;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,17 +21,20 @@ public class HealthController {
     @GetMapping("/")
     public ResponseEntity<Map<String, Object>> info() {
         return ResponseEntity.ok(Map.of(
-                "name", "A2UI Runtime Showcase Host",
+                "name", ShowcaseWorkspace.PRODUCT_NAME,
                 "version", "2.1.0",
-                "description", "Thin Spring Boot sample host for Spring GenUI surface serving, streaming, catalogs, and actions",
+                "description",
+                "Spring GenUI host demo — a page the host owns, with one island whose tree depends on this record",
                 "endpoints", Map.of(
                         "health", "GET /health",
+                        "demoInfo", "GET /api/demo/info",
+                        "recordOpen", "POST /api/demo/records/{id}/open",
                         "surfaceStream", "POST /a2ui/surface/stream",
                         "catalog", "GET /a2ui/catalogs/basic-v0.9",
                         "actions", "POST /a2ui/actions"),
                 "notes", Map.of(
                         "runtimeBoundary", "Reusable routing, validation, and transport behavior lives in the runtime modules; this host stays thin.",
-                        "showcaseRole", "This app demonstrates end-to-end A2UI serving and action flows rather than acting as the product surface.")
+                        "showcaseRole", "Two fixture records fill one island: known trees are assembled with no model call; unknown cases are composed from the catalog. The host owns the ledger.")
         ));
     }
 }

@@ -2,4 +2,5 @@
 - For 'Text', you MUST provide 'text'. If dynamic, use { "path": "..." }.
 - For 'Image', you MUST provide 'url'. If dynamic, use { "path": "..." }.
 - For 'Button', you MUST provide 'action'.
-- For 'TextField', 'CheckBox', etc., you MUST provide 'label'.
+- For 'TextField' and 'CheckBox', you MUST provide 'label' and bind 'value' to a data-model path: { "path": "/..." }. Labels may be a literal or a path. A TextField with only 'label' is not editable.
+- For submit/primary Buttons that collect a form, 'action.event.context' MUST map the field paths the host needs (at least each TextField/CheckBox value path on that surface), e.g. { "summary": { "path": "/summary" } }. Never use the path string as the context value ("/summary") — that is sent literally. A Button with only event.name sends empty context {}.

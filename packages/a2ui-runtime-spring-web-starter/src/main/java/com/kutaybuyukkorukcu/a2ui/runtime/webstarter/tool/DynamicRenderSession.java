@@ -5,6 +5,11 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiRuntimeEventCol
 
 import java.util.List;
 
+/**
+ * Per-run state for dynamic-mode tool calls. Bound on {@code ToolContext}, not ThreadLocal.
+ *
+ * @apiNote internal — not a host SPI; remains public until a major version.
+ */
 public final class DynamicRenderSession {
 
     private final String surfaceId;

@@ -1,6 +1,8 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.validation;
 
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogContribution;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiValidationContext;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
@@ -102,6 +104,20 @@ class A2UiMessageValidatorTest {
     }
 
     @Test
+    void shouldTreatEmptyCatalogSchemaAsUnknownComponentType() {
+        Map<String, Map<String, Object>> ghost = Map.of("Ghost", Map.of());
+        A2UiCatalogRegistry registry = A2UiCatalogRegistry.of(Map.of("host-catalog", ghost));
+        A2UiMessageValidator emptySchemaValidator = new A2UiMessageValidator(registry);
+        List<A2UiMessage> messages = List.of(
+                new A2UiMessage.CreateSurface("main", "host-catalog"),
+                new A2UiMessage.UpdateComponents("main", List.of(
+                        new ComponentDefinition("root", "Ghost", Map.of()))));
+        List<A2UiDiagnostic> diagnostics = emptySchemaValidator.validate(
+                messages, A2UiValidationContext.forCatalog("host-catalog"));
+        assertThat(diagnostics).anyMatch(d -> "UNKNOWN_COMPONENT_TYPE".equals(d.code()));
+    }
+
+    @Test
     void shouldRejectUnsupportedVersion() {
         List<A2UiDiagnostic> diagnostics = validator.validate(
                 List.of(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9)),
@@ -140,6 +156,31 @@ class A2UiMessageValidatorTest {
         List<A2UiMessage> messages = List.of(
                 new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
                 new A2UiMessage.UpdateComponents("main", List.of(checkbox)));
+        assertThat(validator.validate(messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9)))
+                .isEmpty();
+    }
+
+    @Test
+    void shouldRejectTextFieldMissingRequiredValue() {
+        ComponentDefinition textField = new ComponentDefinition(
+                "root", "TextField", Map.of("label", "Summary"));
+        List<A2UiMessage> messages = List.of(
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.UpdateComponents("main", List.of(textField)));
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9));
+        assertThat(diagnostics).anyMatch(d -> "MISSING_REQUIRED_PROP".equals(d.code()));
+    }
+
+    @Test
+    void shouldAcceptTextFieldWithValuePath() {
+        ComponentDefinition textField = new ComponentDefinition(
+                "root",
+                "TextField",
+                Map.of("label", "Summary", "value", Map.of("path", "/summary")));
+        List<A2UiMessage> messages = List.of(
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.UpdateComponents("main", List.of(textField)));
         assertThat(validator.validate(messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9)))
                 .isEmpty();
     }
@@ -225,5 +266,96 @@ class A2UiMessageValidatorTest {
     void shouldRejectDeleteSurfaceWithoutSurfaceId() {
         List<A2UiDiagnostic> diagnostics = validator.validateSingle(new A2UiMessage.DeleteSurface(""));
         assertThat(diagnostics).anyMatch(d -> "MISSING_SURFACE_ID".equals(d.code()));
+    }
+
+    @Test
+    void shouldAcceptChoicePickerWithStringListValue() {
+        List<A2UiMessage> messages = choicePickerMessages(List.of("opt-a"));
+        assertThat(validator.validate(messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9)))
+                .isEmpty();
+    }
+
+    @Test
+    void shouldAcceptChoicePickerWithBoundStringListValue() {
+        List<A2UiMessage> messages = choicePickerMessages(Map.of("path", "/selected"));
+        assertThat(validator.validate(messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9)))
+                .isEmpty();
+    }
+
+    @Test
+    void shouldRejectChoicePickerWithBareStringValue() {
+        List<A2UiMessage> messages = choicePickerMessages("opt-a");
+        List<A2UiDiagnostic> diagnostics = validator.validate(
+                messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9));
+        assertThat(diagnostics).isNotEmpty();
+    }
+
+    @Test
+    void shouldMapPlainStringTypeMismatchToInvalidPropType() {
+        String hostCatalog = "https://example.com/catalogs/host/1.0";
+        A2UiCatalogRegistry registry = A2UiCatalogRegistry.withContributions(
+                A2UiCatalogRegistry.shared(),
+                List.of(statusBadgeContribution()));
+        A2UiMessageValidator catalogValidator = new A2UiMessageValidator(registry);
+        List<A2UiMessage> messages = List.of(
+                new A2UiMessage.CreateSurface("main", hostCatalog),
+                new A2UiMessage.UpdateComponents("main", List.of(
+                        new ComponentDefinition("root", "StatusBadge", Map.of("text", 123)))));
+        List<A2UiDiagnostic> diagnostics = catalogValidator.validate(
+                messages, A2UiValidationContext.forCatalog(hostCatalog));
+        assertThat(diagnostics).anyMatch(d -> "INVALID_PROP_TYPE".equals(d.code()));
+        assertThat(diagnostics).noneMatch(d -> "INVALID_BOUND_VALUE".equals(d.code()));
+    }
+
+    @Test
+    void validateSingleShouldHonorExplicitCatalogForHostTypes() {
+        A2UiCatalogRegistry registry = A2UiCatalogRegistry.withContributions(
+                A2UiCatalogRegistry.shared(),
+                List.of(statusBadgeContribution()));
+        A2UiMessageValidator catalogValidator = new A2UiMessageValidator(registry);
+        A2UiMessage update = new A2UiMessage.UpdateComponents("main", List.of(
+                new ComponentDefinition("root", "StatusBadge", Map.of("text", "Approved"))));
+
+        List<A2UiDiagnostic> underBasic = catalogValidator.validateSingle(
+                update, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9));
+        assertThat(underBasic).anyMatch(d -> "UNKNOWN_COMPONENT_TYPE".equals(d.code()));
+    }
+
+    @Test
+    void catalogIdFromShouldReadFirstCreateSurface() {
+        assertThat(A2UiMessageValidator.catalogIdFrom(List.of(
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9))))
+                .isEqualTo(A2UiCatalogIds.BASIC_V0_9);
+        assertThat(A2UiMessageValidator.catalogIdFrom(List.of())).isNull();
+    }
+
+    private static List<A2UiMessage> choicePickerMessages(Object value) {
+        ComponentDefinition picker = new ComponentDefinition(
+                "root",
+                "ChoicePicker",
+                Map.of(
+                        "options", List.of(Map.of("label", "A", "value", "opt-a")),
+                        "value", value));
+        return List.of(
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.UpdateComponents("main", List.of(picker)));
+    }
+
+    private static A2UiCatalogContribution statusBadgeContribution() {
+        return new A2UiCatalogContribution() {
+            @Override
+            public String catalogId() {
+                return "https://example.com/catalogs/host/1.0";
+            }
+
+            @Override
+            public Map<String, Map<String, Object>> componentSchemas() {
+                return Map.of("StatusBadge", Map.of(
+                        "type", "object",
+                        "additionalProperties", false,
+                        "required", List.of("text"),
+                        "properties", Map.of("text", Map.of("type", "string"))));
+            }
+        };
     }
 }

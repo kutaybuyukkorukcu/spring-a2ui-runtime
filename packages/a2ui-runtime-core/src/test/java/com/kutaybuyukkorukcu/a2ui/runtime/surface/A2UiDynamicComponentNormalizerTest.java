@@ -1,4 +1,4 @@
-package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface;
+package com.kutaybuyukkorukcu.a2ui.runtime.surface;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage.ComponentDefinition;
 import org.junit.jupiter.api.Test;
@@ -81,6 +81,35 @@ class A2UiDynamicComponentNormalizerTest {
 
         assertThat(components.get(0).componentProperties().get("action"))
                 .isEqualTo(Map.of("event", Map.of("name", "save_prefs")));
+    }
+
+    @Test
+    void shouldCoerceActionContextPathShorthandOnV09Event() {
+        List<ComponentDefinition> components = normalizer.normalize(List.of(
+                Map.of(
+                        "id", "root",
+                        "component", "Button",
+                        "child", "label",
+                        "action",
+                        Map.of(
+                                "event",
+                                Map.of(
+                                        "name", "submit_change",
+                                        "context",
+                                        Map.of(
+                                                "notes", "/notes",
+                                                "summary", Map.of("path", "/summary"))))),
+                Map.of("id", "label", "component", "Text", "text", "Submit")));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> action =
+                (Map<String, Object>) components.get(0).componentProperties().get("action");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> event = (Map<String, Object>) action.get("event");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> context = (Map<String, Object>) event.get("context");
+        assertThat(context).containsEntry("notes", Map.of("path", "/notes"));
+        assertThat(context).containsEntry("summary", Map.of("path", "/summary"));
     }
 
     @Test

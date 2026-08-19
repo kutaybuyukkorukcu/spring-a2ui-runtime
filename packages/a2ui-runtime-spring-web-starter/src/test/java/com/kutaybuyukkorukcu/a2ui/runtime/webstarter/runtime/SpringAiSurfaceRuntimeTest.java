@@ -7,7 +7,6 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.properties.A2UiWebPropertie
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.StandardEnvironment;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -15,29 +14,34 @@ import reactor.test.StepVerifier;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class SpringAiSurfaceRuntimeTest {
 
-    private TemplateSurfaceOrchestrator templateOrchestrator;
-    private DynamicSurfaceOrchestrator dynamicOrchestrator;
+    private ChatClient.Builder builder;
+    private GenerationModeAdapter templateAdapter;
+    private GenerationModeAdapter dynamicAdapter;
 
     @BeforeEach
     void setUp() {
-        templateOrchestrator = mock(TemplateSurfaceOrchestrator.class);
-        dynamicOrchestrator = mock(DynamicSurfaceOrchestrator.class);
+        builder = mock(ChatClient.Builder.class);
+        when(builder.clone()).thenReturn(builder);
+        when(builder.build()).thenReturn(mock(ChatClient.class));
+        templateAdapter = mock(GenerationModeAdapter.class);
+        dynamicAdapter = mock(GenerationModeAdapter.class);
     }
 
     @Test
-    void shouldDelegateToDynamicOrchestratorByDefault() {
+    void shouldDelegateToDynamicAdapterByDefault() {
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show dashboard", null, null);
         A2UiMessage.CreateSurface createSurface =
                 new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9);
-        when(dynamicOrchestrator.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
-                .thenReturn(Flux.just(new A2UiRuntimeEvent.Surface(createSurface)));
+        when(dynamicAdapter.generate(any(), any(), any())).thenReturn(List.of(createSurface));
+        when(dynamicAdapter.missingSurfaceMessage()).thenReturn("missing");
 
-        SpringAiSurfaceRuntime runtime = createRuntime(new A2UiWebProperties());
+        SpringAiSurfaceRuntime runtime = createRuntime(new A2UiWebProperties(), dynamicAdapter);
 
         StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
                 .assertNext(event -> {
@@ -49,56 +53,27 @@ class SpringAiSurfaceRuntimeTest {
     }
 
     @Test
-    void shouldDelegateToTemplateOrchestratorWhenTemplateMode() {
+    void shouldDelegateToTemplateAdapterWhenTemplateMode() {
         A2UiWebProperties properties = new A2UiWebProperties();
         properties.getRuntime().setGenerationMode("template");
 
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show card", null, null);
-        when(templateOrchestrator.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
-                .thenReturn(Flux.empty());
+        when(templateAdapter.generate(any(), any(), any())).thenReturn(List.of(
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9)));
 
-        SpringAiSurfaceRuntime runtime = createRuntime(properties);
+        SpringAiSurfaceRuntime runtime = createRuntime(properties, templateAdapter);
 
         StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
+                .expectNextCount(1)
                 .verifyComplete();
     }
 
-    private SpringAiSurfaceRuntime createRuntime(A2UiWebProperties properties) {
-        ObjectProvider<ChatClient.Builder> provider = new StaticObjectProvider(mock(ChatClient.Builder.class));
+    private SpringAiSurfaceRuntime createRuntime(A2UiWebProperties properties, GenerationModeAdapter adapter) {
         return new SpringAiSurfaceRuntime(
-                provider,
+                builder,
                 List.of(),
                 new StandardEnvironment(),
                 properties,
-                templateOrchestrator,
-                dynamicOrchestrator);
-    }
-
-    private static final class StaticObjectProvider implements ObjectProvider<ChatClient.Builder> {
-        private final ChatClient.Builder builder;
-
-        private StaticObjectProvider(ChatClient.Builder builder) {
-            this.builder = builder;
-        }
-
-        @Override
-        public ChatClient.Builder getObject(Object... args) {
-            return builder;
-        }
-
-        @Override
-        public ChatClient.Builder getIfAvailable() {
-            return builder;
-        }
-
-        @Override
-        public ChatClient.Builder getIfUnique() {
-            return builder;
-        }
-
-        @Override
-        public ChatClient.Builder getObject() {
-            return builder;
-        }
+                adapter);
     }
 }

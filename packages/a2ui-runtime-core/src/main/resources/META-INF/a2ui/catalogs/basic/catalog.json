@@ -559,7 +559,7 @@
               "description": "A regular expression used for client-side validation of the input."
             }
           },
-          "required": ["component", "label"]
+          "required": ["component", "label", "value"]
         }
       ],
       "unevaluatedProperties": false

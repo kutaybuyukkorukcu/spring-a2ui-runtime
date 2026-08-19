@@ -1,5 +1,8 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service;
 
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogContribution;
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiValidationContext;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.*;
@@ -46,6 +49,27 @@ class A2UiActionServiceTest {
         assertThat(result.actionName()).isEqualTo("submit");
         assertThat(result.surfaceId()).isEqualTo("main");
         assertThat(result.messageCount()).isEqualTo(1);
+        verify(validator).validate(
+                responseMessages,
+                A2UiValidationContext.forVersionAndCatalog(A2UiProtocol.SUPPORTED_VERSION, A2UiCatalogIds.BASIC_V0_9));
+    }
+
+    @Test
+    void shouldValidateAcksAgainstCatalogFromCreateSurface() {
+        A2UiUserAction userAction = new A2UiUserAction("submit", "main", "btn-1", null, Map.of());
+        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        String hostCatalog = "https://example.com/catalogs/host/1.0";
+        List<A2UiMessage> responseMessages = List.of(new A2UiMessage.CreateSurface("main", hostCatalog));
+
+        when(handler.supports(userAction)).thenReturn(true);
+        when(handler.handle(any(), anyString())).thenReturn(responseMessages);
+        when(validator.validate(any(), any(A2UiValidationContext.class))).thenReturn(List.of());
+
+        service.handleClientEvent(event, "req-1");
+
+        verify(validator).validate(
+                responseMessages,
+                A2UiValidationContext.forVersionAndCatalog(A2UiProtocol.SUPPORTED_VERSION, hostCatalog));
     }
 
     @Test
@@ -85,5 +109,68 @@ class A2UiActionServiceTest {
 
         assertThatThrownBy(() -> service.handleClientEvent(event, "req-1"))
                 .isInstanceOf(A2UiActionException.class);
+    }
+
+    @Test
+    void shouldRejectHostTypeUnderBasicCatalogWithRealValidator() {
+        String hostCatalog = "https://example.com/catalogs/host/1.0";
+        A2UiMessageValidator realValidator = new A2UiMessageValidator(registryWithStatusBadge(hostCatalog));
+        A2UiActionService realService = new A2UiActionService(List.of(handler), metrics, realValidator);
+        A2UiUserAction userAction = new A2UiUserAction("submit", "main", "btn-1", null, Map.of());
+        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        List<A2UiMessage> messages = List.of(
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.UpdateComponents("main", List.of(
+                        new A2UiMessage.ComponentDefinition(
+                                "root", "StatusBadge", Map.of("text", "Approved")))));
+
+        when(handler.supports(userAction)).thenReturn(true);
+        when(handler.handle(any(), anyString())).thenReturn(messages);
+
+        assertThatThrownBy(() -> realService.handleClientEvent(event, "req-1"))
+                .isInstanceOf(A2UiActionException.class)
+                .extracting(ex -> ((A2UiActionException) ex).getErrorCode())
+                .isEqualTo(A2UiActionErrorCodes.INVALID_ACTION_RESPONSE);
+    }
+
+    @Test
+    void shouldAcceptHostTypeWhenCreateSurfacePinsHostCatalog() {
+        String hostCatalog = "https://example.com/catalogs/host/1.0";
+        A2UiMessageValidator realValidator = new A2UiMessageValidator(registryWithStatusBadge(hostCatalog));
+        A2UiActionService realService = new A2UiActionService(List.of(handler), metrics, realValidator);
+        A2UiUserAction userAction = new A2UiUserAction("submit", "main", "btn-1", null, Map.of());
+        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        List<A2UiMessage> messages = List.of(
+                new A2UiMessage.CreateSurface("main", hostCatalog),
+                new A2UiMessage.UpdateComponents("main", List.of(
+                        new A2UiMessage.ComponentDefinition(
+                                "root", "StatusBadge", Map.of("text", "Approved")))));
+
+        when(handler.supports(userAction)).thenReturn(true);
+        when(handler.handle(any(), anyString())).thenReturn(messages);
+
+        A2UiActionResponse result = realService.handleClientEvent(event, "req-1");
+        assertThat(result.accepted()).isTrue();
+        assertThat(result.messageCount()).isEqualTo(2);
+    }
+
+    private static A2UiCatalogRegistry registryWithStatusBadge(String hostCatalog) {
+        return A2UiCatalogRegistry.withContributions(
+                A2UiCatalogRegistry.shared(),
+                List.of(new A2UiCatalogContribution() {
+                    @Override
+                    public String catalogId() {
+                        return hostCatalog;
+                    }
+
+                    @Override
+                    public Map<String, Map<String, Object>> componentSchemas() {
+                        return Map.of("StatusBadge", Map.of(
+                                "type", "object",
+                                "additionalProperties", false,
+                                "required", List.of("text"),
+                                "properties", Map.of("text", Map.of("type", "string"))));
+                    }
+                }));
     }
 }

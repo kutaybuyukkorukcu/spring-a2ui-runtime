@@ -179,7 +179,7 @@ in their own adapter). Core jars stay free of foreign interaction-protocol types
 
 - Non-stub showcase `A2UiActionHandler` (e.g. `confirm` / `primary_action`) returns real `updateComponents` / `updateDataModel`  
 - Optional in-memory ack map to illustrate host-owned store — **not** a platform DB  
-- Domain story copy (e.g. gym-notes framing) was launch narrative only — **superseded** by builder-batteries showcase (ops HITL / intake); not a product module  
+- Domain story copy (e.g. gym-notes framing) was launch narrative only — **superseded** by builder-batteries showcase, then by [ADR 002](../adr/002-in-product-surfaces.md) in-product surfaces; not a product module  
 
 ### Later themes — moved
 

@@ -2,7 +2,6 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.integration;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
-import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.A2UiSurfaceRequest;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.properties.A2UiWebProperties;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiRuntimeEvent;
@@ -67,7 +66,7 @@ class A2UiStreamLifecycleIntegrationTest {
     void shouldValidateOnlySurfaceEvents() {
         A2UiWebProperties properties = new A2UiWebProperties();
         properties.getStream().setLifecycleEvents(true);
-        A2UiSurfaceService service = new A2UiSurfaceService(surfaceRuntime, new A2UiMessageValidator(), properties);
+        A2UiSurfaceService service = new A2UiSurfaceService(surfaceRuntime, properties);
 
         when(surfaceRuntime.stream(any(), anyString(), anyString()))
                 .thenReturn(Flux.just(new A2UiRuntimeEvent.ToolProgress("req-1", "generateA2Ui", "start")));

@@ -7,6 +7,26 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 
 Library versions (`2.x`) speak A2UI **protocol** v0.9.1. The `1.1.x` line remains A2UI v0.8 Legacy.
 
+## [Unreleased]
+
+### Fixed
+
+- **Catalog `$ref` inlining** — `#/$defs/DynamicStringList` is no longer matched as `DynamicString` (ChoicePicker `value` accepts string arrays / `{path}`)
+- **Stream fail-fast** — OpenAI forced tool choice throws `TOOL_CHOICE_UNAVAILABLE` when OpenAI types are present but construction fails; when OpenAI types are absent, compose continues with empty ChatOptions for other providers; SSE `error` payloads are JSON-safe; dynamic sanitize rejects blank/null planner nodes; template `renderTemplate` must match `selectTemplate`; transform success is counted once per run
+- **ChatOptions policy apply** — null policy fields no longer wipe host token/seed limits; `NONE` clears OpenAI response format and Vertex JSON mime; Generic customizer fails when a setter is missing
+- **Catalog schema locality** — empty schema is `UNKNOWN_COMPONENT_TYPE`; catalog id is derived from `createSurface` when context omits it; returned schemas and root data-model maps are copies; nested `UpdateDataModel` patches copy immutable maps
+
+### Changed
+
+- **Unused 2.x knobs** — `a2ui.web.basePath`, `a2ui.web.stream.timeoutMs`, and advisor `failFast` / `messageValidation` are deprecated (unread; no remapping). Compose adapters, tools, sessions, and the core normalizer are documented as internal
+- **Architecture revisions (Waves A–C)** — fail-fast type checks are catalog-scoped; action acks use the shared validator and `forVersionAndCatalog`; one compose module (`SpringAiSurfaceRuntime`) with a single generation-mode adapter (unused-mode tools/prompts are not started); dynamic normalizer, catalog `$ref` inlining, and `A2UiSurfaceBuffer.apply` live in core. Spring AI 2.0 / Boot 4 stays later ([architecture revisions](docs/plans/architecture-revisions.md))
+- **Identity** — in-product surfaces (process steps and page islands); chat is a capability of native SSE, not the promise ([ADR 002](docs/adr/002-in-product-surfaces.md))
+- **Path roles** — dynamic compose for unknown structure (engineering gravity); template mode frozen; host `assemble` for known trees
+- **Docs** — platform, cookbook, action round-trip, README, BACKLOG product direction aligned to ADR 002
+- **Showcase** — payments-api workspace: known record `cfg-204` host-assembled ($0), unknown record `mig-311` dynamically composed from case context; one island; host ledger write gate (`submit_change` / `approve` / `reject` only; no empty-context defaults; decision buttons bind `changeId`)
+- **Form capture** — TextField `value` path is required; submit Buttons must declare `action.event.context` maps; showcase handler persists submitted values (including notes/rollback/risk) into the next assembled surface
+- **Templates** — library no longer ships bootstrap templates (`text-card`, `hero-cta`, `form-login`, `weather-card`). Register your own via `A2UiTemplateCustomizer`; the registry starts empty
+
 ## [2.1.0] — 2026-08-09
 
 Minor release: **platform builder batteries** — Template SPI, host A2UI catalog registration SPI, decision/capture docs + HITL showcase, ops and multi-provider guides. Wire stays A2UI **v0.9.1** (source-compatible with `2.0.0`).

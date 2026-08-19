@@ -1,15 +1,15 @@
 # Dynamic Generative UI (Phase 2)
 
-spring-a2ui supports two surface generation modes so product builders can choose controlled vs open-ended GenUI without inventing their own compose → validate → stream path. Both emit **A2UI v0.9.1 wire envelopes** over the same SSE endpoint (`POST /a2ui/surface/stream`). See also [Migrating to v0.9.1](migrating-to-v0.9.1.md).
+spring-a2ui supports two surface generation modes so product builders can choose catalog compose vs registered-spec fill without inventing their own compose → validate → stream path. Both emit **A2UI v0.9.1 wire envelopes** over the same SSE endpoint (`POST /a2ui/surface/stream`). See also [Migrating to v0.9.1](migrating-to-v0.9.1.md). **When to use which:** [ADR 002](../adr/002-in-product-surfaces.md).
 
 ## Template vs dynamic
 
 | Mode | Property | Behavior |
 |------|----------|----------|
-| **Template** | `a2ui.web.runtime.generation-mode=template` | LLM selects a registered template (`selectTemplate`) and fills slots (`renderTemplate`). Fixed adjacency lists — bootstrap templates ship with the runtime; hosts add their own via the [Template SPI](authoring-templates.md). |
+| **Template** | `a2ui.web.runtime.generation-mode=template` | LLM selects a **host-registered** template (`selectTemplate`) and fills slots (`renderTemplate`). Fixed adjacency lists — register templates via the [Template SPI](authoring-templates.md). The library ships none. |
 | **Dynamic** (library default) | `a2ui.web.runtime.generation-mode=dynamic` | LLM composes a surface from the **active** catalog via two-hop tools — no page templates. Default active catalog is the vendored **basic** v0.9 catalog; hosts can register additional catalogs via `A2UiCatalogContribution` (see [registering catalogs](registering-catalogs.md)). |
 
-The showcase app defaults to the `template` Spring profile for predictable demos; set the property explicitly in your own application.
+The showcase streams **dynamic** only for the case-shaped island (unknown tree). Known islands and acks use host `assemble` (no model). Template mode remains available as a frozen capability; do not demo both modes as two prints of the same form.
 
 **Catalog note:** A2UI production apps typically define catalogs that match their design system ([a2ui.org](https://a2ui.org/guides/defining-your-own-catalog/)). spring-a2ui owns validate/generate against registered schemas; hosts author schemas + FE renderers and register them with `A2UiCatalogContribution`. See [registering catalogs](registering-catalogs.md) and [platform catalog ownership](../platform.md#catalog-ownership-a2ui-aligned).
 
@@ -32,21 +32,23 @@ Dynamic generation uses a primary agent plus an inner planner (two-hop tools):
 ```mermaid
 sequenceDiagram
     participant Client
-    participant Orchestrator as DynamicSurfaceOrchestrator
+    participant Compose as SpringAiSurfaceRuntime
+    participant Adapter as DynamicGenerationAdapter
     participant Primary as Primary ChatClient
     participant Tools as A2UiDynamicTools
     participant Planner as Planner ChatClient
     participant Assembly as A2UiDynamicAssemblyService
 
-    Client->>Orchestrator: POST /a2ui/surface/stream
-    Orchestrator->>Primary: prompt + generateA2Ui tool
+    Client->>Compose: POST /a2ui/surface/stream
+    Compose->>Adapter: generate (cloned ChatClient)
+    Adapter->>Primary: prompt + generateA2Ui tool
     Primary->>Tools: generateA2Ui()
     Tools->>Planner: forced renderA2Ui tool choice
     Planner->>Tools: renderA2Ui(components, data)
     Tools->>Assembly: normalize + validate
-    Assembly-->>Tools: `createSurface` + `updateComponents` + dataModelUpdate + createSurface (catalog + root id "root")
+    Assembly-->>Tools: `createSurface` + `updateComponents` + dataModelUpdate (catalog + root id "root")
     Tools-->>Primary: success
-    Orchestrator-->>Client: SSE envelopes
+    Compose-->>Client: SSE envelopes
 ```
 
 - **Primary agent** calls `generateA2Ui()` when a visual UI helps.
@@ -77,33 +79,33 @@ Micrometer counters (also via Actuator: `GET /actuator/metrics/<name>` when `met
 
 ## Running the showcase
 
-The `be-transform-showcase` app ships Spring profiles:
+The `be-transform-showcase` app defaults to **dynamic** (one island: known
+record assembled, unknown record composed). `application-template.yml` is a
+frozen-capability smoke, not the hero.
 
 ```bash
-# Template mode (default)
+# Dynamic island demo (default)
 ./mvnw -pl apps/be-transform-showcase spring-boot:run
 
-# Dynamic mode
-./mvnw -pl apps/be-transform-showcase spring-boot:run -Dspring-boot.run.arguments="--spring.profiles.active=dynamic"
+# Template mode (optional smoke)
+./mvnw -pl apps/be-transform-showcase spring-boot:run -Dspring-boot.run.arguments="--spring.profiles.active=template"
 ```
 
 Profile files:
 
+- `application.yml` — `spring.profiles.default: dynamic`
 - `application-template.yml` — `generation-mode: template`
 - `application-dynamic.yml` — `generation-mode: dynamic`
 
-Base `application.yml` sets `spring.profiles.default: template`.
-
 ## Frontend demo toggle
 
-The `fe-a2ui-demo` app reads `VITE_A2UI_GENERATION_MODE`:
+The `fe-a2ui-demo` app reads `VITE_A2UI_GENERATION_MODE` (default `dynamic`):
 
 ```bash
-# Template samples (default)
 npm run dev
 
-# Dynamic open-ended prompts + UI hint
-VITE_A2UI_GENERATION_MODE=dynamic npm run dev
+# Template smoke
+VITE_A2UI_GENERATION_MODE=template npm run dev
 ```
 
 Start the backend with the matching profile so generation mode aligns on both sides.

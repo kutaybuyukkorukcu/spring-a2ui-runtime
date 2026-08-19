@@ -8,8 +8,9 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.A2UiSurfaceRequest;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.DynamicA2UiPromptProvider;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.properties.A2UiWebProperties;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiDynamicAssemblyService;
-import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiDynamicComponentNormalizer;
+import com.kutaybuyukkorukcu.a2ui.runtime.surface.A2UiDynamicComponentNormalizer;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.A2UiDynamicTools;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.A2UiForcedToolChoiceFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +20,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.tool.ToolCallback;
+import org.springframework.core.env.StandardEnvironment;
 import reactor.test.StepVerifier;
 
 import java.util.List;
@@ -33,14 +35,14 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class DynamicSurfaceOrchestratorTest {
+class DynamicGenerationAdapterTest {
 
     private ChatClient.Builder builder;
     private ChatClient chatClient;
     private ChatClient.ChatClientRequestSpec requestSpec;
     private ChatClient.CallResponseSpec callResponseSpec;
     private A2UiDynamicTools dynamicTools;
-    private DynamicSurfaceOrchestrator orchestrator;
+    private SpringAiSurfaceRuntime runtime;
 
     @BeforeEach
     void setUp() {
@@ -58,11 +60,12 @@ class DynamicSurfaceOrchestratorTest {
                 new DynamicA2UiPromptProvider(),
                 assemblyService,
                 A2UiCatalogRegistry.shared());
-        orchestrator = new DynamicSurfaceOrchestrator(
+        runtime = new SpringAiSurfaceRuntime(
                 builder,
                 List.of(),
-                new DynamicA2UiPromptProvider(),
-                dynamicTools);
+                new StandardEnvironment(),
+                new A2UiWebProperties(),
+                new DynamicGenerationAdapter(new DynamicA2UiPromptProvider(), dynamicTools));
 
         when(builder.clone()).thenReturn(builder);
         when(builder.defaultAdvisors(any(org.springframework.ai.chat.client.advisor.api.Advisor.class)))
@@ -99,7 +102,7 @@ class DynamicSurfaceOrchestratorTest {
 
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show a dashboard", null, null);
 
-        StepVerifier.create(orchestrator.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
+        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
                 .assertNext(event -> assertThat(event).isInstanceOf(A2UiRuntimeEvent.Surface.class)
                         .extracting(e -> ((A2UiRuntimeEvent.Surface) e).message())
                         .isInstanceOf(A2UiMessage.CreateSurface.class))
@@ -115,7 +118,10 @@ class DynamicSurfaceOrchestratorTest {
         verify(requestSpec).toolCallbacks(toolCallbackCaptor.capture());
         assertThat(toolCallbackCaptor.getValue().getToolDefinition().name())
                 .isEqualTo(A2UiForcedToolChoiceFactory.GENERATE_TOOL_NAME);
-        verify(requestSpec).options(any(ChatOptions.class));
+        ArgumentCaptor<ChatOptions> optionsCaptor = ArgumentCaptor.forClass(ChatOptions.class);
+        verify(requestSpec).options(optionsCaptor.capture());
+        assertThat(optionsCaptor.getValue().getClass().getName())
+                .isEqualTo("org.springframework.ai.openai.OpenAiChatOptions");
         verify(requestSpec, never()).tools(any());
         verify(requestSpec, never()).toolNames(anyString());
     }
@@ -126,7 +132,7 @@ class DynamicSurfaceOrchestratorTest {
 
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("ambiguous request", null, null);
 
-        StepVerifier.create(orchestrator.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
+        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
                 .expectErrorSatisfies(error -> {
                     assertThat(error).isInstanceOf(SurfaceExecutionException.class);
                     assertThat(((SurfaceExecutionException) error).getErrorCode())
@@ -146,7 +152,7 @@ class DynamicSurfaceOrchestratorTest {
 
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show a dashboard", null, null);
 
-        StepVerifier.create(orchestrator.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
+        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
                 .expectErrorSatisfies(error -> {
                     assertThat(error).isInstanceOf(SurfaceExecutionException.class);
                     SurfaceExecutionException failure = (SurfaceExecutionException) error;

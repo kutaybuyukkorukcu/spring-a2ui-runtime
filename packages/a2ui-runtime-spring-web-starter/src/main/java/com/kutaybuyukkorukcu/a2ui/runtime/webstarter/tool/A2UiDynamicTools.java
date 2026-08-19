@@ -8,6 +8,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionExcep
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiPromptContext;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.DynamicA2UiPromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiRuntimeEventCollector;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.ChatClientFactories;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiDynamicAssemblyService;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.RenderA2UiArgs;
@@ -21,9 +22,15 @@ import org.springframework.ai.tool.definition.ToolDefinition;
 import org.springframework.ai.tool.method.MethodToolCallback;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Spring AI tools for dynamic two-hop compose ({@code generateA2Ui}, {@code renderA2Ui}).
+ *
+ * @apiNote internal — not a host SPI; remains public until a major version.
+ */
 public class A2UiDynamicTools {
 
     public static final String SESSION_CONTEXT_KEY = "a2ui.dynamicRenderSession";
@@ -203,11 +210,7 @@ public class A2UiDynamicTools {
     }
 
     private ChatClient createPlannerClient() {
-        ChatClient.Builder builder = chatClientBuilder.clone();
-        for (Advisor advisor : advisors) {
-            builder = builder.defaultAdvisors(advisor);
-        }
-        return builder.build();
+        return ChatClientFactories.cloneWithAdvisors(chatClientBuilder, advisors);
     }
 
     private DynamicRenderSession requireSession(ToolContext toolContext) {
@@ -221,13 +224,17 @@ public class A2UiDynamicTools {
         return renderSession;
     }
 
-    @SuppressWarnings("unchecked")
     private static List<A2UiDiagnostic> extractDiagnostics(SurfaceExecutionException ex) {
         Object details = ex.getDetails();
-        if (details instanceof List<?> diagnostics && !diagnostics.isEmpty()
-                && diagnostics.get(0) instanceof A2UiDiagnostic) {
-            return (List<A2UiDiagnostic>) diagnostics;
+        if (!(details instanceof List<?> diagnostics) || diagnostics.isEmpty()) {
+            return List.of();
         }
-        return List.of();
+        List<A2UiDiagnostic> typed = new ArrayList<>(diagnostics.size());
+        for (Object item : diagnostics) {
+            if (item instanceof A2UiDiagnostic diagnostic) {
+                typed.add(diagnostic);
+            }
+        }
+        return typed;
     }
 }

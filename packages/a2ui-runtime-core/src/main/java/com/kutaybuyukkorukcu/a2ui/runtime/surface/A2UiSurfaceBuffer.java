@@ -1,14 +1,29 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.surface;
 
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiMaps;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * In-memory surface state for a single compose run.
+ * ConcurrentHashMap protects the map of surfaces only; mutations of a given
+ * {@link SurfaceState} are single-writer (one stream run).
+ */
 public final class A2UiSurfaceBuffer {
 
     private final Map<String, SurfaceState> surfaces = new ConcurrentHashMap<>();
+
+    public void apply(A2UiMessage message) {
+        switch (message) {
+            case A2UiMessage.CreateSurface cs -> applyCreateSurface(cs);
+            case A2UiMessage.UpdateComponents uc -> applyUpdateComponents(uc);
+            case A2UiMessage.UpdateDataModel udm -> applyUpdateDataModel(udm);
+            case A2UiMessage.DeleteSurface ds -> deleteSurface(ds.surfaceId());
+        }
+    }
 
     public SurfaceState getOrCreateSurface(String surfaceId) {
         return surfaces.computeIfAbsent(surfaceId, k -> new SurfaceState());
@@ -135,7 +150,6 @@ public final class A2UiSurfaceBuffer {
             return theme;
         }
 
-        @SuppressWarnings("unchecked")
         public void applyDataValue(String path, Object value) {
             if (path == null || path.isBlank() || "/".equals(path)) {
                 dataModel.clear();
@@ -143,9 +157,7 @@ public final class A2UiSurfaceBuffer {
                     return;
                 }
                 if (value instanceof Map<?, ?> map) {
-                    for (Map.Entry<?, ?> entry : map.entrySet()) {
-                        dataModel.put(String.valueOf(entry.getKey()), entry.getValue());
-                    }
+                    dataModel.putAll(A2UiMaps.deepCopy(map));
                     return;
                 }
                 throw new IllegalArgumentException("root data model value must be an object");
@@ -165,36 +177,49 @@ public final class A2UiSurfaceBuffer {
             setDataAtPath(parts, value);
         }
 
-        @SuppressWarnings("unchecked")
         private void setDataAtPath(String[] parts, Object value) {
             Map<String, Object> current = dataModel;
             for (int i = 0; i < parts.length - 1; i++) {
-                Object next = current.get(parts[i]);
-                if (!(next instanceof Map)) {
-                    next = new LinkedHashMap<>();
-                    current.put(parts[i], next);
+                current = childMap(current, parts[i], true);
+                if (current == null) {
+                    return;
                 }
-                current = (Map<String, Object>) next;
             }
-            current.put(parts[parts.length - 1], value);
+            current.put(parts[parts.length - 1], A2UiMaps.copyValue(value));
         }
 
-        @SuppressWarnings("unchecked")
         private void deleteAtPath(String[] parts) {
             Map<String, Object> current = dataModel;
             for (int i = 0; i < parts.length - 1; i++) {
-                Object next = current.get(parts[i]);
-                if (!(next instanceof Map<?, ?> map)) {
+                current = childMap(current, parts[i], false);
+                if (current == null) {
                     return;
                 }
-                current = (Map<String, Object>) map;
             }
             current.remove(parts[parts.length - 1]);
         }
 
+        private Map<String, Object> childMap(Map<String, Object> parent, String key, boolean create) {
+            Object next = parent.get(key);
+            if (!(next instanceof Map<?, ?> map)) {
+                if (!create) {
+                    return null;
+                }
+                Map<String, Object> created = new LinkedHashMap<>();
+                parent.put(key, created);
+                return created;
+            }
+            if (next instanceof LinkedHashMap<?, ?>) {
+                return A2UiMaps.asMutable(map);
+            }
+            Map<String, Object> copy = A2UiMaps.deepCopy(map);
+            parent.put(key, copy);
+            return copy;
+        }
+
         public Object getDataAtPath(String path) {
             if (path == null || path.isEmpty() || "/".equals(path)) {
-                return dataModel;
+                return A2UiMaps.deepCopy(dataModel);
             }
             String[] parts = path.startsWith("/") ? path.substring(1).split("/") : path.split("/");
             Object current = dataModel;
@@ -204,6 +229,9 @@ public final class A2UiSurfaceBuffer {
                 } else {
                     return null;
                 }
+            }
+            if (current instanceof Map<?, ?> map) {
+                return A2UiMaps.deepCopy(map);
             }
             return current;
         }

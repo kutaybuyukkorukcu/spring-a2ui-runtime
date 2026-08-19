@@ -13,55 +13,117 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Host-registered Template SPI example: a controlled ops/HITL approval layout, the same shape
- * as the showcase's dynamic-mode hero. Slice C — {@code A2UiTemplateCustomizer} beans layer
- * host templates on top of the bootstrap set (text-card, hero-cta, form-login, weather-card).
+ * Host-registered templates used by {@code assemble} (known island, $0) and post-submit
+ * approval. Not a second walkthrough of the same form.
  */
 @Configuration
 public class ShowcaseTemplateConfiguration {
 
+  public static final String CHANGE_INTAKE = "change-intake";
   public static final String OPS_APPROVAL = "ops-approval";
 
   @Bean
-  public A2UiTemplateCustomizer opsApprovalTemplateCustomizer() {
-    return builder -> builder.register(opsApprovalDefinition());
+  public A2UiTemplateCustomizer opsChangeTemplateCustomizer() {
+    return builder -> {
+      builder.register(changeIntakeDefinition());
+      builder.register(opsApprovalDefinition());
+    };
+  }
+
+  private static A2UiTemplateDefinition changeIntakeDefinition() {
+    A2UiSurfaceSpec spec = changeIntakeSpec();
+    return new A2UiTemplateDefinition(
+        CHANGE_INTAKE,
+        "Known change intake — capture service, change type, and summary before approval",
+        spec.requiredSlots(),
+        spec.optionalSlots(),
+        ShowcaseTemplateConfiguration::changeIntakeSpec);
   }
 
   private static A2UiTemplateDefinition opsApprovalDefinition() {
     A2UiSurfaceSpec spec = opsApprovalSpec();
     return new A2UiTemplateDefinition(
         OPS_APPROVAL,
-        "Ops / HITL approval card with a change summary, risk note, and an Approve action"
-            + " (optional Reject)",
+        "Change approval — summarize the proposed write, show risk, and gate Approve/Reject",
         spec.requiredSlots(),
         spec.optionalSlots(),
         ShowcaseTemplateConfiguration::opsApprovalSpec);
   }
 
+  private static A2UiSurfaceSpec changeIntakeSpec() {
+    return A2UiFixedSurfaceSpec.builder(CHANGE_INTAKE, "root")
+        .requiredSlots(
+            "title",
+            "intro",
+            "serviceLabel",
+            "changeTypeLabel",
+            "summaryLabel",
+            "submitLabel",
+            "service",
+            "changeType",
+            "summary")
+        .components(ShowcaseTemplateConfiguration::changeIntakeComponents)
+        .build();
+  }
+
   private static A2UiSurfaceSpec opsApprovalSpec() {
     return A2UiFixedSurfaceSpec.builder(OPS_APPROVAL, "root")
-        .requiredSlots("summary", "risk", "approveLabel")
-        .optionalSlots("rejectLabel")
+        .requiredSlots("title", "summary", "risk", "approveLabel", "changeId")
+        .optionalSlots("rejectLabel", "meta")
         .components(ShowcaseTemplateConfiguration::opsApprovalComponents)
         .build();
   }
 
+  private static List<ComponentDefinition> changeIntakeComponents(Map<String, String> slots) {
+    return List.of(
+        column(
+            "root",
+            List.of("title-txt", "intro-txt", "service-field", "type-field", "summary-field", "submit-btn")),
+        text("title-txt", "/title", "h2"),
+        text("intro-txt", "/intro", "caption"),
+        textField("service-field", "/serviceLabel", "/service", "shortText"),
+        textField("type-field", "/changeTypeLabel", "/changeType", "shortText"),
+        textField("summary-field", "/summaryLabel", "/summary", "longText"),
+        button(
+            "submit-btn",
+            "submit-label-txt",
+            "submit_change",
+            Map.of(
+                "service", "/service",
+                "changeType", "/changeType",
+                "summary", "/summary")),
+        text("submit-label-txt", "/submitLabel", null));
+  }
+
   private static List<ComponentDefinition> opsApprovalComponents(Map<String, String> slots) {
     boolean hasReject = hasSlotValue(slots, "rejectLabel");
+    boolean hasMeta = hasSlotValue(slots, "meta");
 
-    List<String> children = new ArrayList<>(List.of("summary-txt", "risk-txt", "approve-btn"));
+    List<String> children = new ArrayList<>();
+    children.add("title-txt");
+    if (hasMeta) {
+      children.add("meta-txt");
+    }
+    children.add("summary-txt");
+    children.add("risk-txt");
+    children.add("approve-btn");
     if (hasReject) {
       children.add("reject-btn");
     }
 
     List<ComponentDefinition> components = new ArrayList<>();
     components.add(column("root", children));
+    components.add(text("title-txt", "/title", "h2"));
+    if (hasMeta) {
+      components.add(text("meta-txt", "/meta", "caption"));
+    }
     components.add(text("summary-txt", "/summary", "body"));
     components.add(text("risk-txt", "/risk", "caption"));
-    components.add(button("approve-btn", "approve-label-txt", "approve"));
+    Map<String, String> decisionContext = Map.of("changeId", "/changeId");
+    components.add(button("approve-btn", "approve-label-txt", "approve", decisionContext));
     components.add(text("approve-label-txt", "/approveLabel", null));
     if (hasReject) {
-      components.add(button("reject-btn", "reject-label-txt", "reject"));
+      components.add(button("reject-btn", "reject-label-txt", "reject", decisionContext));
       components.add(text("reject-label-txt", "/rejectLabel", null));
     }
     return List.copyOf(components);
@@ -91,11 +153,28 @@ public class ShowcaseTemplateConfiguration {
     return new ComponentDefinition(id, "Text", props);
   }
 
-  private static ComponentDefinition button(String id, String childId, String actionName) {
+  private static ComponentDefinition textField(
+      String id, String labelPath, String valuePath, String variant) {
+    Map<String, Object> props = new LinkedHashMap<>();
+    props.put("label", Map.of("path", labelPath));
+    props.put("value", Map.of("path", valuePath));
+    props.put("variant", variant);
+    return new ComponentDefinition(id, "TextField", props);
+  }
+
+  private static ComponentDefinition button(
+      String id, String childId, String actionName, Map<String, String> contextPaths) {
+    Map<String, Object> event = new LinkedHashMap<>();
+    event.put("name", actionName);
+    if (contextPaths != null && !contextPaths.isEmpty()) {
+      Map<String, Object> context = new LinkedHashMap<>();
+      contextPaths.forEach((key, path) -> context.put(key, Map.of("path", path)));
+      event.put("context", context);
+    }
     Map<String, Object> props = new LinkedHashMap<>();
     props.put("child", childId);
     props.put("variant", "primary");
-    props.put("action", Map.of("event", Map.of("name", actionName)));
+    props.put("action", Map.of("event", event));
     return new ComponentDefinition(id, "Button", props);
   }
 }

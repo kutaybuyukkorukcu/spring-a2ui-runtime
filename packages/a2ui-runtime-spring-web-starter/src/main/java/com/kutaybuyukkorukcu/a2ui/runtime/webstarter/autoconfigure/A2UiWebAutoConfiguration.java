@@ -2,26 +2,23 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
-import com.kutaybuyukkorukcu.a2ui.runtime.parse.A2UiMessageParser;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiJacksonModule;
 import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.controller.A2UiActionController;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.controller.A2UiCatalogController;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.controller.A2UiStreamController;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.filter.RequestCorrelationMdcFilter;
-import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.A2UiGenerationPolicyProperties;
-import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiPromptProvider;
-import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.DefaultA2UiPromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.properties.A2UiWebProperties;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.DynamicA2UiPromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.TemplateModePromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiSurfaceRuntime;
-import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.DynamicSurfaceOrchestrator;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.DynamicGenerationAdapter;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.GenerationModeAdapter;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.SpringAiSurfaceRuntime;
-import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.TemplateSurfaceOrchestrator;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.TemplateGenerationAdapter;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.*;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiDynamicAssemblyService;
-import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiDynamicComponentNormalizer;
+import com.kutaybuyukkorukcu.a2ui.runtime.surface.A2UiDynamicComponentNormalizer;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiSurfaceAssemblyService;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiTemplateCustomizer;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiTemplateDefinition;
@@ -41,9 +38,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.Environment;
-import jakarta.annotation.PostConstruct;
 
 import java.util.List;
 
@@ -68,23 +65,16 @@ public class A2UiWebAutoConfiguration {
         return registration;
     }
 
-    @Bean
-    @ConditionalOnMissingBean
-    public A2UiPromptProvider a2UiPromptProvider(A2UiCatalogRegistry catalogRegistry) {
-        return new DefaultA2UiPromptProvider(catalogRegistry);
-    }
-
     /**
-     * Host {@link A2UiTemplateDefinition} beans and {@link A2UiTemplateCustomizer} beans are
-     * layered on top of the bootstrap templates (text-card, hero-cta, form-login, weather-card).
-     * Apps that register neither keep the zero-ceremony bootstrap set unchanged.
+     * Host {@link A2UiTemplateDefinition} beans and {@link A2UiTemplateCustomizer} beans
+     * populate the registry. The library ships no templates.
      */
     @Bean
     @ConditionalOnMissingBean
     public A2UiTemplateRegistry a2UiTemplateRegistry(
             ObjectProvider<A2UiTemplateCustomizer> customizers,
             ObjectProvider<A2UiTemplateDefinition> definitionBeans) {
-        A2UiTemplateRegistry.Builder builder = A2UiTemplateRegistry.builder().withBootstrapDefaults();
+        A2UiTemplateRegistry.Builder builder = A2UiTemplateRegistry.builder();
         definitionBeans.orderedStream().forEach(builder::register);
         customizers.orderedStream().forEach(customizer -> customizer.customize(builder));
         return builder.build();
@@ -113,33 +103,73 @@ public class A2UiWebAutoConfiguration {
         return new A2UiDynamicAssemblyService(componentNormalizer, messageValidator, objectMapper);
     }
 
-    @Bean
-    @ConditionalOnMissingBean
-    public A2UiGenerationPolicyWebBinder a2UiGenerationPolicyWebBinder(
-            A2UiGenerationPolicyProperties generationPolicyProperties,
-            A2UiWebProperties webProperties) {
-        return new A2UiGenerationPolicyWebBinder(generationPolicyProperties, webProperties);
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnProperty(
+            prefix = "a2ui.web.runtime",
+            name = "generation-mode",
+            havingValue = "dynamic",
+            matchIfMissing = true)
+    static class DynamicComposeConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean
+        public DynamicA2UiPromptProvider dynamicA2UiPromptProvider(A2UiCatalogRegistry catalogRegistry) {
+            return new DynamicA2UiPromptProvider(catalogRegistry);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        public A2UiDynamicTools a2UiDynamicTools(
+                ChatClient.Builder chatClientBuilder,
+                ObjectProvider<Advisor> advisors,
+                DynamicA2UiPromptProvider dynamicPromptProvider,
+                A2UiDynamicAssemblyService dynamicAssemblyService,
+                A2UiRuntimeMetrics runtimeMetrics,
+                A2UiCatalogRegistry catalogRegistry) {
+            return new A2UiDynamicTools(
+                    chatClientBuilder,
+                    resolveAdvisors(advisors),
+                    dynamicPromptProvider,
+                    dynamicAssemblyService,
+                    runtimeMetrics,
+                    catalogRegistry);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean(name = "dynamicGenerationAdapter")
+        public GenerationModeAdapter dynamicGenerationAdapter(
+                DynamicA2UiPromptProvider dynamicPromptProvider,
+                A2UiDynamicTools dynamicTools) {
+            return new DynamicGenerationAdapter(dynamicPromptProvider, dynamicTools);
+        }
     }
 
-    @Bean
-    @ConditionalOnMissingBean
-    public DynamicA2UiPromptProvider dynamicA2UiPromptProvider(A2UiCatalogRegistry catalogRegistry) {
-        return new DynamicA2UiPromptProvider(catalogRegistry);
-    }
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnProperty(prefix = "a2ui.web.runtime", name = "generation-mode", havingValue = "template")
+    static class TemplateComposeConfiguration {
 
-    @Bean
-    @ConditionalOnMissingBean
-    public TemplateModePromptProvider templateModePromptProvider(A2UiTemplateRegistry templateRegistry) {
-        return new TemplateModePromptProvider(templateRegistry);
-    }
+        @Bean
+        @ConditionalOnMissingBean
+        public TemplateModePromptProvider templateModePromptProvider(A2UiTemplateRegistry templateRegistry) {
+            return new TemplateModePromptProvider(templateRegistry);
+        }
 
-    @Bean
-    @ConditionalOnMissingBean
-    public A2UiTemplateTools a2UiTemplateTools(
-            A2UiTemplateRegistry templateRegistry,
-            A2UiSurfaceAssemblyService assemblyService,
-            A2UiRuntimeMetrics runtimeMetrics) {
-        return new A2UiTemplateTools(templateRegistry, assemblyService, runtimeMetrics);
+        @Bean
+        @ConditionalOnMissingBean
+        public A2UiTemplateTools a2UiTemplateTools(
+                A2UiTemplateRegistry templateRegistry,
+                A2UiSurfaceAssemblyService assemblyService,
+                A2UiRuntimeMetrics runtimeMetrics) {
+            return new A2UiTemplateTools(templateRegistry, assemblyService, runtimeMetrics);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean(name = "templateGenerationAdapter")
+        public GenerationModeAdapter templateGenerationAdapter(
+                TemplateModePromptProvider templateModePromptProvider,
+                A2UiTemplateTools templateTools) {
+            return new TemplateGenerationAdapter(templateModePromptProvider, templateTools);
+        }
     }
 
     /**
@@ -159,70 +189,18 @@ public class A2UiWebAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public A2UiDynamicTools a2UiDynamicTools(
-            ChatClient.Builder chatClientBuilder,
-            ObjectProvider<Advisor> advisors,
-            DynamicA2UiPromptProvider dynamicPromptProvider,
-            A2UiDynamicAssemblyService dynamicAssemblyService,
-            A2UiRuntimeMetrics runtimeMetrics,
-            A2UiCatalogRegistry catalogRegistry) {
-        return new A2UiDynamicTools(
-                chatClientBuilder,
-                resolveAdvisors(advisors),
-                dynamicPromptProvider,
-                dynamicAssemblyService,
-                runtimeMetrics,
-                catalogRegistry);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public DynamicSurfaceOrchestrator dynamicSurfaceOrchestrator(
-            ChatClient.Builder chatClientBuilder,
-            ObjectProvider<Advisor> advisors,
-            DynamicA2UiPromptProvider dynamicPromptProvider,
-            A2UiDynamicTools dynamicTools,
-            A2UiWebProperties webProperties) {
-        return new DynamicSurfaceOrchestrator(
-                chatClientBuilder,
-                resolveAdvisors(advisors),
-                dynamicPromptProvider,
-                dynamicTools,
-                webProperties);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public TemplateSurfaceOrchestrator templateSurfaceOrchestrator(
-            ChatClient.Builder chatClientBuilder,
-            ObjectProvider<Advisor> advisors,
-            TemplateModePromptProvider templateModePromptProvider,
-            A2UiTemplateTools templateTools,
-            A2UiWebProperties webProperties) {
-        return new TemplateSurfaceOrchestrator(
-                chatClientBuilder,
-                resolveAdvisors(advisors),
-                templateModePromptProvider,
-                templateTools,
-                webProperties);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
     public A2UiSurfaceRuntime a2UiSurfaceRuntime(
-            ObjectProvider<ChatClient.Builder> chatClientBuilderProvider,
+            ChatClient.Builder chatClientBuilder,
             ObjectProvider<Advisor> advisors,
             Environment environment,
             A2UiWebProperties properties,
-            TemplateSurfaceOrchestrator templateOrchestrator,
-            DynamicSurfaceOrchestrator dynamicOrchestrator) {
+            GenerationModeAdapter generationAdapter) {
         return new SpringAiSurfaceRuntime(
-                chatClientBuilderProvider,
+                chatClientBuilder,
                 resolveAdvisors(advisors),
                 environment,
                 properties,
-                templateOrchestrator,
-                dynamicOrchestrator);
+                generationAdapter);
     }
 
     private static List<Advisor> resolveAdvisors(ObjectProvider<Advisor> advisors) {
@@ -233,9 +211,8 @@ public class A2UiWebAutoConfiguration {
     @ConditionalOnMissingBean
     public A2UiSurfaceService a2UiSurfaceService(
             A2UiSurfaceRuntime surfaceRuntime,
-            A2UiMessageValidator messageValidator,
             A2UiWebProperties webProperties) {
-        return new A2UiSurfaceService(surfaceRuntime, messageValidator, webProperties);
+        return new A2UiSurfaceService(surfaceRuntime, webProperties);
     }
 
     @Bean
@@ -257,8 +234,11 @@ public class A2UiWebAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public A2UiActionService a2UiActionService(ObjectProvider<List<A2UiActionHandler>> actionHandlersProvider, A2UiRuntimeMetrics runtimeMetrics) {
-        return new A2UiActionService(actionHandlersProvider.getIfAvailable(List::of), runtimeMetrics);
+    public A2UiActionService a2UiActionService(
+            ObjectProvider<List<A2UiActionHandler>> actionHandlersProvider,
+            A2UiRuntimeMetrics runtimeMetrics,
+            A2UiMessageValidator messageValidator) {
+        return new A2UiActionService(actionHandlersProvider.getIfAvailable(List::of), runtimeMetrics, messageValidator);
     }
 
     @Bean
@@ -286,23 +266,5 @@ public class A2UiWebAutoConfiguration {
     @ConditionalOnProperty(prefix = "a2ui.web.actions", name = "enabled", havingValue = "true", matchIfMissing = true)
     public A2UiActionController a2UiActionController(A2UiActionService actionService, RequestCorrelationService requestCorrelationService) {
         return new A2UiActionController(actionService, requestCorrelationService);
-    }
-
-    static final class A2UiGenerationPolicyWebBinder {
-
-        private final A2UiGenerationPolicyProperties generationPolicyProperties;
-        private final A2UiWebProperties webProperties;
-
-        A2UiGenerationPolicyWebBinder(
-                A2UiGenerationPolicyProperties generationPolicyProperties,
-                A2UiWebProperties webProperties) {
-            this.generationPolicyProperties = generationPolicyProperties;
-            this.webProperties = webProperties;
-        }
-
-        @PostConstruct
-        void bindGenerationMode() {
-            generationPolicyProperties.setGenerationMode(webProperties.getRuntime().getGenerationMode());
-        }
     }
 }

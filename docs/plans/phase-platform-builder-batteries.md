@@ -6,6 +6,8 @@
 **Related:** [`BACKLOG.md`](../../BACKLOG.md) · [`docs/platform.md`](../platform.md) · prior plan [`phase-product-runtime-interaction.md`](phase-product-runtime-interaction.md)  
 **Strategy canvases:** `supabase-of-genui` · `genui-leverage-unstuck` · **`genui-applications-research`** (jobs → direction)
 
+> **Identity supersession (2026-08-15):** living positioning is [ADR 002](../adr/002-in-product-surfaces.md) and [platform.md](../platform.md). This plan’s “decision + capture / ops HITL hero” was the batteries-era wedge. Do not treat it as current identity. Template SPI shipped here remains supported as a **frozen capability**.
+
 ---
 
 ## Goal
@@ -201,7 +203,7 @@ Controlled layouts — analogue to CopilotKit “fixed-schema A2UI” (schema on
 
 - [x] Documented SPI + showcase/cookbook example — [`authoring-templates.md`](../guides/authoring-templates.md); `ShowcaseTemplateConfiguration` registers `ops-approval`  
 - [x] Integration test for custom registration — `A2UiTemplateRegistryTest` (Builder unit tests) + `ShowcaseTemplateConfigurationTest` (Spring context + assembly)  
-- [x] Zero-ceremony default for bootstrap-only apps — `A2UiTemplateRegistry.builder().withBootstrapDefaults()` wired by default; no-arg constructor unchanged  
+- [x] Zero-ceremony default for bootstrap-only apps — ~~`A2UiTemplateRegistry.builder().withBootstrapDefaults()` wired by default~~ **Superseded (architecture revisions):** the registry starts empty; the library ships no bootstrap templates. Hosts register via `A2UiTemplateCustomizer` / `A2UiTemplateDefinition`. No-arg constructor unchanged.  
 
 **Shipped:** `A2UiTemplateRegistry.Builder` (public ctor + `builder()`), `A2UiTemplateCustomizer` SPI, `A2UiFixedSurfaceSpec` (public slot→dataModel helper), `selectTemplate` tool description no longer hardcodes 4 ids, showcase `ops-approval` template (Column/Text/Button, optional Reject).
 

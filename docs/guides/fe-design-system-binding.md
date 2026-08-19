@@ -37,9 +37,9 @@ invalid props fail fast.
    what your buttons declare (see [Hosting actions](hosting-actions.md)).
 4. Apply returned `messages` with your MessageProcessor (or equivalent).
 
-Do **not** invent server types your runtime does not validate. When [host
-catalog SPI](../plans/phase-platform-builder-batteries.md) ships, register the
-same schema on the JVM that your FE registers for rendering.
+Do **not** invent server types your runtime does not validate. Register the
+same schema on the JVM with [`A2UiCatalogContribution`](registering-catalogs.md)
+that your FE registers for rendering.
 
 ## What we will not provide
 

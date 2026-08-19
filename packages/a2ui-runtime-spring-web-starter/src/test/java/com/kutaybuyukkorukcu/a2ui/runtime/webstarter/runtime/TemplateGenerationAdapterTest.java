@@ -7,15 +7,17 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.A2UiSurfaceRequest;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.TemplateModePromptProvider;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.properties.A2UiWebProperties;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiSurfaceAssemblyService;
-import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiSurfaceTemplates;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiTemplateRegistry;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.ExampleTextCardTemplate;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.A2UiTemplateTools;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ToolContext;
+import org.springframework.core.env.StandardEnvironment;
 import reactor.test.StepVerifier;
 
 import java.util.List;
@@ -28,14 +30,14 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class TemplateSurfaceOrchestratorTest {
+class TemplateGenerationAdapterTest {
 
     private ChatClient.Builder builder;
     private ChatClient chatClient;
     private ChatClient.ChatClientRequestSpec requestSpec;
     private ChatClient.CallResponseSpec callResponseSpec;
     private A2UiTemplateTools templateTools;
-    private TemplateSurfaceOrchestrator orchestrator;
+    private SpringAiSurfaceRuntime runtime;
 
     @BeforeEach
     void setUp() {
@@ -44,15 +46,20 @@ class TemplateSurfaceOrchestratorTest {
         requestSpec = mock(ChatClient.ChatClientRequestSpec.class);
         callResponseSpec = mock(ChatClient.CallResponseSpec.class);
 
-        A2UiTemplateRegistry registry = new A2UiTemplateRegistry();
+        A2UiTemplateRegistry registry = A2UiTemplateRegistry.builder()
+                .register(ExampleTextCardTemplate.definition())
+                .build();
         A2UiSurfaceAssemblyService assemblyService =
                 new A2UiSurfaceAssemblyService(registry, new A2UiMessageValidator());
         templateTools = new A2UiTemplateTools(registry, assemblyService, A2UiRuntimeMetrics.noop());
-        orchestrator = new TemplateSurfaceOrchestrator(
+        A2UiWebProperties properties = new A2UiWebProperties();
+        properties.getRuntime().setGenerationMode("template");
+        runtime = new SpringAiSurfaceRuntime(
                 builder,
                 List.of(),
-                new TemplateModePromptProvider(registry),
-                templateTools);
+                new StandardEnvironment(),
+                properties,
+                new TemplateGenerationAdapter(new TemplateModePromptProvider(registry), templateTools));
 
         when(builder.clone()).thenReturn(builder);
         when(builder.defaultAdvisors(any(org.springframework.ai.chat.client.advisor.api.Advisor.class)))
@@ -74,15 +81,17 @@ class TemplateSurfaceOrchestratorTest {
             return requestSpec;
         });
         when(requestSpec.call()).thenAnswer(invocation -> {
+            ToolContext toolContext = new ToolContext(toolContextRef.get());
+            templateTools.selectTemplate(ExampleTextCardTemplate.ID, "test", toolContext);
             templateTools.renderTemplate(
-                    A2UiSurfaceTemplates.TEXT_CARD,
+                    ExampleTextCardTemplate.ID,
                     Map.of("title", "News", "body", "Latest updates"),
-                    new ToolContext(toolContextRef.get()));
+                    toolContext);
             return callResponseSpec;
         });
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show a news card", null, null);
 
-        StepVerifier.create(orchestrator.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
+        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
                 .assertNext(event -> assertThat(event).isInstanceOf(A2UiRuntimeEvent.Surface.class)
                         .extracting(e -> ((A2UiRuntimeEvent.Surface) e).message())
                         .isInstanceOf(A2UiMessage.CreateSurface.class))
@@ -101,7 +110,7 @@ class TemplateSurfaceOrchestratorTest {
 
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("ambiguous request", null, null);
 
-        StepVerifier.create(orchestrator.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
+        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
                 .expectErrorSatisfies(error -> {
                     assertThat(error).isInstanceOf(SurfaceExecutionException.class);
                     assertThat(((SurfaceExecutionException) error).getErrorCode())
@@ -109,5 +118,4 @@ class TemplateSurfaceOrchestratorTest {
                 })
                 .verify();
     }
-
 }
