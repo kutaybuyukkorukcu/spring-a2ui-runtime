@@ -1,6 +1,7 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.validation;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiValidationContext;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
@@ -98,6 +99,20 @@ class A2UiMessageValidatorTest {
                         new ComponentDefinition("root", "NotARealType", Map.of()))));
         List<A2UiDiagnostic> diagnostics = validator.validate(
                 messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9));
+        assertThat(diagnostics).anyMatch(d -> "UNKNOWN_COMPONENT_TYPE".equals(d.code()));
+    }
+
+    @Test
+    void shouldTreatEmptyCatalogSchemaAsUnknownComponentType() {
+        Map<String, Map<String, Object>> ghost = Map.of("Ghost", Map.of());
+        A2UiCatalogRegistry registry = A2UiCatalogRegistry.of(Map.of("host-catalog", ghost));
+        A2UiMessageValidator emptySchemaValidator = new A2UiMessageValidator(registry);
+        List<A2UiMessage> messages = List.of(
+                new A2UiMessage.CreateSurface("main", "host-catalog"),
+                new A2UiMessage.UpdateComponents("main", List.of(
+                        new ComponentDefinition("root", "Ghost", Map.of()))));
+        List<A2UiDiagnostic> diagnostics = emptySchemaValidator.validate(
+                messages, A2UiValidationContext.forCatalog("host-catalog"));
         assertThat(diagnostics).anyMatch(d -> "UNKNOWN_COMPONENT_TYPE".equals(d.code()));
     }
 

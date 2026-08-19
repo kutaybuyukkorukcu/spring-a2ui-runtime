@@ -4,9 +4,6 @@ import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.vertexai.gemini.VertexAiGeminiChatOptions;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
-import org.springframework.util.StringUtils;
-
-import java.util.Objects;
 
 public class VertexAiGeminiChatOptionsCustomizer implements A2UiChatOptionsCustomizer {
 
@@ -23,20 +20,22 @@ public class VertexAiGeminiChatOptionsCustomizer implements A2UiChatOptionsCusto
                 ? VertexAiGeminiChatOptions.fromOptions(vertexAiGemini)
                 : VertexAiGeminiChatOptions.builder().build();
 
-        if (StringUtils.hasText(policy.getModel())) {
-            options.setModel(Objects.requireNonNull(policy.getModel()));
-        }
-        options.setTemperature(policy.getTemperature());
-        options.setTopP(policy.getTopP());
+        A2UiChatOptionsApply.textIfPresent(policy.getModel(), options::setModel);
+        A2UiChatOptionsApply.ifPresent(policy.getTemperature(), options::setTemperature);
+        A2UiChatOptionsApply.ifPresent(policy.getTopP(), options::setTopP);
 
         Integer maxOutputTokens = policy.getMaxCompletionTokens() != null
                 ? policy.getMaxCompletionTokens()
                 : policy.getMaxTokens();
-        options.setMaxTokens(maxOutputTokens);
-        options.setMaxOutputTokens(maxOutputTokens);
+        A2UiChatOptionsApply.ifPresent(maxOutputTokens, value -> {
+            options.setMaxTokens(value);
+            options.setMaxOutputTokens(value);
+        });
 
         if (policy.getResponseFormat() == A2UiGenerationPolicyProperties.ResponseFormatMode.JSON_OBJECT) {
             options.setResponseMimeType(JSON_MIME_TYPE);
+        } else if (policy.getResponseFormat() == A2UiGenerationPolicyProperties.ResponseFormatMode.NONE) {
+            options.setResponseMimeType(null);
         }
         return options;
     }

@@ -16,6 +16,12 @@ import reactor.core.scheduler.Schedulers;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Compose module: ChatClient hop, lifecycle collector, and fail-fast around
+ * template vs dynamic {@link GenerationModeAdapter}s.
+ *
+ * @apiNote internal — not a host SPI; remains public until a major version.
+ */
 public class SpringAiSurfaceRuntime implements A2UiSurfaceRuntime {
 
     private final ChatClient.Builder chatClientBuilder;

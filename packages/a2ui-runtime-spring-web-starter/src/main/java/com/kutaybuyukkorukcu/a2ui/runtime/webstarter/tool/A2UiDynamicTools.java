@@ -21,9 +21,15 @@ import org.springframework.ai.tool.definition.ToolDefinition;
 import org.springframework.ai.tool.method.MethodToolCallback;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Spring AI tools for dynamic two-hop compose ({@code generateA2Ui}, {@code renderA2Ui}).
+ *
+ * @apiNote internal — not a host SPI; remains public until a major version.
+ */
 public class A2UiDynamicTools {
 
     public static final String SESSION_CONTEXT_KEY = "a2ui.dynamicRenderSession";
@@ -221,13 +227,17 @@ public class A2UiDynamicTools {
         return renderSession;
     }
 
-    @SuppressWarnings("unchecked")
     private static List<A2UiDiagnostic> extractDiagnostics(SurfaceExecutionException ex) {
         Object details = ex.getDetails();
-        if (details instanceof List<?> diagnostics && !diagnostics.isEmpty()
-                && diagnostics.get(0) instanceof A2UiDiagnostic) {
-            return (List<A2UiDiagnostic>) diagnostics;
+        if (!(details instanceof List<?> diagnostics) || diagnostics.isEmpty()) {
+            return List.of();
         }
-        return List.of();
+        List<A2UiDiagnostic> typed = new ArrayList<>(diagnostics.size());
+        for (Object item : diagnostics) {
+            if (item instanceof A2UiDiagnostic diagnostic) {
+                typed.add(diagnostic);
+            }
+        }
+        return typed;
     }
 }

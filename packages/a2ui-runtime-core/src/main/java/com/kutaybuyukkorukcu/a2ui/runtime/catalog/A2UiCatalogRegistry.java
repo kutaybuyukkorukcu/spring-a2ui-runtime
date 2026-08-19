@@ -184,7 +184,6 @@ public final class A2UiCatalogRegistry {
         return true;
     }
 
-    @SuppressWarnings("unchecked")
     public Map<String, Object> propSchema(String catalogId, String componentType, String propName) {
         Map<String, Object> schema = componentSchema(catalogId, componentType);
         Object properties = schema.get("properties");
@@ -195,7 +194,7 @@ public final class A2UiCatalogRegistry {
         if (!(propSchema instanceof Map<?, ?> propSchemaMap)) {
             return Map.of();
         }
-        return Collections.unmodifiableMap(new LinkedHashMap<>((Map<String, Object>) propSchemaMap));
+        return A2UiMaps.deepUnmodifiable(propSchemaMap);
     }
 
     private static Map<String, Map<String, Map<String, Object>>> loadCatalogDefinitions() {
@@ -209,7 +208,6 @@ public final class A2UiCatalogRegistry {
         return catalogs;
     }
 
-    @SuppressWarnings("unchecked")
     static Map<String, Map<String, Map<String, Object>>> loadFromClasspath(String resourcePath) {
         try (InputStream inputStream = A2UiCatalogRegistry.class.getResourceAsStream("/" + resourcePath)) {
             if (inputStream == null) {
@@ -243,7 +241,6 @@ public final class A2UiCatalogRegistry {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static Map<String, Map<String, Object>> extractComponentSchemas(Object componentsNode) {
         if (!(componentsNode instanceof Map<?, ?> components)) {
             throw new IllegalStateException("A2UI catalog is missing a components object");
@@ -255,7 +252,7 @@ public final class A2UiCatalogRegistry {
                 continue;
             }
             if (entry.getValue() instanceof Map<?, ?> schemaMap) {
-                result.put(componentType, flattenComponentSchema((Map<String, Object>) schemaMap));
+                result.put(componentType, flattenComponentSchema(A2UiMaps.copyOf(schemaMap)));
             }
         }
         return Collections.unmodifiableMap(result);
@@ -265,7 +262,6 @@ public final class A2UiCatalogRegistry {
      * Flatten v0.9 {@code allOf} component schemas into a single properties/required view
      * for tool-schema generation and lightweight prop checks.
      */
-    @SuppressWarnings("unchecked")
     private static Map<String, Object> flattenComponentSchema(Map<String, Object> schema) {
         Map<String, Object> flattened = new LinkedHashMap<>(schema);
         Map<String, Object> properties = new LinkedHashMap<>();
@@ -285,7 +281,6 @@ public final class A2UiCatalogRegistry {
         return flattened;
     }
 
-    @SuppressWarnings("unchecked")
     private static void mergeSchemaNode(
             Map<String, Object> node,
             Map<String, Object> properties,
@@ -308,21 +303,19 @@ public final class A2UiCatalogRegistry {
         if (allOf instanceof List<?> allOfList) {
             for (Object item : allOfList) {
                 if (item instanceof Map<?, ?> child) {
-                    mergeSchemaNode((Map<String, Object>) child, properties, required);
+                    mergeSchemaNode(A2UiMaps.copyOf(child), properties, required);
                 }
             }
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static Map<String, Map<String, Map<String, Object>>> deepCopy(
             Map<String, Map<String, Map<String, Object>>> source) {
         Map<String, Map<String, Map<String, Object>>> copy = new LinkedHashMap<>();
         for (Map.Entry<String, Map<String, Map<String, Object>>> catalogEntry : source.entrySet()) {
             Map<String, Map<String, Object>> componentsCopy = new LinkedHashMap<>();
             for (Map.Entry<String, Map<String, Object>> componentEntry : catalogEntry.getValue().entrySet()) {
-                componentsCopy.put(componentEntry.getKey(),
-                        Collections.unmodifiableMap(new LinkedHashMap<>(componentEntry.getValue())));
+                componentsCopy.put(componentEntry.getKey(), A2UiMaps.deepUnmodifiable(componentEntry.getValue()));
             }
             copy.put(catalogEntry.getKey(), Collections.unmodifiableMap(componentsCopy));
         }
@@ -336,7 +329,7 @@ public final class A2UiCatalogRegistry {
         for (Map.Entry<String, Map<String, Map<String, Object>>> catalogEntry : source.entrySet()) {
             Map<String, Map<String, Object>> componentsCopy = new LinkedHashMap<>();
             for (Map.Entry<String, Map<String, Object>> componentEntry : catalogEntry.getValue().entrySet()) {
-                componentsCopy.put(componentEntry.getKey(), new LinkedHashMap<>(componentEntry.getValue()));
+                componentsCopy.put(componentEntry.getKey(), A2UiMaps.deepCopy(componentEntry.getValue()));
             }
             copy.put(catalogEntry.getKey(), componentsCopy);
         }

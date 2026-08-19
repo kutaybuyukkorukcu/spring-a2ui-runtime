@@ -22,6 +22,10 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 @RestController
 public class A2UiStreamController {
 
@@ -54,32 +58,35 @@ public class A2UiStreamController {
             @RequestHeader(value = RequestCorrelationService.REQUEST_ID_HEADER, required = false) String requestIdHeader,
             @RequestBody A2UiSurfaceRequest request) {
         String requestId = requestCorrelationService.resolveRequestId(requestIdHeader);
+        AtomicBoolean failed = new AtomicBoolean(false);
 
         return Flux.defer(() -> {
             String catalogId = catalogNegotiator.negotiate(request);
             return surfaceService.stream(request, requestId, catalogId);
         })
                 .map(event -> {
-                    runtimeMetrics.recordTransformSuccess("stream");
                     try {
                         return A2UiSseEventMapper.toSse(event, objectMapper);
                     } catch (Exception e) {
                         LOGGER.error("Failed to serialize streaming runtime event", e);
                         return ServerSentEvent.<String>builder()
                                 .event("error")
-                                .data("{\"error\":\"Serialization failed\"}")
+                                .data(errorEventData("Serialization failed", "SERIALIZATION_FAILED"))
                                 .build();
                     }
                 })
                 .onErrorResume(SurfaceExecutionException.class, ex -> {
+                    failed.set(true);
                     runtimeMetrics.recordTransformFailure("stream", ex.getErrorCode());
                     return lifecycleAwareErrorFlux(requestId, ex.getErrorCode(), ex.getMessage());
                 })
                 .onErrorResume(A2UiValidationException.class, ex -> {
+                    failed.set(true);
                     runtimeMetrics.recordTransformFailure("stream", SurfaceErrorCodes.A2UI_VALIDATION_FAILED);
                     return lifecycleAwareErrorFlux(requestId, SurfaceErrorCodes.A2UI_VALIDATION_FAILED, ex.getMessage());
                 })
                 .onErrorResume(Exception.class, ex -> {
+                    failed.set(true);
                     runtimeMetrics.recordTransformFailure("stream", SurfaceErrorCodes.TRANSFORM_FAILED);
                     LOGGER.error("Streaming surface generation error", ex);
                     return lifecycleAwareErrorFlux(
@@ -90,13 +97,18 @@ public class A2UiStreamController {
                 .concatWith(Flux.just(ServerSentEvent.<String>builder()
                         .event("done")
                         .data("[DONE]")
-                        .build()));
+                        .build()))
+                .doOnComplete(() -> {
+                    if (!failed.get()) {
+                        runtimeMetrics.recordTransformSuccess("stream");
+                    }
+                });
     }
 
     private Flux<ServerSentEvent<String>> lifecycleAwareErrorFlux(String requestId, String errorCode, String message) {
         Flux<ServerSentEvent<String>> errorEvent = Flux.just(ServerSentEvent.<String>builder()
                 .event("error")
-                .data(String.format("{\"error\":\"%s\",\"errorCode\":\"%s\"}", message, errorCode))
+                .data(errorEventData(message, errorCode))
                 .build());
 
         if (!webProperties.getStream().isLifecycleEvents()) {
@@ -111,6 +123,18 @@ public class A2UiStreamController {
         } catch (Exception serializationError) {
             LOGGER.warn("Failed to serialize runError event", serializationError);
             return errorEvent;
+        }
+    }
+
+    private String errorEventData(String message, String errorCode) {
+        Map<String, String> payload = new LinkedHashMap<>();
+        payload.put("error", message == null ? "" : message);
+        payload.put("errorCode", errorCode == null ? "" : errorCode);
+        try {
+            return objectMapper.writeValueAsString(payload);
+        } catch (Exception e) {
+            LOGGER.error("Failed to serialize SSE error payload", e);
+            return "{\"error\":\"Serialization failed\",\"errorCode\":\"SERIALIZATION_FAILED\"}";
         }
     }
 }

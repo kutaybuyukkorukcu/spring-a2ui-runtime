@@ -103,4 +103,19 @@ class A2UiSurfaceBufferTest {
         A2UiSurfaceBuffer.SurfaceState state = buffer.getSurface("main");
         assertThat(state.getDataAtPath("/temp")).isNull();
     }
+
+    @Test
+    void getDataAtRootShouldReturnCopyNotLiveMap() {
+        A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
+        buffer.applyCreateSurface(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9));
+        buffer.applyUpdateDataModel(new A2UiMessage.UpdateDataModel(
+                "main", "/", Map.of("name", "Alice")));
+
+        A2UiSurfaceBuffer.SurfaceState state = buffer.getSurface("main");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> snapshot = (Map<String, Object>) state.getDataAtPath("/");
+        snapshot.put("injected", "nope");
+        assertThat(state.getDataAtPath("/name")).isEqualTo("Alice");
+        assertThat(state.getDataAtPath("/injected")).isNull();
+    }
 }

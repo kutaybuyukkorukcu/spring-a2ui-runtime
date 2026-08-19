@@ -119,7 +119,10 @@ class DynamicGenerationAdapterTest {
         verify(requestSpec).toolCallbacks(toolCallbackCaptor.capture());
         assertThat(toolCallbackCaptor.getValue().getToolDefinition().name())
                 .isEqualTo(A2UiForcedToolChoiceFactory.GENERATE_TOOL_NAME);
-        verify(requestSpec).options(any(ChatOptions.class));
+        ArgumentCaptor<ChatOptions> optionsCaptor = ArgumentCaptor.forClass(ChatOptions.class);
+        verify(requestSpec).options(optionsCaptor.capture());
+        assertThat(optionsCaptor.getValue().getClass().getName())
+                .isEqualTo("org.springframework.ai.openai.OpenAiChatOptions");
         verify(requestSpec, never()).tools(any());
         verify(requestSpec, never()).toolNames(anyString());
     }

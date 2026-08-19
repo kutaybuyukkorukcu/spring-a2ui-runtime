@@ -5,9 +5,6 @@ import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.ResponseFormat;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
-import org.springframework.util.StringUtils;
-
-import java.util.Objects;
 
 public class OpenAiChatOptionsCustomizer implements A2UiChatOptionsCustomizer {
 
@@ -22,23 +19,25 @@ public class OpenAiChatOptionsCustomizer implements A2UiChatOptionsCustomizer {
                 ? OpenAiChatOptions.fromOptions(openAi)
                 : OpenAiChatOptions.builder().build();
 
-        if (StringUtils.hasText(policy.getModel())) {
-            options.setModel(Objects.requireNonNull(policy.getModel()));
+        A2UiChatOptionsApply.textIfPresent(policy.getModel(), options::setModel);
+        A2UiChatOptionsApply.ifPresent(policy.getTemperature(), options::setTemperature);
+        A2UiChatOptionsApply.ifPresent(policy.getTopP(), options::setTopP);
+        A2UiChatOptionsApply.ifPresent(policy.getSeed(), options::setSeed);
+        A2UiChatOptionsApply.ifPresent(policy.getMaxTokens(), options::setMaxTokens);
+        A2UiChatOptionsApply.ifPresent(policy.getMaxCompletionTokens(), options::setMaxCompletionTokens);
+        if (policy.getResponseFormat() != null) {
+            options.setResponseFormat(toResponseFormat(policy.getResponseFormat()));
         }
-        options.setTemperature(policy.getTemperature());
-        options.setTopP(policy.getTopP());
-        options.setSeed(policy.getSeed());
-        options.setResponseFormat(toResponseFormat(policy.getResponseFormat()));
-        options.setMaxTokens(policy.getMaxTokens());
-        options.setMaxCompletionTokens(policy.getMaxCompletionTokens());
         return options;
     }
 
     @Override
     public int getOrder() { return 100; }
 
-    private ResponseFormat toResponseFormat(@Nullable A2UiGenerationPolicyProperties.ResponseFormatMode mode) {
-        if (mode == null || mode == A2UiGenerationPolicyProperties.ResponseFormatMode.NONE) return null;
+    private ResponseFormat toResponseFormat(@NonNull A2UiGenerationPolicyProperties.ResponseFormatMode mode) {
+        if (mode == A2UiGenerationPolicyProperties.ResponseFormatMode.NONE) {
+            return null;
+        }
         if (mode == A2UiGenerationPolicyProperties.ResponseFormatMode.JSON_OBJECT) {
             return ResponseFormat.builder().type(ResponseFormat.Type.JSON_OBJECT).build();
         }

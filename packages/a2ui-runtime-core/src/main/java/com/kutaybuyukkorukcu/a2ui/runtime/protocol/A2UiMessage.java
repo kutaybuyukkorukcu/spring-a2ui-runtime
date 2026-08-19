@@ -81,7 +81,6 @@ public sealed interface A2UiMessage {
         }
 
         /** Build from a flat planner/tool map ({@code id}, {@code component}, plus props). */
-        @SuppressWarnings("unchecked")
         public static ComponentDefinition fromFlatMap(Map<String, Object> flat) {
             if (flat == null) {
                 throw new IllegalArgumentException("component map is required");

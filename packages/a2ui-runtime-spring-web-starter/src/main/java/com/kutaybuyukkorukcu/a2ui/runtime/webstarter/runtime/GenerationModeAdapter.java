@@ -9,6 +9,8 @@ import java.util.List;
 /**
  * Generation-mode adapter: template fill vs dynamic two-hop. The compose module owns
  * the ChatClient hop, lifecycle collector, and fail-fast.
+ *
+ * @apiNote internal — not a host SPI; remains public until a major version.
  */
 public interface GenerationModeAdapter {
 

@@ -128,4 +128,32 @@ class A2UiDynamicAssemblyServiceTest {
         assertThat(button.componentProperties().get("action"))
                 .isEqualTo(Map.of("event", Map.of("name", "submit")));
     }
+
+    @Test
+    void shouldRejectBlankComponentIdInsteadOfDropping() {
+        RenderA2UiArgs args = new RenderA2UiArgs(
+                "planner-surface",
+                "root",
+                List.of(
+                        Map.of("id", "root", "component", "Column", "children", List.of("title"), "justify", "start"),
+                        Map.of("id", "  ", "component", "Text", "text", "Hello")),
+                null);
+
+        assertThatThrownBy(() -> assemblyService.assemble(args, A2UiCatalogIds.BASIC_V0_9, "main"))
+                .isInstanceOf(SurfaceExecutionException.class)
+                .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
+                .isEqualTo(SurfaceErrorCodes.TRANSFORM_FAILED);
+    }
+
+    @Test
+    void shouldRejectNullComponentInsteadOfDropping() {
+        java.util.ArrayList<Map<String, Object>> components = new java.util.ArrayList<>();
+        components.add(Map.of("id", "root", "component", "Text", "text", "Hello"));
+        components.add(null);
+        RenderA2UiArgs args = new RenderA2UiArgs("planner-surface", "root", components, null);
+
+        assertThatThrownBy(() -> assemblyService.assemble(args, A2UiCatalogIds.BASIC_V0_9, "main"))
+                .isInstanceOf(SurfaceExecutionException.class)
+                .hasMessageContaining("must not be null");
+    }
 }

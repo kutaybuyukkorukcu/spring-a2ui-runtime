@@ -12,6 +12,11 @@ import org.springframework.ai.tool.ToolCallback;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Dynamic two-hop generation (planner {@code generateA2Ui} then {@code renderA2Ui}).
+ *
+ * @apiNote internal — not a host SPI; remains public until a major version.
+ */
 public final class DynamicGenerationAdapter implements GenerationModeAdapter {
 
     public static final String DEFAULT_SURFACE_ID = "main";

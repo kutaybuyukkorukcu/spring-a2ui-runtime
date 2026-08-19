@@ -12,10 +12,11 @@ Provider-aware chat option customizers exist for OpenAI, Anthropic, and Vertex
 AI Gemini (classpath-conditional in `a2ui-runtime-spring-starter`). Deterministic
 temperature / top-p / etc. are applied via advisors when enabled.
 
-Forced primary-tool choice on dynamic mode is **OpenAI-shaped** today. Other
-providers may still run tools but without the same force-tool guarantee —
-prefer **template mode** or verify tool calling before relying on dynamic
-compose in production.
+Forced primary-tool choice on dynamic mode is **OpenAI-shaped** and **fail-closed**.
+If OpenAI `ChatOptions` cannot be constructed (missing classpath or reflection
+failure), the stream emits SSE `event: error` with `TOOL_CHOICE_UNAVAILABLE`
+instead of silently skipping tool forcing. Use OpenAI (or an OpenAI-compatible
+endpoint) for dynamic compose, or prefer **template mode** / host `assemble`.
 
 ## Recipes
 

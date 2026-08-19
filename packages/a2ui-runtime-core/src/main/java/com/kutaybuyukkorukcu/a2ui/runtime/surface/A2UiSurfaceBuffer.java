@@ -1,11 +1,17 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.surface;
 
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiMaps;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * In-memory surface state for a single compose run.
+ * ConcurrentHashMap protects the map of surfaces only; mutations of a given
+ * {@link SurfaceState} are single-writer (one stream run).
+ */
 public final class A2UiSurfaceBuffer {
 
     private final Map<String, SurfaceState> surfaces = new ConcurrentHashMap<>();
@@ -144,7 +150,6 @@ public final class A2UiSurfaceBuffer {
             return theme;
         }
 
-        @SuppressWarnings("unchecked")
         public void applyDataValue(String path, Object value) {
             if (path == null || path.isBlank() || "/".equals(path)) {
                 dataModel.clear();
@@ -174,21 +179,21 @@ public final class A2UiSurfaceBuffer {
             setDataAtPath(parts, value);
         }
 
-        @SuppressWarnings("unchecked")
         private void setDataAtPath(String[] parts, Object value) {
             Map<String, Object> current = dataModel;
             for (int i = 0; i < parts.length - 1; i++) {
                 Object next = current.get(parts[i]);
-                if (!(next instanceof Map)) {
-                    next = new LinkedHashMap<>();
+                if (!(next instanceof Map<?, ?> map)) {
+                    next = new LinkedHashMap<String, Object>();
                     current.put(parts[i], next);
+                    current = A2UiMaps.asMutable((Map<?, ?>) next);
+                } else {
+                    current = A2UiMaps.asMutable(map);
                 }
-                current = (Map<String, Object>) next;
             }
             current.put(parts[parts.length - 1], value);
         }
 
-        @SuppressWarnings("unchecked")
         private void deleteAtPath(String[] parts) {
             Map<String, Object> current = dataModel;
             for (int i = 0; i < parts.length - 1; i++) {
@@ -196,14 +201,14 @@ public final class A2UiSurfaceBuffer {
                 if (!(next instanceof Map<?, ?> map)) {
                     return;
                 }
-                current = (Map<String, Object>) map;
+                current = A2UiMaps.asMutable(map);
             }
             current.remove(parts[parts.length - 1]);
         }
 
         public Object getDataAtPath(String path) {
             if (path == null || path.isEmpty() || "/".equals(path)) {
-                return dataModel;
+                return A2UiMaps.deepCopy(dataModel);
             }
             String[] parts = path.startsWith("/") ? path.substring(1).split("/") : path.split("/");
             Object current = dataModel;
@@ -213,6 +218,9 @@ public final class A2UiSurfaceBuffer {
                 } else {
                     return null;
                 }
+            }
+            if (current instanceof Map<?, ?> map) {
+                return A2UiMaps.deepCopy(map);
             }
             return current;
         }
