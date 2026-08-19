@@ -32,21 +32,23 @@ Dynamic generation uses a primary agent plus an inner planner (two-hop tools):
 ```mermaid
 sequenceDiagram
     participant Client
-    participant Orchestrator as DynamicSurfaceOrchestrator
+    participant Compose as SpringAiSurfaceRuntime
+    participant Adapter as DynamicGenerationAdapter
     participant Primary as Primary ChatClient
     participant Tools as A2UiDynamicTools
     participant Planner as Planner ChatClient
     participant Assembly as A2UiDynamicAssemblyService
 
-    Client->>Orchestrator: POST /a2ui/surface/stream
-    Orchestrator->>Primary: prompt + generateA2Ui tool
+    Client->>Compose: POST /a2ui/surface/stream
+    Compose->>Adapter: generate (cloned ChatClient)
+    Adapter->>Primary: prompt + generateA2Ui tool
     Primary->>Tools: generateA2Ui()
     Tools->>Planner: forced renderA2Ui tool choice
     Planner->>Tools: renderA2Ui(components, data)
     Tools->>Assembly: normalize + validate
-    Assembly-->>Tools: `createSurface` + `updateComponents` + dataModelUpdate + createSurface (catalog + root id "root")
+    Assembly-->>Tools: `createSurface` + `updateComponents` + dataModelUpdate (catalog + root id "root")
     Tools-->>Primary: success
-    Orchestrator-->>Client: SSE envelopes
+    Compose-->>Client: SSE envelopes
 ```
 
 - **Primary agent** calls `generateA2Ui()` when a visual UI helps.

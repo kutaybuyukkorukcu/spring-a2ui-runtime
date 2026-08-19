@@ -50,8 +50,9 @@ public class A2UiMessageValidator {
             return diagnostics;
         }
 
+        A2UiValidationContext resolved = resolveCatalogContext(context, messages);
         for (int i = 0; i < messages.size(); i++) {
-            validateMessage(messages.get(i), "$[" + i + "]", context, diagnostics);
+            validateMessage(messages.get(i), "$[" + i + "]", resolved, diagnostics);
         }
 
         validateSequence(messages, diagnostics);
@@ -157,10 +158,13 @@ public class A2UiMessageValidator {
             return;
         }
 
-        if (!catalogRegistry.supportsComponentType(componentType)) {
+        if (!isSupportedComponentType(componentType, context)) {
             Map<String, Object> details = new LinkedHashMap<>();
             details.put("componentType", componentType);
             details.put("supportedCatalogIds", List.copyOf(catalogRegistry.supportedCatalogIds()));
+            if (context != null && context.catalogId() != null && !context.catalogId().isBlank()) {
+                details.put("catalogId", context.catalogId());
+            }
             diagnostics.add(diagnostic(path + ".component", A2UiErrorCode.UNKNOWN_COMPONENT_TYPE,
                     "component type is not supported by the published catalog", details));
             return;
@@ -280,6 +284,36 @@ public class A2UiMessageValidator {
                     "update messages require a prior createSurface for the same surfaceId",
                     details));
         }
+    }
+
+    private A2UiValidationContext resolveCatalogContext(A2UiValidationContext context, List<A2UiMessage> messages) {
+        if (context != null && context.catalogId() != null && !context.catalogId().isBlank()) {
+            return context;
+        }
+        String catalogId = catalogIdFrom(messages);
+        if (catalogId == null) {
+            return context == null ? A2UiValidationContext.empty() : context;
+        }
+        String version = context == null ? null : context.requestedVersion();
+        return A2UiValidationContext.forVersionAndCatalog(version, catalogId);
+    }
+
+    private static String catalogIdFrom(List<A2UiMessage> messages) {
+        for (A2UiMessage message : messages) {
+            if (message instanceof A2UiMessage.CreateSurface createSurface
+                    && createSurface.catalogId() != null
+                    && !createSurface.catalogId().isBlank()) {
+                return createSurface.catalogId();
+            }
+        }
+        return null;
+    }
+
+    private boolean isSupportedComponentType(String componentType, A2UiValidationContext context) {
+        if (context != null && context.catalogId() != null && !context.catalogId().isBlank()) {
+            return catalogRegistry.componentTypesForCatalog(context.catalogId()).contains(componentType);
+        }
+        return catalogRegistry.supportsComponentType(componentType);
     }
 
     private A2UiDiagnostic diagnostic(String path, A2UiErrorCode code, String message) {

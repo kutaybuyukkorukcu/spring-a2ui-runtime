@@ -6,6 +6,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiValidationContext;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage.ComponentDefinition;
+import com.kutaybuyukkorukcu.a2ui.runtime.surface.A2UiDynamicComponentNormalizer;
 import com.kutaybuyukkorukcu.a2ui.runtime.surface.A2UiSurfaceBuffer;
 import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
@@ -102,7 +103,7 @@ public class A2UiDynamicAssemblyService {
 
         A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
         for (A2UiMessage message : messages) {
-            A2UiSurfaceBufferOps.apply(buffer, message);
+            buffer.apply(message);
         }
 
         if (!buffer.getOrCreateSurface(negotiatedSurfaceId).hasComponent(ROOT_ID)) {
@@ -132,28 +133,31 @@ public class A2UiDynamicAssemblyService {
         }
 
         List<Map<String, Object>> sanitized = new ArrayList<>();
-        for (Map<String, Object> component : components) {
+        for (int i = 0; i < components.size(); i++) {
+            Map<String, Object> component = components.get(i);
             if (component == null) {
-                continue;
+                throw new SurfaceExecutionException(
+                        "component at index " + i + " must not be null",
+                        SurfaceErrorCodes.TRANSFORM_FAILED,
+                        Map.of("index", i));
             }
             Object id = component.get("id");
             Object componentType = component.get("component");
             if (!(id instanceof String idValue) || idValue.isBlank()) {
-                continue;
+                throw new SurfaceExecutionException(
+                        "component id is required",
+                        SurfaceErrorCodes.TRANSFORM_FAILED,
+                        Map.of("index", i));
             }
             if (componentType == null
                     || (componentType instanceof String typeValue && typeValue.isBlank())
                     || (componentType instanceof Map<?, ?> typeMap && typeMap.isEmpty())) {
-                continue;
+                throw new SurfaceExecutionException(
+                        "component type is required",
+                        SurfaceErrorCodes.TRANSFORM_FAILED,
+                        Map.of("index", i, "id", idValue));
             }
             sanitized.add(component);
-        }
-
-        if (sanitized.isEmpty()) {
-            throw new SurfaceExecutionException(
-                    "No valid components remain after sanitization",
-                    SurfaceErrorCodes.TRANSFORM_FAILED,
-                    null);
         }
         return sanitized;
     }

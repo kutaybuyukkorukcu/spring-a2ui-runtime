@@ -91,6 +91,16 @@ class A2UiCatalogRegistryTest {
     }
 
     @Test
+    void shouldRejectNestedSchemaMutation() {
+        A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
+        Map<String, Object> schema = registry.componentSchema(A2UiCatalogIds.BASIC_V0_9, "CheckBox");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+        assertThatThrownBy(() -> properties.put("injected", "value"))
+                .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
     void shouldReturnEmptySchemaForUnknownType() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
         assertThat(registry.componentSchema(A2UiCatalogIds.BASIC_V0_9, "NonExistent")).isEmpty();

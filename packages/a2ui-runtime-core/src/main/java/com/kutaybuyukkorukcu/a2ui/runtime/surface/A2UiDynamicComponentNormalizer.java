@@ -1,5 +1,6 @@
-package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface;
+package com.kutaybuyukkorukcu.a2ui.runtime.surface;
 
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiMaps;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage.ComponentDefinition;
 
 import java.util.ArrayList;
@@ -17,6 +18,8 @@ import java.util.regex.Pattern;
  *
  * <p>Canonicalization only — no semantic repair. DAG validation fails rather than inventing
  * missing children.
+ *
+ * @apiNote internal — not a host SPI; remains public until a major version.
  */
 public class A2UiDynamicComponentNormalizer {
 
@@ -64,7 +67,6 @@ public class A2UiDynamicComponentNormalizer {
      * Promotes List {@code data} + bare string template into catalog shape
      * {@code children = {componentId, path}}.
      */
-    @SuppressWarnings("unchecked")
     private ComponentDefinition canonicalizeListComponent(ComponentDefinition list) {
         Map<String, Object> props = new LinkedHashMap<>(list.componentProperties());
         Object dataBindingSource = props.remove("data");
@@ -196,7 +198,6 @@ public class A2UiDynamicComponentNormalizer {
         return ComponentDefinition.fromFlatMap(forFromFlat);
     }
 
-    @SuppressWarnings("unchecked")
     private Object normalizeProperty(String name, Object value) {
         if (value == null) {
             return null;
@@ -214,7 +215,6 @@ public class A2UiDynamicComponentNormalizer {
         };
     }
 
-    @SuppressWarnings("unchecked")
     private Object normalizeChildren(Object value) {
         if (value instanceof List<?> childIds) {
             List<String> ids = new ArrayList<>(childIds.size());
@@ -244,7 +244,6 @@ public class A2UiDynamicComponentNormalizer {
         throw new IllegalArgumentException("children must be an id array or template object");
     }
 
-    @SuppressWarnings("unchecked")
     private List<Map<String, Object>> normalizeTabItems(String name, Object value) {
         if (!(value instanceof List<?> items)) {
             throw new IllegalArgumentException(name + " must be an array");
@@ -270,7 +269,6 @@ public class A2UiDynamicComponentNormalizer {
         return normalizedItems;
     }
 
-    @SuppressWarnings("unchecked")
     private List<Map<String, Object>> normalizeOptions(Object value) {
         if (!(value instanceof List<?> options)) {
             throw new IllegalArgumentException("options must be an array");
@@ -294,7 +292,6 @@ public class A2UiDynamicComponentNormalizer {
         return normalizedOptions;
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, Object> normalizeAction(Object value) {
         if (value instanceof String stringValue) {
             return Map.of("event", Map.of("name", stringValue));
@@ -339,7 +336,6 @@ public class A2UiDynamicComponentNormalizer {
         return copied;
     }
 
-    @SuppressWarnings("unchecked")
     private Object normalizeActionContext(Object context) {
         if (context instanceof Map<?, ?> contextMap) {
             Map<String, Object> coerced = new LinkedHashMap<>();
@@ -458,7 +454,6 @@ public class A2UiDynamicComponentNormalizer {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private Set<String> extractChildReferences(ComponentDefinition component) {
         Set<String> childIds = new LinkedHashSet<>();
         Map<String, Object> props = component.componentProperties();
@@ -535,12 +530,7 @@ public class A2UiDynamicComponentNormalizer {
         return "/" + dottedPath.replace('.', '/');
     }
 
-    @SuppressWarnings("unchecked")
     private static Map<String, Object> copyMap(Map<?, ?> source) {
-        Map<String, Object> copy = new LinkedHashMap<>();
-        for (Map.Entry<?, ?> entry : source.entrySet()) {
-            copy.put(String.valueOf(entry.getKey()), entry.getValue());
-        }
-        return copy;
+        return A2UiMaps.copyOf(source);
     }
 }

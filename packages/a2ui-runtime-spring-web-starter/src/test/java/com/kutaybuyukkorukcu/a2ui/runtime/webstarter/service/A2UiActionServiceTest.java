@@ -1,5 +1,6 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service;
 
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiValidationContext;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.*;
@@ -46,6 +47,27 @@ class A2UiActionServiceTest {
         assertThat(result.actionName()).isEqualTo("submit");
         assertThat(result.surfaceId()).isEqualTo("main");
         assertThat(result.messageCount()).isEqualTo(1);
+        verify(validator).validate(
+                responseMessages,
+                A2UiValidationContext.forVersionAndCatalog(A2UiProtocol.SUPPORTED_VERSION, A2UiCatalogIds.BASIC_V0_9));
+    }
+
+    @Test
+    void shouldValidateAcksAgainstCatalogFromCreateSurface() {
+        A2UiUserAction userAction = new A2UiUserAction("submit", "main", "btn-1", null, Map.of());
+        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        String hostCatalog = "https://example.com/catalogs/host/1.0";
+        List<A2UiMessage> responseMessages = List.of(new A2UiMessage.CreateSurface("main", hostCatalog));
+
+        when(handler.supports(userAction)).thenReturn(true);
+        when(handler.handle(any(), anyString())).thenReturn(responseMessages);
+        when(validator.validate(any(), any(A2UiValidationContext.class))).thenReturn(List.of());
+
+        service.handleClientEvent(event, "req-1");
+
+        verify(validator).validate(
+                responseMessages,
+                A2UiValidationContext.forVersionAndCatalog(A2UiProtocol.SUPPORTED_VERSION, hostCatalog));
     }
 
     @Test

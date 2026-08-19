@@ -1,4 +1,4 @@
-package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface;
+package com.kutaybuyukkorukcu.a2ui.runtime.surface;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage.ComponentDefinition;
 import org.junit.jupiter.api.Test;

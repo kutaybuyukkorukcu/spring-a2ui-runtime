@@ -3,6 +3,8 @@ package com.kutaybuyukkorukcu.a2ui.runtime.validation;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRefSchemas;
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiMaps;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiErrorCode;
 import com.networknt.schema.JsonSchema;
@@ -54,7 +56,15 @@ public final class A2UiCatalogSchemaValidator {
             String componentType, String catalogId, Map<String, Object> props, String pathPrefix) {
         JsonSchema schema = resolveSchema(catalogId, componentType);
         if (schema == null) {
-            return List.of();
+            Map<String, Object> details = new LinkedHashMap<>();
+            details.put("componentType", componentType);
+            details.put("catalogId", catalogId);
+            return List.of(new A2UiDiagnostic(
+                    pathPrefix + ".component",
+                    A2UiErrorCode.UNKNOWN_COMPONENT_TYPE.code(),
+                    A2UiErrorCode.UNKNOWN_COMPONENT_TYPE.category().name(),
+                    "component type is not supported by the published catalog",
+                    details));
         }
 
         JsonNode propsNode = objectMapper.valueToTree(props != null ? props : Map.of());
@@ -93,7 +103,6 @@ public final class A2UiCatalogSchemaValidator {
      * Builds a props-only schema: drops id/component from required, inlines Dynamic* / ChildList /
      * Action / DataBinding refs, and removes unresolved allOf/$ref scaffolding.
      */
-    @SuppressWarnings("unchecked")
     private Map<String, Object> adaptSchemaForPropValidation(Map<String, Object> catalogSchema) {
         Map<String, Object> adapted = new LinkedHashMap<>();
         adapted.put("type", "object");
@@ -114,7 +123,7 @@ public final class A2UiCatalogSchemaValidator {
                     continue;
                 }
                 if (entry.getValue() instanceof Map<?, ?> propSchema) {
-                    properties.put(name, resolvePropSchema(name, (Map<String, Object>) propSchema));
+                    properties.put(name, resolvePropSchema(name, A2UiMaps.copyOf(propSchema)));
                 }
             }
         }
@@ -138,7 +147,6 @@ public final class A2UiCatalogSchemaValidator {
         return adapted;
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, Object> resolvePropSchema(String propName, Map<String, Object> propSchema) {
         String ref = refTarget(propSchema);
         if (ref != null) {
@@ -155,13 +163,13 @@ public final class A2UiCatalogSchemaValidator {
         }
 
         if ("children".equals(propName) || refContains(ref, "ChildList")) {
-            return childListSchema();
+            return A2UiCatalogRefSchemas.childListSchema();
         }
         if ("action".equals(propName) || refContains(ref, "Action")) {
-            return actionSchema();
+            return A2UiCatalogRefSchemas.actionSchema();
         }
 
-        Map<String, Object> copied = deepCopyMap(propSchema);
+        Map<String, Object> copied = A2UiMaps.deepCopy(propSchema);
         copied.remove("$ref");
 
         Object nestedProps = copied.get("properties");
@@ -171,7 +179,7 @@ public final class A2UiCatalogSchemaValidator {
                 if (entry.getValue() instanceof Map<?, ?> nestedSchema) {
                     resolvedNested.put(
                             String.valueOf(entry.getKey()),
-                            resolvePropSchema(String.valueOf(entry.getKey()), (Map<String, Object>) nestedSchema));
+                            resolvePropSchema(String.valueOf(entry.getKey()), A2UiMaps.copyOf(nestedSchema)));
                 } else {
                     resolvedNested.put(String.valueOf(entry.getKey()), entry.getValue());
                 }
@@ -181,7 +189,7 @@ public final class A2UiCatalogSchemaValidator {
 
         Object items = copied.get("items");
         if (items instanceof Map<?, ?> itemsMap) {
-            copied.put("items", resolvePropSchema(propName + ".items", (Map<String, Object>) itemsMap));
+            copied.put("items", resolvePropSchema(propName + ".items", A2UiMaps.copyOf(itemsMap)));
         }
 
         Object oneOf = copied.get("oneOf");
@@ -189,7 +197,7 @@ public final class A2UiCatalogSchemaValidator {
             List<Object> resolvedOneOf = new ArrayList<>(oneOfList.size());
             for (Object alt : oneOfList) {
                 if (alt instanceof Map<?, ?> altMap) {
-                    resolvedOneOf.add(resolvePropSchema(propName, (Map<String, Object>) altMap));
+                    resolvedOneOf.add(resolvePropSchema(propName, A2UiMaps.copyOf(altMap)));
                 } else {
                     resolvedOneOf.add(alt);
                 }
@@ -204,38 +212,7 @@ public final class A2UiCatalogSchemaValidator {
     }
 
     private static Map<String, Object> inlineKnownRef(String ref) {
-        if (refContains(ref, "DynamicString")) {
-            return dynamicStringSchema();
-        }
-        if (refContains(ref, "DynamicNumber")) {
-            return dynamicNumberSchema();
-        }
-        if (refContains(ref, "DynamicBoolean")) {
-            return dynamicBooleanSchema();
-        }
-        if (refContains(ref, "DynamicStringList")) {
-            return dynamicStringListSchema();
-        }
-        if (refContains(ref, "DynamicValue")) {
-            return dynamicValueSchema();
-        }
-        if (refContains(ref, "DataBinding")) {
-            return dataBindingSchema();
-        }
-        if (refContains(ref, "ComponentId")) {
-            return Map.of("type", "string");
-        }
-        if (refContains(ref, "ChildList")) {
-            return childListSchema();
-        }
-        if (refContains(ref, "Action")) {
-            return actionSchema();
-        }
-        if (refContains(ref, "Checkable") || refContains(ref, "CheckRule") || refContains(ref, "FunctionCall")) {
-            // Leave loosely typed — full function-call validation is out of scope for prop checks.
-            return Map.of("type", "object", "additionalProperties", true);
-        }
-        return null;
+        return A2UiCatalogRefSchemas.inline(ref);
     }
 
     private static String refTarget(Map<String, Object> schema) {
@@ -245,105 +222,6 @@ public final class A2UiCatalogSchemaValidator {
 
     private static boolean refContains(String ref, String fragment) {
         return ref != null && ref.contains(fragment);
-    }
-
-    private static Map<String, Object> dataBindingSchema() {
-        Map<String, Object> schema = new LinkedHashMap<>();
-        schema.put("type", "object");
-        schema.put("required", List.of("path"));
-        schema.put("additionalProperties", false);
-        schema.put("properties", Map.of("path", Map.of("type", "string")));
-        return schema;
-    }
-
-    private static Map<String, Object> dynamicStringSchema() {
-        Map<String, Object> schema = new LinkedHashMap<>();
-        schema.put("oneOf", List.of(
-                Map.of("type", "string"),
-                dataBindingSchema()));
-        return schema;
-    }
-
-    private static Map<String, Object> dynamicNumberSchema() {
-        Map<String, Object> schema = new LinkedHashMap<>();
-        schema.put("oneOf", List.of(
-                Map.of("type", "number"),
-                dataBindingSchema()));
-        return schema;
-    }
-
-    private static Map<String, Object> dynamicBooleanSchema() {
-        Map<String, Object> schema = new LinkedHashMap<>();
-        schema.put("oneOf", List.of(
-                Map.of("type", "boolean"),
-                dataBindingSchema()));
-        return schema;
-    }
-
-    private static Map<String, Object> dynamicStringListSchema() {
-        Map<String, Object> array = new LinkedHashMap<>();
-        array.put("type", "array");
-        array.put("items", Map.of("type", "string"));
-        Map<String, Object> schema = new LinkedHashMap<>();
-        schema.put("oneOf", List.of(array, dataBindingSchema()));
-        return schema;
-    }
-
-    private static Map<String, Object> dynamicValueSchema() {
-        Map<String, Object> schema = new LinkedHashMap<>();
-        schema.put("oneOf", List.of(
-                Map.of("type", "string"),
-                Map.of("type", "number"),
-                Map.of("type", "boolean"),
-                Map.of("type", "array"),
-                Map.of("type", "object"),
-                dataBindingSchema()));
-        return schema;
-    }
-
-    private static Map<String, Object> childListSchema() {
-        Map<String, Object> bareList = new LinkedHashMap<>();
-        bareList.put("type", "array");
-        bareList.put("items", Map.of("type", "string"));
-
-        Map<String, Object> template = new LinkedHashMap<>();
-        template.put("type", "object");
-        template.put("required", List.of("componentId", "path"));
-        template.put("additionalProperties", false);
-        template.put("properties", Map.of(
-                "componentId", Map.of("type", "string"),
-                "path", Map.of("type", "string")));
-
-        Map<String, Object> schema = new LinkedHashMap<>();
-        schema.put("oneOf", List.of(bareList, template));
-        return schema;
-    }
-
-    private static Map<String, Object> actionSchema() {
-        Map<String, Object> eventObj = new LinkedHashMap<>();
-        eventObj.put("type", "object");
-        eventObj.put("required", List.of("name"));
-        eventObj.put("additionalProperties", false);
-        eventObj.put("properties", Map.of(
-                "name", Map.of("type", "string"),
-                "context", Map.of("type", "object", "additionalProperties", true)));
-
-        Map<String, Object> eventAction = new LinkedHashMap<>();
-        eventAction.put("type", "object");
-        eventAction.put("required", List.of("event"));
-        eventAction.put("additionalProperties", false);
-        eventAction.put("properties", Map.of("event", eventObj));
-
-        Map<String, Object> functionCallAction = new LinkedHashMap<>();
-        functionCallAction.put("type", "object");
-        functionCallAction.put("required", List.of("functionCall"));
-        functionCallAction.put("additionalProperties", false);
-        functionCallAction.put("properties", Map.of(
-                "functionCall", Map.of("type", "object", "additionalProperties", true)));
-
-        Map<String, Object> schema = new LinkedHashMap<>();
-        schema.put("oneOf", List.of(eventAction, functionCallAction));
-        return schema;
     }
 
     private A2UiDiagnostic toDiagnostic(ValidationMessage error, String componentType, String pathPrefix) {
@@ -400,29 +278,5 @@ public final class A2UiCatalogSchemaValidator {
             return pathPrefix;
         }
         return pathPrefix + "." + relative.replace("/", ".");
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Map<String, Object> deepCopyMap(Map<String, Object> source) {
-        Map<String, Object> copy = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : source.entrySet()) {
-            Object value = entry.getValue();
-            if (value instanceof Map<?, ?> nested) {
-                copy.put(entry.getKey(), deepCopyMap((Map<String, Object>) nested));
-            } else if (value instanceof List<?> list) {
-                List<Object> listCopy = new ArrayList<>(list.size());
-                for (Object item : list) {
-                    if (item instanceof Map<?, ?> nestedItem) {
-                        listCopy.add(deepCopyMap((Map<String, Object>) nestedItem));
-                    } else {
-                        listCopy.add(item);
-                    }
-                }
-                copy.put(entry.getKey(), listCopy);
-            } else {
-                copy.put(entry.getKey(), value);
-            }
-        }
-        return copy;
     }
 }
