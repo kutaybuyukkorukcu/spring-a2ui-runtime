@@ -54,7 +54,7 @@ Native SSE can land in a chat the host built. That is automatic given the pipe. 
 
 ## Consequences
 
-- Living docs ([platform](../platform.md), cookbook, README, BACKLOG product direction) use this identity. Completed phase plans that say “decision + capture / ops HITL hero” are historical; do not treat them as current identity.
+- Living docs ([platform](../platform.md), cookbook, README, BACKLOG product direction) use this identity. Do not treat historical “decision + capture / ops HITL” copy as current identity.
 - Showcase must prove something a one-shot generated page cannot: a **case-shaped island** and/or a process with a **known $0 step** plus an **unknown dynamic step**, plus a write gate on `A2UiActionHandler`.
 - Roadmap gravity stays on dynamic composition. Template SPI remains supported. Do not add bootstrap templates or template-authoring product work unless a later ADR reopens this.
 - “GenUI” remains accurate for the stack. It is not the first sentence on the box.

@@ -131,6 +131,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for layout, PR expectations, and formatti
 * [Hosting actions](docs/guides/hosting-actions.md)  
 * [Changelog](CHANGELOG.md)  
 * [Backlog](BACKLOG.md) — execution order (near-term priority is locked)  
+* [ADR 001](docs/adr/001-streaming-surface-generation.md) · [ADR 002](docs/adr/002-in-product-surfaces.md) · [ADR 003](docs/adr/003-catalog-scoped-fail-fast.md)  
 
 See also [CONTRIBUTING.md](CONTRIBUTING.md) for ADRs.
 

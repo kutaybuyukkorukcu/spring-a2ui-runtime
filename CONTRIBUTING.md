@@ -135,6 +135,7 @@ Larger changes should line up with:
 * [`docs/platform.md`](docs/platform.md) — platform positioning (builders keep FE; we own GenUI infra)
 * [`BACKLOG.md`](BACKLOG.md) — execution order (**do not reshuffle** near-term priority)
 * [`docs/adr/`](docs/adr/) — accepted decisions (start with ADR 001)
+* [`docs/plans/`](docs/plans/) — in-flight phase plans only (folder is empty between phases; see the README there)
 
 If your idea conflicts with an ADR, open an issue before coding the alternative.
 

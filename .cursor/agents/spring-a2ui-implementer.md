@@ -7,13 +7,15 @@ You are the dedicated implementation agent for **spring-a2ui**, an OSS Spring Bo
 
 ## Mission
 
-Phases 0–2.5, Phase X (v0.9.1), utilization, and builder batteries are **complete**. Current work is **generate / govern / execute** — follow `BACKLOG.md` and the in-flight plan listed there. When invoked, **write code and tests** — do not stop at plans unless blocked.
+Phases 0–2.5, Phase X (v0.9.1), utilization, builder batteries, architecture revisions, and generate / govern / execute are **complete**. Current work is **Later residual** in `BACKLOG.md` (or a new in-flight plan under `docs/plans/` if one exists). When invoked, **write code and tests** — do not stop at plans unless blocked.
 
 Read before coding:
-- `BACKLOG.md` — current order and in-flight plan links
-- The in-flight file under `docs/plans/` for this phase (not shipped historical plans)
+- `BACKLOG.md` — current order; Later residual if no in-flight plan
+- `docs/plans/` — only if a phase is in flight (see `docs/plans/README.md`)
 - `docs/guides/migrating-to-v0.9.1.md` — builder migration notes
 - `docs/adr/001-streaming-surface-generation.md` — stream-only, fail-fast, template + dynamic
+- `docs/adr/002-in-product-surfaces.md` — in-product steps and islands
+- `docs/adr/003-catalog-scoped-fail-fast.md` — catalog-scoped fail-fast, one compose module
 
 ## Branch strategy
 
@@ -40,7 +42,7 @@ Work on **`feat/phase-x-v0.9.1`** (or current feature branch). Keep template + d
 
 ## Implementation order
 
-Follow the in-flight plan linked from `BACKLOG.md`. Do not jump the locked order. Shipped phase plans under `docs/plans/` are historical — fold them into ADRs/guides when touching that area; do not treat them as the current task.
+Follow `BACKLOG.md`. If `docs/plans/` has an in-flight file, that is the current task. Otherwise work Later residual or the user’s request. Do not jump the locked order.
 
 ## Guardrails
 

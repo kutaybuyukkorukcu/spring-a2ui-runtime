@@ -59,13 +59,13 @@ Open-ended GenUI (arbitrary HTML / remote applets) is out of scope unless we exp
 
 ## Generate, govern, execute
 
-The runtime already **validates** against registered catalogs and **executes** host `A2UiActionHandler`s. Generate / govern / execute names the remaining work without becoming another agent framework:
+The runtime **validates** against registered catalogs and **executes** host `A2UiActionHandler`s. Generate / govern / execute names that stack without becoming another agent framework:
 
 | Verb | Meaning here | Now |
 |------|----------------|-----|
-| **Generate** | Catalog → compact planner context (digest, rules, optional host examples) → two-hop compose | Phase 1 — [generation context](plans/phase-generation-context.md) |
-| **Govern** | After schema/catalog validity: is this action/component allowed **in this surface**? | Allow-list (Phase 2) plus `A2UiActionPolicy` / `A2UiSurfacePolicy` (Phase 3; **not** `A2UiGenerationPolicy`) |
-| **Execute** | `POST /a2ui/actions` → host handlers | Shipped; allow-list + confirmation/visibility on this branch |
+| **Generate** | Catalog → compact planner context (digest, rules, optional host examples) → two-hop compose | Shipped — [dynamic generative UI](guides/dynamic-generative-ui.md) |
+| **Govern** | After schema/catalog validity: is this action/component allowed **in this surface**? | Shipped — allow-list, confirmation, visibility ([hosting actions](guides/hosting-actions.md)). **Not** `A2UiGenerationPolicy`. |
+| **Execute** | `POST /a2ui/actions` → host handlers | Shipped |
 
 `A2UiGenerationPolicy` is ChatOptions (model, temperature, max tokens). Do not extend it for application rules.
 
@@ -81,10 +81,10 @@ Near-term **execution order is locked** in [`BACKLOG.md`](../BACKLOG.md). Do not
 
 1. **Patch `1.1.1`** ✅ — dynamic path is trustworthy infrastructure  
 2. **Phase X (A2UI v0.9.1)** ✅ — protocol currency on Current wire (`2.0.0`) — **core MVP**  
-3. **Utilization on native SSE** ✅ — text / progress / run lifecycle ([plan](plans/phase-product-runtime-interaction.md), [guide](guides/native-sse-utilization.md))  
-4. **Platform builder batteries** ✅ — in-product surface docs+showcase, **Template SPI**, **host A2UI catalog SPI**, ops, multi-provider — Central **`2.1.0`** ([plan](plans/phase-platform-builder-batteries.md))  
-5. **Architecture revisions** ✅ — catalog-scoped fail-fast, one compose module, wire hygiene in core ([plan](plans/architecture-revisions.md))  
-6. **Generate / govern / execute** — catalog-aware planner context first ([plan](plans/phase-generation-context.md)), then action allow-lists and application policy (see BACKLOG). `A2UiGenerationPolicy` stays ChatOptions (temperature, max tokens); application policy is a **new** type in a later phase.  
+3. **Utilization on native SSE** ✅ — text / progress / run lifecycle ([guide](guides/native-sse-utilization.md))  
+4. **Platform builder batteries** ✅ — in-product surface docs+showcase, **Template SPI**, **host A2UI catalog SPI**, ops, multi-provider — Central **`2.1.0`**  
+5. **Architecture revisions** ✅ — catalog-scoped fail-fast, one compose module, wire hygiene in core ([ADR 003](adr/003-catalog-scoped-fail-fast.md))  
+6. **Generate / govern / execute** ✅ — planner digest, action allow-list, application policy ([dynamic generative UI](guides/dynamic-generative-ui.md), [hosting actions](guides/hosting-actions.md)). Static-prefix cache stays later. `A2UiGenerationPolicy` stays ChatOptions.  
 7. **Later (residual)** — Spring AI hop adapter, starter split, Boot 4, v1.0 watch (see BACKLOG) — **not** “invent catalogs for hosts”
 
 ## Where to go next
@@ -104,6 +104,5 @@ Near-term **execution order is locked** in [`BACKLOG.md`](../BACKLOG.md). Do not
 - [REST API](rest-api.md) — public HTTP surface  
 - [ADR 001](adr/001-streaming-surface-generation.md) — stream-only, fail-fast, template + dynamic mechanisms  
 - [ADR 002](adr/002-in-product-surfaces.md) — in-product surfaces; when to compose vs assemble  
-- [`BACKLOG.md`](../BACKLOG.md) — generate / govern / execute is next; Later residual after that  
-- [Generation context plan](plans/phase-generation-context.md) — Phase 1 of generate / govern / execute  
-- [Platform builder batteries plan](plans/phase-platform-builder-batteries.md) — completed (Central `2.1.0`)  
+- [ADR 003](adr/003-catalog-scoped-fail-fast.md) — catalog-scoped fail-fast, one compose module  
+- [`BACKLOG.md`](../BACKLOG.md) — Later residual (Spring AI adapter, starter split, Boot 4)  

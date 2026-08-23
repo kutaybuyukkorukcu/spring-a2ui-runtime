@@ -19,7 +19,7 @@ Library versions (`2.x`) speak A2UI **protocol** v0.9.1. The `1.1.x` line remain
 ### Changed
 
 - **Unused 2.x knobs** — `a2ui.web.basePath`, `a2ui.web.stream.timeoutMs`, and advisor `failFast` / `messageValidation` are deprecated (unread; no remapping). Compose adapters, tools, sessions, and the core normalizer are documented as internal
-- **Architecture revisions (Waves A–C)** — fail-fast type checks are catalog-scoped; action acks use the shared validator and `forVersionAndCatalog`; one compose module (`SpringAiSurfaceRuntime`) with a single generation-mode adapter (unused-mode tools/prompts are not started); dynamic normalizer, catalog `$ref` inlining, and `A2UiSurfaceBuffer.apply` live in core. Spring AI 2.0 / Boot 4 stays later ([architecture revisions](docs/plans/architecture-revisions.md))
+- **Architecture revisions (Waves A–C)** — fail-fast type checks are catalog-scoped; action acks use the shared validator and `forVersionAndCatalog`; one compose module (`SpringAiSurfaceRuntime`) with a single generation-mode adapter (unused-mode tools/prompts are not started); dynamic normalizer, catalog `$ref` inlining, and `A2UiSurfaceBuffer.apply` live in core. Spring AI 2.0 / Boot 4 stays later ([ADR 003](docs/adr/003-catalog-scoped-fail-fast.md))
 - **Identity** — in-product surfaces (process steps and page islands); chat is a capability of native SSE, not the promise ([ADR 002](docs/adr/002-in-product-surfaces.md))
 - **Path roles** — dynamic compose for unknown structure (engineering gravity); template mode frozen; host `assemble` for known trees
 - **Docs** — platform, cookbook, action round-trip, README, BACKLOG product direction aligned to ADR 002
