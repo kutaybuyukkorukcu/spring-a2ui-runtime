@@ -11,6 +11,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.filter.RequestCorrelationMd
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.properties.A2UiWebProperties;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiGenerationContextContributor;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiGenerationContextFactory;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.ActionContributor;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.CoreCatalogContributor;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.DynamicA2UiPromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.ExampleContributor;
@@ -69,6 +70,13 @@ public class A2UiWebAutoConfiguration {
         return registration;
     }
 
+    @Bean
+    @ConditionalOnMissingBean
+    public A2UiActionAllowList a2UiActionAllowList(
+            ObjectProvider<List<A2UiActionHandler>> actionHandlersProvider) {
+        return A2UiActionAllowList.fromHandlers(actionHandlersProvider.getIfAvailable(List::of));
+    }
+
     /**
      * Host {@link A2UiTemplateDefinition} beans and {@link A2UiTemplateCustomizer} beans
      * populate the registry. The library ships no templates.
@@ -88,8 +96,12 @@ public class A2UiWebAutoConfiguration {
     @ConditionalOnMissingBean
     public A2UiSurfaceAssemblyService a2UiSurfaceAssemblyService(
             A2UiTemplateRegistry templateRegistry,
-            A2UiMessageValidator messageValidator) {
-        return new A2UiSurfaceAssemblyService(templateRegistry, messageValidator);
+            A2UiMessageValidator messageValidator,
+            ObjectProvider<A2UiActionAllowList> actionAllowList) {
+        return new A2UiSurfaceAssemblyService(
+                templateRegistry,
+                messageValidator,
+                () -> actionAllowList.getIfAvailable(A2UiActionAllowList::empty));
     }
 
     @Bean
@@ -103,8 +115,13 @@ public class A2UiWebAutoConfiguration {
     public A2UiDynamicAssemblyService a2UiDynamicAssemblyService(
             A2UiDynamicComponentNormalizer componentNormalizer,
             A2UiMessageValidator messageValidator,
-            ObjectMapper objectMapper) {
-        return new A2UiDynamicAssemblyService(componentNormalizer, messageValidator, objectMapper);
+            ObjectMapper objectMapper,
+            ObjectProvider<A2UiActionAllowList> actionAllowList) {
+        return new A2UiDynamicAssemblyService(
+                componentNormalizer,
+                messageValidator,
+                objectMapper,
+                () -> actionAllowList.getIfAvailable(A2UiActionAllowList::empty));
     }
 
     @Configuration(proxyBeanMethods = false)
@@ -129,6 +146,12 @@ public class A2UiWebAutoConfiguration {
 
         @Bean
         @ConditionalOnMissingBean
+        public ActionContributor actionContributor(A2UiActionAllowList actionAllowList) {
+            return new ActionContributor(actionAllowList);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
         public A2UiGenerationContextFactory a2UiGenerationContextFactory(
                 ObjectProvider<A2UiGenerationContextContributor> contributors) {
             return new A2UiGenerationContextFactory(contributors.orderedStream().toList());
@@ -139,8 +162,10 @@ public class A2UiWebAutoConfiguration {
         public DynamicA2UiPromptProvider dynamicA2UiPromptProvider(
                 A2UiCatalogRegistry catalogRegistry,
                 A2UiGenerationContextFactory generationContextFactory,
-                A2UiRuntimeMetrics runtimeMetrics) {
-            return new DynamicA2UiPromptProvider(catalogRegistry, generationContextFactory, runtimeMetrics);
+                A2UiRuntimeMetrics runtimeMetrics,
+                A2UiActionAllowList actionAllowList) {
+            return new DynamicA2UiPromptProvider(
+                    catalogRegistry, generationContextFactory, runtimeMetrics, actionAllowList);
         }
 
         @Bean
@@ -263,8 +288,13 @@ public class A2UiWebAutoConfiguration {
     public A2UiActionService a2UiActionService(
             ObjectProvider<List<A2UiActionHandler>> actionHandlersProvider,
             A2UiRuntimeMetrics runtimeMetrics,
-            A2UiMessageValidator messageValidator) {
-        return new A2UiActionService(actionHandlersProvider.getIfAvailable(List::of), runtimeMetrics, messageValidator);
+            A2UiMessageValidator messageValidator,
+            A2UiActionAllowList actionAllowList) {
+        return new A2UiActionService(
+                actionHandlersProvider.getIfAvailable(List::of),
+                runtimeMetrics,
+                messageValidator,
+                actionAllowList);
     }
 
     @Bean

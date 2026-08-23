@@ -42,6 +42,11 @@ public class ShowcaseChangeActionHandler implements A2UiActionHandler {
   }
 
   @Override
+  public Set<String> actionNames() {
+    return SUPPORTED_ACTIONS;
+  }
+
+  @Override
   public boolean supports(A2UiUserAction userAction) {
     return "main".equals(userAction.surfaceId()) && SUPPORTED_ACTIONS.contains(userAction.name());
   }

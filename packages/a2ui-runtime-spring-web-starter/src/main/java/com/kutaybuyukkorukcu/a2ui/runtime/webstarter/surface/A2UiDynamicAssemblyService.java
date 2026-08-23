@@ -11,11 +11,13 @@ import com.kutaybuyukkorukcu.a2ui.runtime.surface.A2UiSurfaceBuffer;
 import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionAllowList;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public class A2UiDynamicAssemblyService {
 
@@ -24,14 +26,32 @@ public class A2UiDynamicAssemblyService {
     private final A2UiDynamicComponentNormalizer componentNormalizer;
     private final A2UiMessageValidator messageValidator;
     private final ObjectMapper objectMapper;
+    private final Supplier<A2UiActionAllowList> actionAllowList;
 
     public A2UiDynamicAssemblyService(
             A2UiDynamicComponentNormalizer componentNormalizer,
             A2UiMessageValidator messageValidator,
             ObjectMapper objectMapper) {
+        this(componentNormalizer, messageValidator, objectMapper, A2UiActionAllowList.empty());
+    }
+
+    public A2UiDynamicAssemblyService(
+            A2UiDynamicComponentNormalizer componentNormalizer,
+            A2UiMessageValidator messageValidator,
+            ObjectMapper objectMapper,
+            A2UiActionAllowList actionAllowList) {
+        this(componentNormalizer, messageValidator, objectMapper, constantAllowList(actionAllowList));
+    }
+
+    public A2UiDynamicAssemblyService(
+            A2UiDynamicComponentNormalizer componentNormalizer,
+            A2UiMessageValidator messageValidator,
+            ObjectMapper objectMapper,
+            Supplier<A2UiActionAllowList> actionAllowList) {
         this.componentNormalizer = componentNormalizer;
         this.messageValidator = messageValidator;
         this.objectMapper = objectMapper;
+        this.actionAllowList = actionAllowList == null ? A2UiActionAllowList::empty : actionAllowList;
     }
 
     public A2UiDynamicAssemblyService(
@@ -95,6 +115,7 @@ public class A2UiDynamicAssemblyService {
         List<A2UiMessage> messages = new ArrayList<>();
         messages.add(new A2UiMessage.CreateSurface(negotiatedSurfaceId, catalogId));
         messages.add(new A2UiMessage.UpdateComponents(negotiatedSurfaceId, components));
+        rejectUnknownActions(messages);
 
         Map<String, Object> data = sanitizeData(args.data());
         if (!data.isEmpty()) {
@@ -122,6 +143,25 @@ public class A2UiDynamicAssemblyService {
                     diagnostics);
         }
         return List.copyOf(messages);
+    }
+
+    private void rejectUnknownActions(List<A2UiMessage> messages) {
+        resolveAllowList(actionAllowList).firstUnknownName(messages).ifPresent(actionName -> {
+            throw new SurfaceExecutionException(
+                    "Unknown action: " + actionName,
+                    SurfaceErrorCodes.UNKNOWN_ACTION,
+                    Map.of("actionName", actionName));
+        });
+    }
+
+    private static Supplier<A2UiActionAllowList> constantAllowList(A2UiActionAllowList actionAllowList) {
+        A2UiActionAllowList resolved = actionAllowList == null ? A2UiActionAllowList.empty() : actionAllowList;
+        return () -> resolved;
+    }
+
+    private static A2UiActionAllowList resolveAllowList(Supplier<A2UiActionAllowList> actionAllowList) {
+        A2UiActionAllowList resolved = actionAllowList.get();
+        return resolved == null ? A2UiActionAllowList.empty() : resolved;
     }
 
     private static List<Map<String, Object>> sanitizeComponents(List<Map<String, Object>> components) {

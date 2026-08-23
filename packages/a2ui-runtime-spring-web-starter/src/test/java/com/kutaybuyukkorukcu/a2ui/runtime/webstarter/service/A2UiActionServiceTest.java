@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -94,7 +95,74 @@ class A2UiActionServiceTest {
         when(handler.supports(userAction)).thenReturn(false);
 
         assertThatThrownBy(() -> service.handleClientEvent(event, "req-1"))
-                .isInstanceOf(A2UiActionException.class);
+                .isInstanceOf(A2UiActionException.class)
+                .extracting(ex -> ((A2UiActionException) ex).getErrorCode())
+                .isEqualTo(A2UiActionErrorCodes.ACTION_NOT_HANDLED);
+    }
+
+    @Test
+    void shouldRejectUnknownActionBeforeSupportsWhenAllowListNonEmpty() {
+        A2UiUserAction userAction = new A2UiUserAction("unknown", "main", "btn-1", null, Map.of());
+        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        when(handler.actionNames()).thenReturn(Set.of("submit"));
+        when(handler.supports(userAction)).thenReturn(true);
+        A2UiActionService restricted = new A2UiActionService(
+                List.of(handler),
+                metrics,
+                validator,
+                A2UiActionAllowList.fromHandlers(List.of(handler)));
+
+        assertThatThrownBy(() -> restricted.handleClientEvent(event, "req-1"))
+                .isInstanceOf(A2UiActionException.class)
+                .extracting(ex -> ((A2UiActionException) ex).getErrorCode())
+                .isEqualTo(A2UiActionErrorCodes.UNKNOWN_ACTION);
+        verify(handler, never()).supports(any());
+        verify(handler, never()).handle(any(), any());
+    }
+
+    @Test
+    void shouldHandleDeclaredActionWhenAllowListContainsName() {
+        A2UiUserAction userAction = new A2UiUserAction("submit", "main", "btn-1", null, Map.of());
+        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        List<A2UiMessage> responseMessages = List.of(
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9));
+        when(handler.actionNames()).thenReturn(Set.of("submit"));
+        when(handler.supports(userAction)).thenReturn(true);
+        when(handler.handle(any(), anyString())).thenReturn(responseMessages);
+        when(validator.validate(any(), any(A2UiValidationContext.class))).thenReturn(List.of());
+        A2UiActionService restricted = new A2UiActionService(
+                List.of(handler),
+                metrics,
+                validator,
+                A2UiActionAllowList.fromHandlers(List.of(handler)));
+
+        A2UiActionResponse result = restricted.handleClientEvent(event, "req-1");
+
+        assertThat(result.accepted()).isTrue();
+        assertThat(result.actionName()).isEqualTo("submit");
+    }
+
+    @Test
+    void shouldRejectUndeclaredNameEvenWhenAnotherHandlerWouldSupportIt() {
+        A2UiUserAction userAction = new A2UiUserAction("legacy", "main", "btn-1", null, Map.of());
+        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        A2UiActionHandler named = mock(A2UiActionHandler.class);
+        A2UiActionHandler legacy = mock(A2UiActionHandler.class);
+        when(named.actionNames()).thenReturn(Set.of("submit"));
+        when(legacy.actionNames()).thenReturn(Set.of());
+        when(legacy.supports(userAction)).thenReturn(true);
+        A2UiActionService restricted = new A2UiActionService(
+                List.of(named, legacy),
+                metrics,
+                validator,
+                A2UiActionAllowList.fromHandlers(List.of(named, legacy)));
+
+        assertThatThrownBy(() -> restricted.handleClientEvent(event, "req-1"))
+                .isInstanceOf(A2UiActionException.class)
+                .extracting(ex -> ((A2UiActionException) ex).getErrorCode())
+                .isEqualTo(A2UiActionErrorCodes.UNKNOWN_ACTION);
+        verify(legacy, never()).supports(any());
+        verify(legacy, never()).handle(any(), any());
     }
 
     @Test

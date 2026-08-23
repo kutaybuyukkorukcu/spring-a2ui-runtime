@@ -24,11 +24,21 @@ public class A2UiActionService {
     private final List<A2UiActionHandler> actionHandlers;
     private final A2UiRuntimeMetrics runtimeMetrics;
     private final A2UiMessageValidator messageValidator;
+    private final A2UiActionAllowList actionAllowList;
 
     public A2UiActionService(List<A2UiActionHandler> actionHandlers, A2UiRuntimeMetrics runtimeMetrics, A2UiMessageValidator messageValidator) {
+        this(actionHandlers, runtimeMetrics, messageValidator, A2UiActionAllowList.empty());
+    }
+
+    public A2UiActionService(
+            List<A2UiActionHandler> actionHandlers,
+            A2UiRuntimeMetrics runtimeMetrics,
+            A2UiMessageValidator messageValidator,
+            A2UiActionAllowList actionAllowList) {
         this.actionHandlers = actionHandlers == null ? List.of() : List.copyOf(actionHandlers);
         this.runtimeMetrics = runtimeMetrics == null ? A2UiRuntimeMetrics.noop() : runtimeMetrics;
         this.messageValidator = Objects.requireNonNull(messageValidator, "messageValidator");
+        this.actionAllowList = actionAllowList == null ? A2UiActionAllowList.empty() : actionAllowList;
     }
 
     public A2UiActionResponse handleClientEvent(A2UiClientEvent event, String requestId) {
@@ -39,6 +49,12 @@ public class A2UiActionService {
         }
 
         A2UiUserAction action = validateAction(event.action());
+        if (!actionAllowList.isEmpty() && !actionAllowList.contains(action.name())) {
+            throw new A2UiActionException(
+                    "Unknown action: " + action.name(),
+                    A2UiActionErrorCodes.UNKNOWN_ACTION,
+                    Map.of("routeKey", routeKey(action), "surfaceId", action.surfaceId(), "actionName", action.name()));
+        }
         String routeKey = routeKey(action);
 
         A2UiActionHandler handler = actionHandlers.stream()

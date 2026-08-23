@@ -2,6 +2,10 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
+import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
+import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiUserAction;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionAllowList;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionHandler;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.Ordered;
 
@@ -119,6 +123,24 @@ class A2UiGenerationContextFactoryTest {
         assertThat(factory.build(req).key()).isEqualTo(factory.build(req).key());
     }
 
+    @Test
+    void actionContributorPutsRegisteredActionsOnlyInDynamicSuffix() {
+        A2UiActionAllowList allowList = A2UiActionAllowList.fromHandlers(List.of(
+                new NamedActionHandler(Set.of("submit_change", "approve"))));
+        A2UiGenerationContextFactory withActions = new A2UiGenerationContextFactory(List.of(
+                new CoreCatalogContributor(registry),
+                new ActionContributor(allowList)));
+
+        A2UiGenerationContext context = withActions.build(request(USER_CONTENT, CONTEXT_HINTS, null));
+
+        assertThat(context.dynamicSuffix()).contains("Registered actions:");
+        assertThat(context.dynamicSuffix()).contains("submit_change");
+        assertThat(context.dynamicSuffix()).contains(USER_CONTENT);
+        assertThat(context.dynamicSuffix().indexOf("Registered actions:"))
+                .isLessThan(context.dynamicSuffix().indexOf(USER_CONTENT));
+        assertThat(context.staticPrefix()).doesNotContain("Registered actions:");
+    }
+
     private static A2UiGenerationRequest request(String content, String hints, Set<String> allowedTypes) {
         return new A2UiGenerationRequest(
                 A2UiCatalogIds.BASIC_V0_9,
@@ -170,6 +192,29 @@ class A2UiGenerationContextFactoryTest {
         @Override
         public void contribute(A2UiGenerationRequest request, A2UiGenerationContext.Builder context) {
             context.appendStatic("SECOND");
+        }
+    }
+
+    private static final class NamedActionHandler implements A2UiActionHandler {
+        private final Set<String> names;
+
+        private NamedActionHandler(Set<String> names) {
+            this.names = names;
+        }
+
+        @Override
+        public Set<String> actionNames() {
+            return names;
+        }
+
+        @Override
+        public boolean supports(A2UiUserAction userAction) {
+            return false;
+        }
+
+        @Override
+        public List<A2UiMessage> handle(A2UiUserAction userAction, String requestId) {
+            return List.of();
         }
     }
 }

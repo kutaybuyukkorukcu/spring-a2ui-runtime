@@ -415,16 +415,16 @@ Short note here and in [`docs/platform.md`](docs/platform.md): generate / govern
 
 Do **not** overload `A2UiGenerationPolicy`. Do **not** add `A2UiGenerationStrategy` / `A2UiPlanner` SPIs. `GenerationModeAdapter` stays the seam.
 
-### Phase 2 — Action allow-list + inject into context (later)
+### Phase 2 — Action allow-list + inject into context ✅ (this branch)
+
+**Status:** implemented on `feat/action-allow-list`. **Plan:** [`docs/plans/phase-action-allow-list.md`](docs/plans/phase-action-allow-list.md).
 
 **Why:** LLM emitting `transferMoney` is not enough. `A2UiActionService` already first-matches `supports()`. Missing: explicit registered names, deny unknown at **assemble** and at `POST /a2ui/actions`, and feed those names into the **dynamic** generation suffix so the planner cannot invent events.
 
-- Give handlers a stable `actionName()` (or register via a small `A2UiActionRegistration` record). Do not rewrite the SPI into an agent toolset.
-- At assemble: if `Button.action.event.name` is not registered → fail-fast diagnostic (catalog-adjacent, not ChatOptions).
-- At `POST /a2ui/actions`: same allow-list before `handle`.
-- `ActionContributor` then has a real inventory.
-
-Deny-unknown is the production win. Confirmation / auth hooks wait for Phase 3. Own plan file when Phase 1 is on `main`.
+- Handlers declare `actionNames()` (default empty). `A2UiActionAllowList` is the union; empty list is **fail-open**.
+- At assemble: if `Button.action.event.name` is not registered → fail-fast `UNKNOWN_ACTION`.
+- At `POST /a2ui/actions`: same allow-list **before** `supports()` / `handle`.
+- `ActionContributor` injects registered names into the generation **dynamic** suffix; planner user prompt includes the same block.
 
 ### Phase 3 — Application policy (later; not ChatOptions)
 
