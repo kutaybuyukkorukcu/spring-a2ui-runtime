@@ -24,4 +24,13 @@ dist/
 *.local
 .env
 
-.cursor/rules/
+# Cursor: commit project rules and agents. Ignore local-only rules.
+.cursor/rules/graphify.mdc
+
+# Agent harness working memory — not product
+.opencode/
+.superpowers/
+.github/
+.cursor/
+.agents/
+graphify-out/

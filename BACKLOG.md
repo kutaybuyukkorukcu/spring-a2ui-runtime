@@ -4,8 +4,6 @@ Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ 
 
 ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)` · `[docs/adr/002-in-product-surfaces.md](docs/adr/002-in-product-surfaces.md)`
 
-Implementation plans (for agents): `[docs/plans/phase-0-stream-infra.md](docs/plans/phase-0-stream-infra.md)` · `[docs/plans/phase-1-template-mvp.md](docs/plans/phase-1-template-mvp.md)` · `[docs/plans/phase-2-dynamic-generative-ui.md](docs/plans/phase-2-dynamic-generative-ui.md)` · `[docs/plans/phase-2.5-scalable-dynamic-runtime.md](docs/plans/phase-2.5-scalable-dynamic-runtime.md)` · `[docs/plans/phase-release-v0.8.md](docs/plans/phase-release-v0.8.md)` · `[docs/plans/phase-x-migrating-to-v0.9.md](docs/plans/phase-x-migrating-to-v0.9.md)` · `[docs/plans/phase-product-runtime-interaction.md](docs/plans/phase-product-runtime-interaction.md)` · `[docs/plans/phase-platform-builder-batteries.md](docs/plans/phase-platform-builder-batteries.md)` · `[docs/plans/architecture-revisions.md](docs/plans/architecture-revisions.md)` · `[docs/plans/phase-generation-context.md](docs/plans/phase-generation-context.md)`
-
 **Branches:** `main` (Phase X hard cutover merged) · Legacy patch line `1.1.x`.
 
 ---

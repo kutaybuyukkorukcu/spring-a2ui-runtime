@@ -40,7 +40,7 @@ Before filing something new, search existing
 | `packages/a2ui-runtime-spring-web-starter` | HTTP + SSE endpoints (auto-configuration) |
 | `apps/be-transform-showcase` | Sample host application (not published) |
 | `apps/fe-a2ui-demo` | Sample `@a2ui/react` client (not published) |
-| `docs/` | ADRs, implementation plans, API reference |
+| `docs/` | ADRs, guides, API reference, in-flight phase plans |
 
 Reusable behavior belongs in `packages/`. Showcase-only shortcuts stay in
 `apps/`.
@@ -89,8 +89,7 @@ npm run dev
 ## Versioning
 
 Do **not** bump `<revision>` in `pom.xml` on ordinary feature PRs.
-Version bumps happen on the release branch / release PR only (see
-[`docs/plans/phase-release-v0.8.md`](docs/plans/phase-release-v0.8.md)).
+Version bumps happen on the release branch / release PR only
 
 ## Pull requests
 
@@ -136,7 +135,6 @@ Larger changes should line up with:
 * [`docs/platform.md`](docs/platform.md) — platform positioning (builders keep FE; we own GenUI infra)
 * [`BACKLOG.md`](BACKLOG.md) — execution order (**do not reshuffle** near-term priority)
 * [`docs/adr/`](docs/adr/) — accepted decisions (start with ADR 001)
-* [`docs/plans/`](docs/plans/) — phase plans agents and humans share
 
 If your idea conflicts with an ADR, open an issue before coding the alternative.
 

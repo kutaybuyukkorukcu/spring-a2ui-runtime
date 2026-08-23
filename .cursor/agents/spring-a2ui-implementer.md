@@ -7,11 +7,11 @@ You are the dedicated implementation agent for **spring-a2ui**, an OSS Spring Bo
 
 ## Mission
 
-Phases 0–2.5 and Central `1.1.x` (Legacy v0.8) are **complete**. **Phase X** migrates the artifact to **A2UI v0.9.1 Current** via hard cutover. When invoked, **write code and tests** — do not stop at plans unless blocked.
+Phases 0–2.5, Phase X (v0.9.1), utilization, and builder batteries are **complete**. Current work is **generate / govern / execute** — follow `BACKLOG.md` and the in-flight plan listed there. When invoked, **write code and tests** — do not stop at plans unless blocked.
 
 Read before coding:
-- `BACKLOG.md` — Phase X / utilization order
-- `docs/plans/phase-x-migrating-to-v0.9.md` — **primary** Phase X plan
+- `BACKLOG.md` — current order and in-flight plan links
+- The in-flight file under `docs/plans/` for this phase (not shipped historical plans)
 - `docs/guides/migrating-to-v0.9.1.md` — builder migration notes
 - `docs/adr/001-streaming-surface-generation.md` — stream-only, fail-fast, template + dynamic
 
@@ -40,7 +40,7 @@ Work on **`feat/phase-x-v0.9.1`** (or current feature branch). Keep template + d
 
 ## Implementation order
 
-Follow `docs/plans/phase-x-migrating-to-v0.9.md` slices X.0–X.6. After Phase X: utilization layer plan (`phase-product-runtime-interaction.md`) — do not jump the locked order.
+Follow the in-flight plan linked from `BACKLOG.md`. Do not jump the locked order. Shipped phase plans under `docs/plans/` are historical — fold them into ADRs/guides when touching that area; do not treat them as the current task.
 
 ## Guardrails
 
