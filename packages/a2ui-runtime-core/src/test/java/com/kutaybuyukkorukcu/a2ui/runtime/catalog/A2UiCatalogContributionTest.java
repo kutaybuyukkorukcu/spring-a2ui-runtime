@@ -37,6 +37,11 @@ class A2UiCatalogContributionTest {
             public String rulesText() {
                 return "StatusBadge renders a small pill; keep text under 24 characters.";
             }
+
+            @Override
+            public String examplesText() {
+                return "StatusBadge is a small pill.";
+            }
         };
     }
 
@@ -58,6 +63,60 @@ class A2UiCatalogContributionTest {
         assertThat(registry.isSupportedCatalogId(A2UiCatalogIds.BASIC_V0_9)).isTrue();
         assertThat(registry.supportsComponentType("Text")).isTrue();
         assertThat(registry.supportsComponentType("StatusBadge")).isTrue();
+    }
+
+    @Test
+    void shouldAppendContributionExamplesTextAfterBaseExamples() {
+        A2UiCatalogRegistry registry = A2UiCatalogRegistry.withContributions(
+                A2UiCatalogRegistry.shared(), List.of(statusBadgeContribution()));
+
+        assertThat(registry.catalogExamplesText()).isEqualTo("StatusBadge is a small pill.");
+    }
+
+    @Test
+    void sharedRegistryShouldHaveEmptyExamplesText() {
+        assertThat(A2UiCatalogRegistry.shared().catalogExamplesText()).isEmpty();
+    }
+
+    @Test
+    void shouldIgnoreBlankOrNullExamplesText() {
+        A2UiCatalogContribution blankExamples = new A2UiCatalogContribution() {
+            @Override
+            public String catalogId() {
+                return HOST_CATALOG_ID;
+            }
+
+            @Override
+            public Map<String, Map<String, Object>> componentSchemas() {
+                return Map.of();
+            }
+
+            @Override
+            public String examplesText() {
+                return "   ";
+            }
+        };
+        A2UiCatalogContribution nullExamples = new A2UiCatalogContribution() {
+            @Override
+            public String catalogId() {
+                return HOST_CATALOG_ID;
+            }
+
+            @Override
+            public Map<String, Map<String, Object>> componentSchemas() {
+                return Map.of();
+            }
+
+            @Override
+            public String examplesText() {
+                return null;
+            }
+        };
+
+        A2UiCatalogRegistry registry = A2UiCatalogRegistry.withContributions(
+                A2UiCatalogRegistry.shared(), List.of(blankExamples, nullExamples));
+
+        assertThat(registry.catalogExamplesText()).isEmpty();
     }
 
     @Test

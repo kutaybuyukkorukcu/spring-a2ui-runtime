@@ -58,6 +58,21 @@ sequenceDiagram
 
 Session state travels via Spring AI **`ToolContext`** (never `ThreadLocal`).
 
+## Planner system prompt assembly
+
+Dynamic mode builds the planner system prompt in two layers:
+
+| Layer | Contents |
+| ----- | -------- |
+| **Static prefix** | Hard requirements, compact component digest (`required:` / `allowed:` per type), catalog rules text, optional host examples |
+| **Dynamic suffix** | User content and context hints for this request |
+
+The `renderA2Ui` tool schema remains the structural constraint on planner
+output. Hosts add domain prose via `A2UiGenerationContextContributor` beans
+and optional `examplesText()` on `A2UiCatalogContribution` — not by extending
+core catalog types with selection metadata. The runtime does not dump full
+catalog JSON into the prompt.
+
 ## Validation retry
 
 If assembled messages fail `A2UiMessageValidator`:
@@ -76,6 +91,7 @@ Micrometer counters (also via Actuator: `GET /actuator/metrics/<name>` when `met
 | `a2ui.dynamic.validation.failed` | First validation failure (before retry) |
 | `a2ui.dynamic.validation.retry.success` | Retry produced valid messages |
 | `a2ui.dynamic.validation.retry.failed` | Retry still invalid or produced no surface |
+| `a2ui.generation.context.chars` | Planner static-prefix character length (digest + rules + examples) |
 
 ## Running the showcase
 

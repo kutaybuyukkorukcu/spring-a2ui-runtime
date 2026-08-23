@@ -54,6 +54,11 @@ public A2UiCatalogContribution statusBadgeCatalogContribution() {
         public String rulesText() {
             return "StatusBadge renders a small pill; keep text under 24 characters.";
         }
+
+        @Override
+        public String examplesText() {
+            return "StatusBadge is a small pill with tone=success for approved items.";
+        }
     };
 }
 ```
@@ -64,6 +69,12 @@ public A2UiCatalogContribution statusBadgeCatalogContribution() {
 returns for the basic catalog, so no `allOf` resolution is required on your
 side.
 
+Optional `examplesText()` supplies few-shot planner prose (not validation).
+It is concatenated like `rulesText()` — appended in registration order,
+separated by blank lines — and fed to the planner **static** prefix via
+`ExampleContributor`. Do not dump full catalog JSON into the prompt; the
+runtime uses a compact component digest plus rules plus optional examples.
+
 Multiple contributions are supported (`ObjectProvider<A2UiCatalogContribution>`,
 ordered like any other Spring bean collection):
 
@@ -72,6 +83,8 @@ ordered like any other Spring bean collection):
   component types into it.
 - `rulesText()` is appended after the basic catalog's rules text, in
   registration order.
+- `examplesText()` is appended after any base examples text, in registration
+  order (planner few-shots only — not used for validation).
 
 ## What this enables
 

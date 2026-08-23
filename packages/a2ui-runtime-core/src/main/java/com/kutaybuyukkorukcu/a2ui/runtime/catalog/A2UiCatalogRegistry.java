@@ -23,16 +23,19 @@ public final class A2UiCatalogRegistry {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final A2UiCatalogRegistry SHARED =
-            new A2UiCatalogRegistry(loadCatalogDefinitions(), loadRulesText());
+            new A2UiCatalogRegistry(loadCatalogDefinitions(), loadRulesText(), "");
 
     private final Map<String, Map<String, Map<String, Object>>> componentSchemasByCatalogId;
     private final Map<String, Set<String>> componentTypesByCatalogId;
     private final Set<String> supportedCatalogIds;
     private final Set<String> supportedComponentTypes;
     private final String catalogRulesText;
+    private final String catalogExamplesText;
 
     private A2UiCatalogRegistry(
-            Map<String, Map<String, Map<String, Object>>> componentSchemasByCatalogId, String catalogRulesText) {
+            Map<String, Map<String, Map<String, Object>>> componentSchemasByCatalogId,
+            String catalogRulesText,
+            String catalogExamplesText) {
         this.componentSchemasByCatalogId = Collections.unmodifiableMap(deepCopy(componentSchemasByCatalogId));
         Map<String, Set<String>> typesByCatalog = new LinkedHashMap<>();
         Set<String> allTypes = new LinkedHashSet<>();
@@ -45,6 +48,7 @@ public final class A2UiCatalogRegistry {
         this.supportedCatalogIds = Collections.unmodifiableSet(new LinkedHashSet<>(this.componentSchemasByCatalogId.keySet()));
         this.supportedComponentTypes = Collections.unmodifiableSet(allTypes);
         this.catalogRulesText = catalogRulesText == null ? "" : catalogRulesText;
+        this.catalogExamplesText = catalogExamplesText == null ? "" : catalogExamplesText;
     }
 
     public static A2UiCatalogRegistry shared() {
@@ -57,7 +61,7 @@ public final class A2UiCatalogRegistry {
      * rather than extending {@link #shared()}.
      */
     public static A2UiCatalogRegistry of(Map<String, Map<String, Map<String, Object>>> componentSchemasByCatalogId) {
-        return new A2UiCatalogRegistry(componentSchemasByCatalogId, "");
+        return new A2UiCatalogRegistry(componentSchemasByCatalogId, "", "");
     }
 
     /**
@@ -65,11 +69,13 @@ public final class A2UiCatalogRegistry {
      * {@link #shared()}). Contributions targeting a new {@code catalogId} add a catalog;
      * contributions targeting an existing {@code catalogId} merge component types into it.
      * Contribution rules text is appended after the base catalog rules text.
+     * Contribution examples text is appended after the base catalog examples text.
      */
     public static A2UiCatalogRegistry withContributions(
             A2UiCatalogRegistry base, List<A2UiCatalogContribution> contributions) {
         Map<String, Map<String, Map<String, Object>>> merged = mutableDeepCopy(base.componentSchemasByCatalogId);
         StringBuilder rulesText = new StringBuilder(base.catalogRulesText);
+        StringBuilder examplesText = new StringBuilder(base.catalogExamplesText);
 
         if (contributions != null) {
             for (A2UiCatalogContribution contribution : contributions) {
@@ -91,10 +97,17 @@ public final class A2UiCatalogRegistry {
                     }
                     rulesText.append(rules.trim());
                 }
+                String examples = contribution.examplesText();
+                if (examples != null && !examples.isBlank()) {
+                    if (examplesText.length() > 0) {
+                        examplesText.append("\n\n");
+                    }
+                    examplesText.append(examples.trim());
+                }
             }
         }
 
-        return new A2UiCatalogRegistry(merged, rulesText.toString());
+        return new A2UiCatalogRegistry(merged, rulesText.toString(), examplesText.toString());
     }
 
     public boolean isSupportedCatalogId(String catalogId) {
@@ -122,6 +135,10 @@ public final class A2UiCatalogRegistry {
 
     public String catalogRulesText() {
         return catalogRulesText;
+    }
+
+    public String catalogExamplesText() {
+        return catalogExamplesText;
     }
 
     public Map<String, Object> componentSchema(String catalogId, String componentType) {
@@ -165,6 +182,62 @@ public final class A2UiCatalogRegistry {
             }
         }
         return Collections.unmodifiableSet(props);
+    }
+
+    /**
+     * Compact planner digest: component name plus required/allowed props.
+     * Unknown catalogId returns empty string. Null or empty {@code allowedTypes}
+     * includes every type in the catalog (stable catalog order). Names not in the
+     * catalog are ignored.
+     */
+    public String renderPlannerDigest(String catalogId, Set<String> allowedTypes) {
+        if (catalogId == null || !isSupportedCatalogId(catalogId)) {
+            return "";
+        }
+        Set<String> catalogTypes = componentTypesForCatalog(catalogId);
+        if (catalogTypes.isEmpty()) {
+            return "";
+        }
+
+        Set<String> typesToRender;
+        if (allowedTypes == null || allowedTypes.isEmpty()) {
+            typesToRender = catalogTypes;
+        } else {
+            typesToRender = new LinkedHashSet<>();
+            for (String type : catalogTypes) {
+                if (allowedTypes.contains(type)) {
+                    typesToRender.add(type);
+                }
+            }
+            if (typesToRender.isEmpty()) {
+                return "";
+            }
+        }
+
+        StringBuilder digest = new StringBuilder();
+        boolean first = true;
+        for (String componentType : typesToRender) {
+            if (!first) {
+                digest.append('\n').append('\n');
+            }
+            first = false;
+            digest.append(componentType).append('\n');
+            digest.append("  required: ").append(joinProps(requiredProps(catalogId, componentType))).append('\n');
+            digest.append("  allowed: ").append(joinProps(allowedProps(catalogId, componentType)));
+        }
+        return digest.toString();
+    }
+
+    /** @see #renderPlannerDigest(String, Set) */
+    public String renderPlannerDigest(String catalogId) {
+        return renderPlannerDigest(catalogId, null);
+    }
+
+    private static String joinProps(Set<String> props) {
+        if (props == null || props.isEmpty()) {
+            return "";
+        }
+        return String.join(", ", props);
     }
 
     public boolean isAdditionalPropertiesAllowed(String catalogId, String componentType) {

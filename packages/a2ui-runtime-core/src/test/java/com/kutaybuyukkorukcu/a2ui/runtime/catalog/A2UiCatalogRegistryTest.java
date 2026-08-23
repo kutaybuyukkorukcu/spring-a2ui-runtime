@@ -215,4 +215,81 @@ class A2UiCatalogRegistryTest {
         List<String> enumValues = (List<String>) variantSchema.get("enum");
         assertThat(enumValues).contains("h1", "h2", "h3", "body", "caption");
     }
+
+    @Test
+    void shouldRenderPlannerDigestForBasicCatalog() {
+        A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
+        String digest = registry.renderPlannerDigest(A2UiCatalogIds.BASIC_V0_9);
+
+        assertThat(digest).isNotBlank();
+        assertThat(digest).contains("Text", "Button", "required:", "allowed:");
+        assertThat(digest).doesNotContain("{", "\"$ref\"");
+    }
+
+    @Test
+    void shouldIncludeButtonRequiredPropsInPlannerDigest() {
+        A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
+        String digest = registry.renderPlannerDigest(A2UiCatalogIds.BASIC_V0_9);
+
+        assertThat(digest).containsPattern("Button\\R  required: .*child.*action");
+    }
+
+    @Test
+    void shouldReturnEmptyPlannerDigestForUnknownCatalogId() {
+        A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
+
+        assertThat(registry.renderPlannerDigest("unknown-catalog")).isEmpty();
+        assertThat(registry.renderPlannerDigest(null)).isEmpty();
+    }
+
+    @Test
+    void shouldPrunePlannerDigestToAllowedTypes() {
+        A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
+        String digest = registry.renderPlannerDigest(A2UiCatalogIds.BASIC_V0_9, Set.of("Button"));
+
+        assertThat(digest).contains("Button");
+        assertThat(digest).doesNotContain("Text\n");
+    }
+
+    @Test
+    void shouldReturnEmptyPlannerDigestWhenPruneSetHasNoKnownTypes() {
+        A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
+        String digest = registry.renderPlannerDigest(
+                A2UiCatalogIds.BASIC_V0_9, Set.of("NonExistent", "AlsoUnknown"));
+
+        assertThat(digest).isEmpty();
+    }
+
+    @Test
+    void shouldRenderPlannerDigestForContributedCatalogType() {
+        A2UiCatalogRegistry registry = A2UiCatalogRegistry.withContributions(
+                A2UiCatalogRegistry.shared(),
+                List.of(new A2UiCatalogContribution() {
+                    @Override
+                    public String catalogId() {
+                        return "https://example.com/catalogs/host/1.0";
+                    }
+
+                    @Override
+                    public Map<String, Map<String, Object>> componentSchemas() {
+                        Map<String, Object> properties = new java.util.LinkedHashMap<>();
+                        properties.put("text", Map.of("type", "string"));
+                        properties.put("tone", Map.of("type", "string"));
+                        Map<String, Object> schema = new java.util.LinkedHashMap<>();
+                        schema.put("type", "object");
+                        schema.put("additionalProperties", false);
+                        schema.put("required", List.of("text"));
+                        schema.put("properties", properties);
+                        Map<String, Map<String, Object>> components = new java.util.LinkedHashMap<>();
+                        components.put("StatusBadge", schema);
+                        return components;
+                    }
+                }));
+
+        String digest = registry.renderPlannerDigest("https://example.com/catalogs/host/1.0");
+
+        assertThat(digest).contains("StatusBadge");
+        assertThat(digest).contains("required: text");
+        assertThat(digest).contains("allowed: text, tone");
+    }
 }

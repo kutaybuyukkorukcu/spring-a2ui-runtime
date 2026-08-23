@@ -9,7 +9,11 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.controller.A2UiCatalogContr
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.controller.A2UiStreamController;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.filter.RequestCorrelationMdcFilter;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.properties.A2UiWebProperties;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiGenerationContextContributor;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiGenerationContextFactory;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.CoreCatalogContributor;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.DynamicA2UiPromptProvider;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.ExampleContributor;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.TemplateModePromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiSurfaceRuntime;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.DynamicGenerationAdapter;
@@ -113,8 +117,30 @@ public class A2UiWebAutoConfiguration {
 
         @Bean
         @ConditionalOnMissingBean
-        public DynamicA2UiPromptProvider dynamicA2UiPromptProvider(A2UiCatalogRegistry catalogRegistry) {
-            return new DynamicA2UiPromptProvider(catalogRegistry);
+        public CoreCatalogContributor coreCatalogContributor(A2UiCatalogRegistry catalogRegistry) {
+            return new CoreCatalogContributor(catalogRegistry);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        public ExampleContributor exampleContributor(A2UiCatalogRegistry catalogRegistry) {
+            return new ExampleContributor(catalogRegistry);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        public A2UiGenerationContextFactory a2UiGenerationContextFactory(
+                ObjectProvider<A2UiGenerationContextContributor> contributors) {
+            return new A2UiGenerationContextFactory(contributors.orderedStream().toList());
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        public DynamicA2UiPromptProvider dynamicA2UiPromptProvider(
+                A2UiCatalogRegistry catalogRegistry,
+                A2UiGenerationContextFactory generationContextFactory,
+                A2UiRuntimeMetrics runtimeMetrics) {
+            return new DynamicA2UiPromptProvider(catalogRegistry, generationContextFactory, runtimeMetrics);
         }
 
         @Bean
