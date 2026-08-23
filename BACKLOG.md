@@ -392,7 +392,7 @@ Catalog-aware generation context first, then action allow-lists and application 
 |-------|------------|---------|
 | ChatOptions | `A2UiGenerationPolicy` (temperature, max tokens, response format) | How the model is called |
 | Catalog validation | `A2UiMessageValidator` + catalog schema | Is this valid A2UI for **this catalog**? |
-| Application policy | *not yet* — Phase 3 `A2UiSurfacePolicy` / `A2UiActionPolicy` (new names; do not extend ChatOptions) | Is this allowed **here**? |
+| Application policy | Phase 3 `A2UiSurfacePolicy` / `A2UiActionPolicy` on `feat/surface-action-policy` (new names; do not extend ChatOptions) | Is this allowed **here**? |
 
 **Plan (Phase 1):** [`docs/plans/phase-generation-context.md`](docs/plans/phase-generation-context.md). Phase 2+ get their own plan files when Phase 1 is on `main`.
 
@@ -415,7 +415,7 @@ Short note here and in [`docs/platform.md`](docs/platform.md): generate / govern
 
 Do **not** overload `A2UiGenerationPolicy`. Do **not** add `A2UiGenerationStrategy` / `A2UiPlanner` SPIs. `GenerationModeAdapter` stays the seam.
 
-### Phase 2 — Action allow-list + inject into context ✅ (this branch)
+### Phase 2 — Action allow-list + inject into context ✅
 
 **Status:** implemented on `feat/action-allow-list`. **Plan:** [`docs/plans/phase-action-allow-list.md`](docs/plans/phase-action-allow-list.md).
 
@@ -426,7 +426,9 @@ Do **not** overload `A2UiGenerationPolicy`. Do **not** add `A2UiGenerationStrate
 - At `POST /a2ui/actions`: same allow-list **before** `supports()` / `handle`.
 - `ActionContributor` injects registered names into the generation **dynamic** suffix; planner user prompt includes the same block.
 
-### Phase 3 — Application policy (later; not ChatOptions)
+### Phase 3 — Application policy (not ChatOptions) ✅ (this branch)
+
+**Status:** implemented on `feat/surface-action-policy`. **Plan:** [`docs/plans/phase-application-policy.md`](docs/plans/phase-application-policy.md).
 
 **Why:** Policy answers “is this allowed **here**?” after schema/catalog validity. New type with a **new name** (`A2UiSurfacePolicy` / `A2UiActionPolicy`) so nobody extends `A2UiGenerationPolicy`.
 

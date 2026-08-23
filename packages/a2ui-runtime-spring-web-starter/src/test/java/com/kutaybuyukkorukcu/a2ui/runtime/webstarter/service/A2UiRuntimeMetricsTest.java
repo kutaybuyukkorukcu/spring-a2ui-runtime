@@ -41,6 +41,16 @@ class A2UiRuntimeMetricsTest {
     }
 
     @Test
+    void shouldTagRejectedCountersWithReason() {
+        metrics.recordActionRejected("confirmation");
+        metrics.recordPolicyRejected("component");
+
+        assertThat(registry.counter("a2ui.action.rejected", "reason", "confirmation").count()).isEqualTo(1.0);
+        assertThat(registry.counter("a2ui.policy.rejected", "reason", "confirmation").count()).isEqualTo(1.0);
+        assertThat(registry.counter("a2ui.policy.rejected", "reason", "component").count()).isEqualTo(1.0);
+    }
+
+    @Test
     void shouldRecordGenerationContextChars() {
         metrics.recordGenerationContextChars(42);
 

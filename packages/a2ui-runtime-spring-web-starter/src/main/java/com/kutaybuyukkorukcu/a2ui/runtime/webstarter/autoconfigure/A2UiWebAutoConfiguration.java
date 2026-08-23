@@ -9,9 +9,12 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.controller.A2UiCatalogContr
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.controller.A2UiStreamController;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.filter.RequestCorrelationMdcFilter;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.properties.A2UiWebProperties;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiActionPolicy;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiSurfacePolicy;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiGenerationContextContributor;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiGenerationContextFactory;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.ActionContributor;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.PolicyContributor;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.CoreCatalogContributor;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.DynamicA2UiPromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.ExampleContributor;
@@ -77,6 +80,18 @@ public class A2UiWebAutoConfiguration {
         return A2UiActionAllowList.fromHandlers(actionHandlersProvider.getIfAvailable(List::of));
     }
 
+    @Bean
+    @ConditionalOnMissingBean
+    public A2UiActionPolicy a2UiActionPolicy() {
+        return A2UiActionPolicy.none();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public A2UiSurfacePolicy a2UiSurfacePolicy() {
+        return A2UiSurfacePolicy.none();
+    }
+
     /**
      * Host {@link A2UiTemplateDefinition} beans and {@link A2UiTemplateCustomizer} beans
      * populate the registry. The library ships no templates.
@@ -97,11 +112,15 @@ public class A2UiWebAutoConfiguration {
     public A2UiSurfaceAssemblyService a2UiSurfaceAssemblyService(
             A2UiTemplateRegistry templateRegistry,
             A2UiMessageValidator messageValidator,
-            ObjectProvider<A2UiActionAllowList> actionAllowList) {
+            ObjectProvider<A2UiActionAllowList> actionAllowList,
+            A2UiSurfacePolicy surfacePolicy,
+            A2UiRuntimeMetrics runtimeMetrics) {
         return new A2UiSurfaceAssemblyService(
                 templateRegistry,
                 messageValidator,
-                () -> actionAllowList.getIfAvailable(A2UiActionAllowList::empty));
+                () -> actionAllowList.getIfAvailable(A2UiActionAllowList::empty),
+                surfacePolicy,
+                runtimeMetrics);
     }
 
     @Bean
@@ -116,12 +135,16 @@ public class A2UiWebAutoConfiguration {
             A2UiDynamicComponentNormalizer componentNormalizer,
             A2UiMessageValidator messageValidator,
             ObjectMapper objectMapper,
-            ObjectProvider<A2UiActionAllowList> actionAllowList) {
+            ObjectProvider<A2UiActionAllowList> actionAllowList,
+            A2UiSurfacePolicy surfacePolicy,
+            A2UiRuntimeMetrics runtimeMetrics) {
         return new A2UiDynamicAssemblyService(
                 componentNormalizer,
                 messageValidator,
                 objectMapper,
-                () -> actionAllowList.getIfAvailable(A2UiActionAllowList::empty));
+                () -> actionAllowList.getIfAvailable(A2UiActionAllowList::empty),
+                surfacePolicy,
+                runtimeMetrics);
     }
 
     @Configuration(proxyBeanMethods = false)
@@ -152,6 +175,12 @@ public class A2UiWebAutoConfiguration {
 
         @Bean
         @ConditionalOnMissingBean
+        public PolicyContributor policyContributor(A2UiSurfacePolicy surfacePolicy) {
+            return new PolicyContributor(surfacePolicy);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
         public A2UiGenerationContextFactory a2UiGenerationContextFactory(
                 ObjectProvider<A2UiGenerationContextContributor> contributors) {
             return new A2UiGenerationContextFactory(contributors.orderedStream().toList());
@@ -163,9 +192,10 @@ public class A2UiWebAutoConfiguration {
                 A2UiCatalogRegistry catalogRegistry,
                 A2UiGenerationContextFactory generationContextFactory,
                 A2UiRuntimeMetrics runtimeMetrics,
-                A2UiActionAllowList actionAllowList) {
+                A2UiActionAllowList actionAllowList,
+                A2UiSurfacePolicy surfacePolicy) {
             return new DynamicA2UiPromptProvider(
-                    catalogRegistry, generationContextFactory, runtimeMetrics, actionAllowList);
+                    catalogRegistry, generationContextFactory, runtimeMetrics, actionAllowList, surfacePolicy);
         }
 
         @Bean
@@ -289,12 +319,16 @@ public class A2UiWebAutoConfiguration {
             ObjectProvider<List<A2UiActionHandler>> actionHandlersProvider,
             A2UiRuntimeMetrics runtimeMetrics,
             A2UiMessageValidator messageValidator,
-            A2UiActionAllowList actionAllowList) {
+            A2UiActionAllowList actionAllowList,
+            A2UiActionPolicy actionPolicy,
+            A2UiSurfacePolicy surfacePolicy) {
         return new A2UiActionService(
                 actionHandlersProvider.getIfAvailable(List::of),
                 runtimeMetrics,
                 messageValidator,
-                actionAllowList);
+                actionAllowList,
+                actionPolicy,
+                surfacePolicy);
     }
 
     @Bean

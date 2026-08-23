@@ -10,6 +10,9 @@ import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiProtocol;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiUserAction;
 import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiActionPolicy;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiComponentVisibility;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiSurfacePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +28,8 @@ public class A2UiActionService {
     private final A2UiRuntimeMetrics runtimeMetrics;
     private final A2UiMessageValidator messageValidator;
     private final A2UiActionAllowList actionAllowList;
+    private final A2UiActionPolicy actionPolicy;
+    private final A2UiSurfacePolicy surfacePolicy;
 
     public A2UiActionService(List<A2UiActionHandler> actionHandlers, A2UiRuntimeMetrics runtimeMetrics, A2UiMessageValidator messageValidator) {
         this(actionHandlers, runtimeMetrics, messageValidator, A2UiActionAllowList.empty());
@@ -35,10 +40,31 @@ public class A2UiActionService {
             A2UiRuntimeMetrics runtimeMetrics,
             A2UiMessageValidator messageValidator,
             A2UiActionAllowList actionAllowList) {
+        this(actionHandlers, runtimeMetrics, messageValidator, actionAllowList, A2UiActionPolicy.none());
+    }
+
+    public A2UiActionService(
+            List<A2UiActionHandler> actionHandlers,
+            A2UiRuntimeMetrics runtimeMetrics,
+            A2UiMessageValidator messageValidator,
+            A2UiActionAllowList actionAllowList,
+            A2UiActionPolicy actionPolicy) {
+        this(actionHandlers, runtimeMetrics, messageValidator, actionAllowList, actionPolicy, A2UiSurfacePolicy.none());
+    }
+
+    public A2UiActionService(
+            List<A2UiActionHandler> actionHandlers,
+            A2UiRuntimeMetrics runtimeMetrics,
+            A2UiMessageValidator messageValidator,
+            A2UiActionAllowList actionAllowList,
+            A2UiActionPolicy actionPolicy,
+            A2UiSurfacePolicy surfacePolicy) {
         this.actionHandlers = actionHandlers == null ? List.of() : List.copyOf(actionHandlers);
         this.runtimeMetrics = runtimeMetrics == null ? A2UiRuntimeMetrics.noop() : runtimeMetrics;
         this.messageValidator = Objects.requireNonNull(messageValidator, "messageValidator");
         this.actionAllowList = actionAllowList == null ? A2UiActionAllowList.empty() : actionAllowList;
+        this.actionPolicy = actionPolicy == null ? A2UiActionPolicy.none() : actionPolicy;
+        this.surfacePolicy = surfacePolicy == null ? A2UiSurfacePolicy.none() : surfacePolicy;
     }
 
     public A2UiActionResponse handleClientEvent(A2UiClientEvent event, String requestId) {
@@ -56,6 +82,13 @@ public class A2UiActionService {
                     Map.of("routeKey", routeKey(action), "surfaceId", action.surfaceId(), "actionName", action.name()));
         }
         String routeKey = routeKey(action);
+        if (actionPolicy.requiresConfirmation(action.name()) && !isConfirmed(action)) {
+            runtimeMetrics.recordActionRejected("confirmation");
+            throw new A2UiActionException(
+                    "Confirmation required for action: " + action.name(),
+                    A2UiActionErrorCodes.CONFIRMATION_REQUIRED,
+                    Map.of("routeKey", routeKey, "surfaceId", action.surfaceId(), "actionName", action.name()));
+        }
 
         A2UiActionHandler handler = actionHandlers.stream()
                 .filter(candidate -> candidate.supports(action))
@@ -80,8 +113,15 @@ public class A2UiActionService {
                     A2UiActionErrorCodes.INVALID_ACTION_RESPONSE,
                     Map.of("routeKey", routeKey, "diagnostics", diagnostics));
         }
+        A2UiComponentVisibility.firstHiddenType(messages, surfacePolicy).ifPresent(componentType -> {
+            runtimeMetrics.recordActionRejected("component");
+            throw new A2UiActionException(
+                    "Component type not allowed: " + componentType,
+                    A2UiActionErrorCodes.COMPONENT_NOT_ALLOWED,
+                    Map.of("routeKey", routeKey, "componentType", componentType));
+        });
 
-        runtimeMetrics.recordActionEvent("action");
+        runtimeMetrics.recordActionExecuted();
 
         return A2UiActionResponse.accepted(action.name(), action.surfaceId(), action.sourceComponentId(), messages);
     }
@@ -113,5 +153,13 @@ public class A2UiActionService {
 
     private String routeKey(A2UiUserAction userAction) {
         return userAction.surfaceId() + ":" + userAction.name();
+    }
+
+    private static boolean isConfirmed(A2UiUserAction action) {
+        Object confirmed = action.context().get("confirmed");
+        if (confirmed instanceof Boolean bool) {
+            return bool;
+        }
+        return confirmed instanceof String text && "true".equalsIgnoreCase(text);
     }
 }

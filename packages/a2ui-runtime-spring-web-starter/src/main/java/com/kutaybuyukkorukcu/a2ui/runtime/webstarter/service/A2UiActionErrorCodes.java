@@ -11,6 +11,8 @@ public class A2UiActionErrorCodes {
     public static final String INVALID_USER_ACTION = A2UiErrorCode.INVALID_USER_ACTION.code();
     public static final String ACTION_NOT_HANDLED = A2UiErrorCode.ACTION_NOT_HANDLED.code();
     public static final String UNKNOWN_ACTION = A2UiErrorCode.UNKNOWN_ACTION.code();
+    public static final String CONFIRMATION_REQUIRED = A2UiErrorCode.CONFIRMATION_REQUIRED.code();
+    public static final String COMPONENT_NOT_ALLOWED = A2UiErrorCode.COMPONENT_NOT_ALLOWED.code();
     public static final String INVALID_ACTION_RESPONSE = A2UiErrorCode.INVALID_ACTION_RESPONSE.code();
 
     private A2UiActionErrorCodes() {}
