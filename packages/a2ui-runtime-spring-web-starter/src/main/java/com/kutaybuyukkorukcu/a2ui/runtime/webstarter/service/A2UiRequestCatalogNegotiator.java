@@ -15,14 +15,22 @@ public final class A2UiRequestCatalogNegotiator {
     private static final String DEFAULT_CATALOG_ID = A2UiCatalogIds.BASIC_V0_9;
 
     private final A2UiCatalogRegistry catalogRegistry;
+    private final A2UiRuntimeMetrics runtimeMetrics;
 
     public A2UiRequestCatalogNegotiator(A2UiCatalogRegistry catalogRegistry) {
+        this(catalogRegistry, A2UiRuntimeMetrics.noop());
+    }
+
+    public A2UiRequestCatalogNegotiator(A2UiCatalogRegistry catalogRegistry, A2UiRuntimeMetrics runtimeMetrics) {
         this.catalogRegistry = catalogRegistry;
+        this.runtimeMetrics = runtimeMetrics == null ? A2UiRuntimeMetrics.noop() : runtimeMetrics;
     }
 
     /** Negotiates against this instance's (possibly host-extended) catalog registry. */
     public String negotiate(A2UiSurfaceRequest request) {
-        return negotiateCatalogId(request, catalogRegistry);
+        String catalogId = negotiateCatalogId(request, catalogRegistry);
+        runtimeMetrics.recordCatalogSelected(catalogId);
+        return catalogId;
     }
 
     /**

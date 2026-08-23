@@ -333,8 +333,10 @@ public class A2UiWebAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public A2UiRequestCatalogNegotiator a2UiRequestCatalogNegotiator(A2UiCatalogRegistry catalogRegistry) {
-        return new A2UiRequestCatalogNegotiator(catalogRegistry);
+    public A2UiRequestCatalogNegotiator a2UiRequestCatalogNegotiator(
+            A2UiCatalogRegistry catalogRegistry,
+            A2UiRuntimeMetrics runtimeMetrics) {
+        return new A2UiRequestCatalogNegotiator(catalogRegistry, runtimeMetrics);
     }
 
     @Bean

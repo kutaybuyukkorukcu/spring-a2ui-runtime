@@ -92,6 +92,9 @@ Micrometer counters (also via Actuator: `GET /actuator/metrics/<name>` when `met
 | `a2ui.dynamic.validation.retry.success` | Retry produced valid messages |
 | `a2ui.dynamic.validation.retry.failed` | Retry still invalid or produced no surface |
 | `a2ui.generation.context.chars` | Planner static-prefix character length (digest + rules + examples) |
+| `a2ui.generation.duration` | Planner ChatClient call duration |
+| `a2ui.generation.tokens` | Planner token usage when the model reports it |
+| `a2ui.catalog.selected` | Catalog id chosen for the request (`catalogId` tag) |
 
 ## Running the showcase
 

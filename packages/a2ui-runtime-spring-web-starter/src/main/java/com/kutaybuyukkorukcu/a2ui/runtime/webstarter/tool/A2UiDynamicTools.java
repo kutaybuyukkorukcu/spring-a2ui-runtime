@@ -14,6 +14,8 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiDynamicAssembly
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.RenderA2UiArgs;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.annotation.Tool;
@@ -22,6 +24,7 @@ import org.springframework.ai.tool.definition.ToolDefinition;
 import org.springframework.ai.tool.method.MethodToolCallback;
 
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -155,14 +158,39 @@ public class A2UiDynamicTools {
         Map<String, Object> plannerToolContext = Map.of(SESSION_CONTEXT_KEY, session);
         ToolCallback renderToolCallback = buildRenderA2UiToolCallback(session.catalogId());
 
-        plannerClient.prompt()
-                .system(promptProvider.createPlannerSystemPrompt(session.catalogId()))
-                .user(promptProvider.createPlannerUserPrompt(promptContext, validationDiagnostics))
-                .toolCallbacks(renderToolCallback)
-                .toolContext(plannerToolContext)
-                .options(A2UiForcedToolChoiceFactory.forcedRenderA2UiToolChoice())
-                .call()
-                .content();
+        long startedAt = System.nanoTime();
+        try {
+            ChatClient.CallResponseSpec call = plannerClient.prompt()
+                    .system(promptProvider.createPlannerSystemPrompt(session.catalogId()))
+                    .user(promptProvider.createPlannerUserPrompt(promptContext, validationDiagnostics))
+                    .toolCallbacks(renderToolCallback)
+                    .toolContext(plannerToolContext)
+                    .options(A2UiForcedToolChoiceFactory.forcedRenderA2UiToolChoice())
+                    .call();
+            recordGenerationTokens(call);
+            call.content();
+        } finally {
+            runtimeMetrics.recordGenerationDuration(Duration.ofNanos(System.nanoTime() - startedAt));
+        }
+    }
+
+    private void recordGenerationTokens(ChatClient.CallResponseSpec call) {
+        try {
+            ChatResponse response = call.chatResponse();
+            if (response == null || response.getMetadata() == null) {
+                return;
+            }
+            Usage usage = response.getMetadata().getUsage();
+            if (usage == null) {
+                return;
+            }
+            Integer totalTokens = usage.getTotalTokens();
+            if (totalTokens != null) {
+                runtimeMetrics.recordGenerationTokens(totalTokens);
+            }
+        } catch (RuntimeException ignored) {
+            // CallResponseSpec stubs may only implement content()
+        }
     }
 
     /**

@@ -6,6 +6,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.A2UiSurfaceRequest;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -70,6 +71,19 @@ class A2UiRequestCatalogNegotiatorTest {
                 new A2UiSurfaceRequest.ClientCapabilities(List.of(hostCatalogId)));
 
         assertThat(negotiator.negotiate(request)).isEqualTo(hostCatalogId);
+    }
+
+    @Test
+    void instanceNegotiateRecordsCatalogSelected() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        A2UiRuntimeMetrics metrics = new A2UiRuntimeMetrics(() -> registry);
+        A2UiRequestCatalogNegotiator negotiator =
+                new A2UiRequestCatalogNegotiator(A2UiCatalogRegistry.shared(), metrics);
+
+        negotiator.negotiate(new A2UiSurfaceRequest("test", null, null));
+
+        assertThat(registry.counter("a2ui.catalog.selected", "catalogId", A2UiCatalogIds.BASIC_V0_9).count())
+                .isEqualTo(1.0);
     }
 
     @Test

@@ -10,9 +10,19 @@ public record A2UiGenerationContext(
         private final StringBuilder staticPrefix = new StringBuilder();
         private final StringBuilder dynamicSuffix = new StringBuilder();
         private A2UiGenerationContextKey key;
+        private boolean staticFrozen;
+
+        public Builder freezeStatic(String cachedPrefix) {
+            staticPrefix.setLength(0);
+            if (cachedPrefix != null) {
+                staticPrefix.append(cachedPrefix);
+            }
+            staticFrozen = true;
+            return this;
+        }
 
         public Builder appendStatic(String text) {
-            if (text == null || text.isBlank()) {
+            if (staticFrozen || text == null || text.isBlank()) {
                 return this;
             }
             staticPrefix.append(text);

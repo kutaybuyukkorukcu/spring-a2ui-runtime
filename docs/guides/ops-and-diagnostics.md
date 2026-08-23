@@ -21,6 +21,9 @@ With Actuator + Micrometer (showcase enables `metrics` / `prometheus`):
 | `a2ui.runtime.transform.success` / `.failure` | Stream transform outcomes |
 | `a2ui.runtime.action.event` | Action ingress events |
 | `a2ui.generation.context.chars` | Distribution of planner **static prefix** character length (digest + rules + examples + hard requirements) |
+| `a2ui.generation.duration` | Planner ChatClient call duration (dynamic hop) |
+| `a2ui.generation.tokens` | Planner token usage when Spring AI reports it |
+| `a2ui.catalog.selected` | Catalog id chosen for a surface request (`catalogId` tag) |
 | `a2ui.policy.rejected` | Application policy deny (`reason` tag: `confirmation` or `component`) |
 | `a2ui.action.rejected` | Action POST deny (`reason` tag) |
 | `a2ui.action.executed` | Action POST handled successfully |

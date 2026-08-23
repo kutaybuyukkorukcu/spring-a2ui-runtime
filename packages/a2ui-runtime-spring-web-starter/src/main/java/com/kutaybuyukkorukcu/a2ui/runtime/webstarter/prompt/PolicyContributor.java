@@ -17,6 +17,11 @@ public final class PolicyContributor implements A2UiGenerationContextContributor
     }
 
     @Override
+    public boolean contributesStatic() {
+        return false;
+    }
+
+    @Override
     public void contribute(A2UiGenerationRequest request, A2UiGenerationContext.Builder context) {
         String block = surfacePolicy.formatPlannerBlock();
         if (block.isEmpty()) {

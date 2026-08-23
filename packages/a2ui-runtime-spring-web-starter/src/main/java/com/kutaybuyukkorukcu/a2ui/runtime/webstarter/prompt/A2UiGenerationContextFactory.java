@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
@@ -11,6 +12,7 @@ import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 public final class A2UiGenerationContextFactory {
 
     private final List<A2UiGenerationContextContributor> contributors;
+    private final ConcurrentHashMap<A2UiGenerationContextKey, String> staticPrefixCache = new ConcurrentHashMap<>();
 
     public A2UiGenerationContextFactory(List<A2UiGenerationContextContributor> contributors) {
         if (contributors == null || contributors.isEmpty()) {
@@ -24,8 +26,20 @@ public final class A2UiGenerationContextFactory {
 
     public A2UiGenerationContext build(A2UiGenerationRequest request) {
         A2UiGenerationContext.Builder builder = new A2UiGenerationContext.Builder();
-        for (A2UiGenerationContextContributor contributor : contributors) {
-            contributor.contribute(request, builder);
+        A2UiGenerationContextKey lookupKey = lookupKey(request);
+        String cachedPrefix = staticPrefixCache.get(lookupKey);
+        if (cachedPrefix != null) {
+            builder.freezeStatic(cachedPrefix);
+            for (A2UiGenerationContextContributor contributor : contributors) {
+                if (!contributor.contributesStatic()) {
+                    contributor.contribute(request, builder);
+                }
+            }
+        } else {
+            for (A2UiGenerationContextContributor contributor : contributors) {
+                contributor.contribute(request, builder);
+            }
+            staticPrefixCache.put(lookupKey, builder.staticPrefix());
         }
         builder.key(createKey(request, builder));
         appendDynamicSuffix(request, builder);
@@ -41,6 +55,18 @@ public final class A2UiGenerationContextFactory {
             suffix.add("Context: " + request.contextHints());
         }
         builder.appendDynamic(suffix.toString());
+    }
+
+    private A2UiGenerationContextKey lookupKey(A2UiGenerationRequest request) {
+        String catalogId = request.catalogId();
+        String model = request.model() == null ? "" : request.model();
+        return new A2UiGenerationContextKey(
+                catalogId,
+                "",
+                model,
+                request.generationMode(),
+                contributorFingerprint(),
+                allowedTypesFingerprint(request.allowedTypes()));
     }
 
     private A2UiGenerationContextKey createKey(A2UiGenerationRequest request, A2UiGenerationContext.Builder builder) {

@@ -12,6 +12,7 @@ import org.springframework.core.Ordered;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -125,6 +126,66 @@ class A2UiGenerationContextFactoryTest {
     }
 
     @Test
+    void secondBuildWithSameLookupSkipsStaticContributors() {
+        CountingStaticContributor staticContributor = new CountingStaticContributor();
+        CountingDynamicContributor dynamicContributor = new CountingDynamicContributor();
+        A2UiGenerationContextFactory caching = new A2UiGenerationContextFactory(List.of(
+                staticContributor,
+                dynamicContributor));
+
+        A2UiGenerationContext first = caching.build(request(USER_CONTENT, CONTEXT_HINTS, null));
+        A2UiGenerationContext second = caching.build(request(USER_CONTENT, CONTEXT_HINTS, null));
+
+        assertThat(staticContributor.applied.get()).isEqualTo(1);
+        assertThat(dynamicContributor.applied.get()).isEqualTo(2);
+        assertThat(second.staticPrefix()).isEqualTo(first.staticPrefix()).contains("COUNTED");
+        assertThat(second.dynamicSuffix()).contains("DYNAMIC").contains(USER_CONTENT);
+        assertThat(second.key()).isEqualTo(first.key());
+    }
+
+    @Test
+    void differentAllowedTypesMissTheStaticCache() {
+        CountingStaticContributor staticContributor = new CountingStaticContributor();
+        A2UiGenerationContextFactory caching = new A2UiGenerationContextFactory(List.of(staticContributor));
+
+        caching.build(request(USER_CONTENT, CONTEXT_HINTS, null));
+        caching.build(request(USER_CONTENT, CONTEXT_HINTS, Set.of("Button")));
+
+        assertThat(staticContributor.applied.get()).isEqualTo(2);
+    }
+
+    @Test
+    void differentUserContentReusesStaticPrefix() {
+        CountingStaticContributor staticContributor = new CountingStaticContributor();
+        A2UiGenerationContextFactory caching = new A2UiGenerationContextFactory(List.of(staticContributor));
+
+        A2UiGenerationContext first = caching.build(request(USER_CONTENT, CONTEXT_HINTS, null));
+        A2UiGenerationContext second = caching.build(request("another prompt", CONTEXT_HINTS, null));
+
+        assertThat(staticContributor.applied.get()).isEqualTo(1);
+        assertThat(second.staticPrefix()).isEqualTo(first.staticPrefix());
+        assertThat(second.dynamicSuffix()).contains("another prompt");
+        assertThat(second.dynamicSuffix()).doesNotContain(USER_CONTENT);
+        assertThat(first.dynamicSuffix()).contains(USER_CONTENT);
+    }
+
+    @Test
+    void cacheHitStillAppendsActionAllowListToDynamicSuffix() {
+        A2UiActionAllowList allowList = A2UiActionAllowList.fromHandlers(List.of(
+                new NamedActionHandler(Set.of("submit_change"))));
+        A2UiGenerationContextFactory caching = new A2UiGenerationContextFactory(List.of(
+                new CoreCatalogContributor(registry),
+                new ActionContributor(allowList)));
+
+        caching.build(request(USER_CONTENT, CONTEXT_HINTS, null));
+        A2UiGenerationContext second = caching.build(request("second prompt", CONTEXT_HINTS, null));
+
+        assertThat(second.dynamicSuffix()).contains("Registered actions:");
+        assertThat(second.dynamicSuffix()).contains("submit_change");
+        assertThat(second.staticPrefix()).doesNotContain("Registered actions:");
+    }
+
+    @Test
     void actionContributorPutsRegisteredActionsOnlyInDynamicSuffix() {
         A2UiActionAllowList allowList = A2UiActionAllowList.fromHandlers(List.of(
                 new NamedActionHandler(Set.of("submit_change", "approve"))));
@@ -179,6 +240,31 @@ class A2UiGenerationContextFactoryTest {
                 List.of(),
                 null,
                 "dynamic");
+    }
+
+    private static final class CountingStaticContributor implements A2UiGenerationContextContributor {
+        private final AtomicInteger applied = new AtomicInteger();
+
+        @Override
+        public void contribute(A2UiGenerationRequest request, A2UiGenerationContext.Builder context) {
+            applied.incrementAndGet();
+            context.appendStatic("COUNTED");
+        }
+    }
+
+    private static final class CountingDynamicContributor implements A2UiGenerationContextContributor {
+        private final AtomicInteger applied = new AtomicInteger();
+
+        @Override
+        public boolean contributesStatic() {
+            return false;
+        }
+
+        @Override
+        public void contribute(A2UiGenerationRequest request, A2UiGenerationContext.Builder context) {
+            applied.incrementAndGet();
+            context.appendDynamic("DYNAMIC\n\n");
+        }
     }
 
     private static final class DomainContributor implements A2UiGenerationContextContributor {

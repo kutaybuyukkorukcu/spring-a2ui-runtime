@@ -442,15 +442,15 @@ Metrics: `a2ui.policy.rejected`, `a2ui.action.rejected` / `executed`.
 
 Do **not** mix prompt quality with security in one PR. Own plan file when starting.
 
-### Phase 4 — Static context cache + provider prompt cache (later)
+### Phase 4 — Static context cache ✅
+
+**Status:** implemented on `feat/generation-context-cache`. **Plan:** [`docs/plans/phase-static-context-cache.md`](docs/plans/phase-static-context-cache.md).
 
 **Why:** Phase 1 decides *what* to give the model. Caching (not paying for the same static prefix) is efficiency. Caching before the static/dynamic split exists is premature.
 
-- In-process cache keyed by `A2UiGenerationContextKey` for the static prefix.
-- Optional provider prompt-cache only where Spring AI ChatOptions already support it (do not invent a new provider layer).
+- In-process cache keyed by lookup identity (`catalogId`, model, generation mode, contributor fingerprint, allowed types) — not by `catalogVersion` (that field hashes the prefix).
+- No new provider prompt-cache layer (Spring AI `ChatOptions` in this repo has no prompt-cache field).
 - Token/duration metrics: `a2ui.generation.duration`, `a2ui.generation.tokens`, `a2ui.catalog.selected`.
-
-Own plan file when starting.
 
 ### Later / never (this track)
 

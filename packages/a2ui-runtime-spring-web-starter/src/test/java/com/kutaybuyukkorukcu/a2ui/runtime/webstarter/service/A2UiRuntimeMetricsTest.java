@@ -4,6 +4,10 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class A2UiRuntimeMetricsTest {
@@ -64,5 +68,29 @@ class A2UiRuntimeMetricsTest {
 
         noop.recordGenerationContextChars(100);
         noop.recordGenerationContextChars(-1);
+    }
+
+    @Test
+    void shouldRecordGenerationDurationTokensAndCatalog() {
+        metrics.recordGenerationDuration(Duration.ofMillis(12));
+        metrics.recordGenerationTokens(100);
+        metrics.recordCatalogSelected(A2UiCatalogIds.BASIC_V0_9);
+
+        assertThat(registry.find("a2ui.generation.duration").timer().count()).isEqualTo(1L);
+        assertThat(registry.find("a2ui.generation.tokens").summary().totalAmount()).isEqualTo(100.0);
+        assertThat(registry.counter("a2ui.catalog.selected", "catalogId", A2UiCatalogIds.BASIC_V0_9)
+                .count()).isEqualTo(1.0);
+    }
+
+    @Test
+    void noopShouldNotThrowWhenRecordingGenerationDurationTokensAndCatalog() {
+        A2UiRuntimeMetrics noop = A2UiRuntimeMetrics.noop();
+
+        noop.recordGenerationDuration(Duration.ofMillis(5));
+        noop.recordGenerationTokens(10);
+        noop.recordCatalogSelected("basic");
+        noop.recordGenerationDuration(null);
+        noop.recordGenerationTokens(-1);
+        noop.recordCatalogSelected(" ");
     }
 }

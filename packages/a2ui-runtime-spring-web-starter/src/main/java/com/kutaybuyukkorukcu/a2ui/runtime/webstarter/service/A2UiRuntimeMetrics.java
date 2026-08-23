@@ -3,6 +3,8 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
+
+import java.time.Duration;
 import java.util.function.Supplier;
 
 public class A2UiRuntimeMetrics {
@@ -110,6 +112,33 @@ public class A2UiRuntimeMetrics {
         if (generationContextCharsSummary != null) {
             generationContextCharsSummary.record(chars);
         }
+    }
+
+    public void recordGenerationDuration(Duration duration) {
+        if (duration == null || duration.isNegative()) {
+            return;
+        }
+        MeterRegistry registry = meterRegistrySupplier.get();
+        if (registry != null) {
+            registry.timer("a2ui.generation.duration").record(duration);
+        }
+    }
+
+    public void recordGenerationTokens(long tokens) {
+        if (tokens < 0) {
+            return;
+        }
+        MeterRegistry registry = meterRegistrySupplier.get();
+        if (registry != null) {
+            registry.summary("a2ui.generation.tokens").record(tokens);
+        }
+    }
+
+    public void recordCatalogSelected(String catalogId) {
+        if (catalogId == null || catalogId.isBlank()) {
+            return;
+        }
+        incrementCounter("a2ui.catalog.selected", "catalogId", catalogId);
     }
 
     private void incrementCounter(String name, String... tags) {

@@ -17,6 +17,11 @@ public final class ActionContributor implements A2UiGenerationContextContributor
     }
 
     @Override
+    public boolean contributesStatic() {
+        return false;
+    }
+
+    @Override
     public void contribute(A2UiGenerationRequest request, A2UiGenerationContext.Builder context) {
         if (actionAllowList.isEmpty()) {
             return;
