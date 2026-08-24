@@ -2,6 +2,7 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
 import java.util.function.Supplier;
 
 public class A2UiRuntimeMetrics {
@@ -11,12 +12,14 @@ public class A2UiRuntimeMetrics {
     private final Counter transformSuccessCounter;
     private final Counter transformFailureCounter;
     private final Counter actionEventCounter;
+    private final DistributionSummary generationContextCharsSummary;
 
     private A2UiRuntimeMetrics() {
         this.meterRegistrySupplier = () -> null;
         this.transformSuccessCounter = null;
         this.transformFailureCounter = null;
         this.actionEventCounter = null;
+        this.generationContextCharsSummary = null;
     }
 
     public A2UiRuntimeMetrics(Supplier<MeterRegistry> meterRegistrySupplier) {
@@ -26,10 +29,14 @@ public class A2UiRuntimeMetrics {
             this.transformSuccessCounter = Counter.builder(PREFIX + ".transform.success").register(registry);
             this.transformFailureCounter = Counter.builder(PREFIX + ".transform.failure").register(registry);
             this.actionEventCounter = Counter.builder(PREFIX + ".action.event").register(registry);
+            this.generationContextCharsSummary = DistributionSummary
+                    .builder("a2ui.generation.context.chars")
+                    .register(registry);
         } else {
             this.transformSuccessCounter = null;
             this.transformFailureCounter = null;
             this.actionEventCounter = null;
+            this.generationContextCharsSummary = null;
         }
     }
 
@@ -80,6 +87,15 @@ public class A2UiRuntimeMetrics {
 
     public void recordDynamicValidationRetryFailed() {
         incrementCounter("a2ui.dynamic.validation.retry.failed");
+    }
+
+    public void recordGenerationContextChars(int chars) {
+        if (chars < 0) {
+            return;
+        }
+        if (generationContextCharsSummary != null) {
+            generationContextCharsSummary.record(chars);
+        }
     }
 
     private void incrementCounter(String name) {

@@ -39,4 +39,20 @@ class A2UiRuntimeMetricsTest {
         noop.recordDynamicValidationRetryFailed();
         noop.recordDynamicSurfaceGenerated();
     }
+
+    @Test
+    void shouldRecordGenerationContextChars() {
+        metrics.recordGenerationContextChars(42);
+
+        assertThat(registry.find("a2ui.generation.context.chars").summary().count()).isEqualTo(1L);
+        assertThat(registry.find("a2ui.generation.context.chars").summary().totalAmount()).isEqualTo(42.0);
+    }
+
+    @Test
+    void noopShouldNotThrowWhenRecordingGenerationContextChars() {
+        A2UiRuntimeMetrics noop = A2UiRuntimeMetrics.noop();
+
+        noop.recordGenerationContextChars(100);
+        noop.recordGenerationContextChars(-1);
+    }
 }

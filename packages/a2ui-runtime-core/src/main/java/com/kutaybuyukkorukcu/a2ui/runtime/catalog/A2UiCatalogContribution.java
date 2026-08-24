@@ -26,4 +26,9 @@ public interface A2UiCatalogContribution {
     default String rulesText() {
         return "";
     }
+
+    /** Optional few-shot examples for the planner static prefix. Default empty. */
+    default String examplesText() {
+        return "";
+    }
 }

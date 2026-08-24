@@ -3,6 +3,7 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 
 import java.util.List;
 import java.util.Set;
@@ -10,14 +11,31 @@ import java.util.StringJoiner;
 
 public final class DynamicA2UiPromptProvider {
 
-    private final A2UiCatalogRegistry catalogRegistry;
-
-    public DynamicA2UiPromptProvider(A2UiCatalogRegistry catalogRegistry) {
-        this.catalogRegistry = catalogRegistry;
-    }
+    private final A2UiGenerationContextFactory contextFactory;
+    private final A2UiRuntimeMetrics runtimeMetrics;
 
     public DynamicA2UiPromptProvider() {
         this(A2UiCatalogRegistry.shared());
+    }
+
+    public DynamicA2UiPromptProvider(A2UiCatalogRegistry catalogRegistry) {
+        this(catalogRegistry, defaultFactory(catalogRegistry));
+    }
+
+    public DynamicA2UiPromptProvider(
+            A2UiCatalogRegistry catalogRegistry,
+            A2UiGenerationContextFactory contextFactory) {
+        this(catalogRegistry, contextFactory, A2UiRuntimeMetrics.noop());
+    }
+
+    public DynamicA2UiPromptProvider(
+            A2UiCatalogRegistry catalogRegistry,
+            A2UiGenerationContextFactory contextFactory,
+            A2UiRuntimeMetrics runtimeMetrics) {
+        this.contextFactory = contextFactory != null
+                ? contextFactory
+                : defaultFactory(catalogRegistry != null ? catalogRegistry : A2UiCatalogRegistry.shared());
+        this.runtimeMetrics = runtimeMetrics != null ? runtimeMetrics : A2UiRuntimeMetrics.noop();
     }
 
     public String createPrimarySystemPrompt() {
@@ -39,43 +57,22 @@ public final class DynamicA2UiPromptProvider {
     }
 
     public String createPlannerSystemPrompt(String catalogId) {
+        return createPlannerSystemPrompt(catalogId, null);
+    }
+
+    public String createPlannerSystemPrompt(String catalogId, Set<String> allowedTypes) {
         String resolvedCatalogId = catalogId != null ? catalogId : A2UiCatalogIds.BASIC_V0_9;
-        Set<String> componentTypes = catalogRegistry.componentTypesForCatalog(resolvedCatalogId);
-        if (componentTypes.isEmpty()) {
-            componentTypes = catalogRegistry.supportedComponentTypes();
-        }
-        String componentTypesStr = String.join(", ", componentTypes);
-        String catalogRules = catalogRegistry.catalogRulesText();
-
-        StringBuilder prompt = new StringBuilder();
-        prompt.append("""
-                You are an A2UI v0.9.1 layout planner. Compose a surface by calling the renderA2Ui tool exactly once.
-
-                Hard requirements:
-                - Include a root component with id "root" in the components array (required).
-                - components must be a flat array of objects with string "component" type and sibling props.
-                - Every child UI element must be its own entry in the flat array; reference children by id only.
-                - List, Column, and Row use children as a bare string id array, or a template object {componentId, path}.
-                - Card uses a single child id (child) — wrap multiple children in a Column and set Card.child to that Column id.
-                - Text styling uses variant (h1–h5, body, caption) — not usageHint.
-                - Button requires child (Text component id) and action — use action string shorthand or {event:{name}}.
-                - Dynamic values are native JSON strings/numbers/booleans, or {"path":"/..."}. Never use literalString/literalNumber.
-                - Bind dynamic Text and labels with path objects like {"path":"/regionSales/North"} — never {data.regionSales.North}.
-                - TextField and CheckBox MUST bind value to a data-model path: {"path":"/fieldName"}. Labels may be a literal or a path. A TextField with only label is not editable.
-                - Submit/primary Buttons that collect a form MUST set action.event.context mapping each field the host needs, e.g. {"summary":{"path":"/summary"},"notes":{"path":"/notes"}}. Never put the path string itself as the value ("/notes") — the client sends that literal instead of the typed text. A Button with only event.name yields empty context {}.
-                - Do not emit empty {} objects; every component must have meaningful props.
-                - Populate data-bound props in the data object when the UI needs dynamic values.
-                - Do not emit A2UI wire protocol envelopes or lifecycle commits; only call renderA2Ui.
-                - Do not output line-delimited JSON or markdown.
-
-                Allowed catalog component types:
-                %s
-                """.formatted(componentTypesStr));
-
-        if (catalogRules != null && !catalogRules.isBlank()) {
-            prompt.append("\nCatalog rules:\n").append(catalogRules.trim()).append("\n");
-        }
-        return prompt.toString();
+        A2UiGenerationRequest request = new A2UiGenerationRequest(
+                resolvedCatalogId,
+                allowedTypes,
+                null,
+                null,
+                List.of(),
+                null,
+                "dynamic");
+        A2UiGenerationContext context = contextFactory.build(request);
+        runtimeMetrics.recordGenerationContextChars(context.staticPrefix().length());
+        return context.staticPrefix();
     }
 
     public String createPlannerUserPrompt(A2UiPromptContext context) {
@@ -93,6 +90,12 @@ public final class DynamicA2UiPromptProvider {
             prompt.add(formatValidationDiagnostics(validationDiagnostics));
         }
         return prompt.toString();
+    }
+
+    private static A2UiGenerationContextFactory defaultFactory(A2UiCatalogRegistry catalogRegistry) {
+        return new A2UiGenerationContextFactory(List.of(
+                new CoreCatalogContributor(catalogRegistry),
+                new ExampleContributor(catalogRegistry)));
     }
 
     private static String formatValidationDiagnostics(List<A2UiDiagnostic> validationDiagnostics) {
