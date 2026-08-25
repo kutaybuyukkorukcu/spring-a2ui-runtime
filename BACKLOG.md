@@ -77,7 +77,7 @@ Near-term **execution order stays locked** (see header). This section only expla
 | **Utilization on native SSE** | Text / progress / run lifecycle *around* surfaces — product UX without a second pipe |
 | **Platform builder batteries** ✅ | Adoption maturity: in-product surface docs+showcase, Template SPI, host A2UI catalog SPI, ops, multi-provider — Central **`2.1.0`** |
 | **Architecture revisions** ✅ | Catalog-scoped fail-fast, one compose module, wire hygiene in core |
-| **Generate / govern / execute** ✅ | Catalog-aware planner context, action allow-list, application policy — not another agent framework. Static-prefix cache stays later. |
+| **Generate / govern / execute** ✅ | Catalog-aware planner context, action allow-list, application policy — not another agent framework |
 | **Later (residual)** | v1.0 watch, multi-surface runtime, Spring AI hop adapter, Boot 4 |
 
 ---

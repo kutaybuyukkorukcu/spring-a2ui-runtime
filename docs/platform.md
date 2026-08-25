@@ -84,7 +84,7 @@ Near-term **execution order is locked** in [`BACKLOG.md`](../BACKLOG.md). Do not
 3. **Utilization on native SSE** ✅ — text / progress / run lifecycle ([guide](guides/native-sse-utilization.md))  
 4. **Platform builder batteries** ✅ — in-product surface docs+showcase, **Template SPI**, **host A2UI catalog SPI**, ops, multi-provider — Central **`2.1.0`**  
 5. **Architecture revisions** ✅ — catalog-scoped fail-fast, one compose module, wire hygiene in core ([ADR 003](adr/003-catalog-scoped-fail-fast.md))  
-6. **Generate / govern / execute** ✅ — planner digest, action allow-list, application policy ([dynamic generative UI](guides/dynamic-generative-ui.md), [hosting actions](guides/hosting-actions.md)). Static-prefix cache stays later. `A2UiGenerationPolicy` stays ChatOptions.  
+6. **Generate / govern / execute** ✅ — planner digest, action allow-list, application policy ([dynamic generative UI](guides/dynamic-generative-ui.md), [hosting actions](guides/hosting-actions.md)). `A2UiGenerationPolicy` stays ChatOptions.  
 7. **Later (residual)** — Spring AI hop adapter, starter split, Boot 4, v1.0 watch (see BACKLOG) — **not** “invent catalogs for hosts”
 
 ## Where to go next
