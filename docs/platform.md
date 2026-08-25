@@ -64,8 +64,8 @@ The runtime already **validates** against registered catalogs and **executes** h
 | Verb | Meaning here | Now |
 |------|----------------|-----|
 | **Generate** | Catalog → compact planner context (digest, rules, optional host examples) → two-hop compose | Phase 1 — [generation context](plans/phase-generation-context.md) |
-| **Govern** | After schema/catalog validity: is this action/component allowed **in this surface**? | Later — action allow-list, then `A2UiSurfacePolicy` / `A2UiActionPolicy` (new types; **not** `A2UiGenerationPolicy`) |
-| **Execute** | `POST /a2ui/actions` → host handlers | Shipped; named allow-list later |
+| **Govern** | After schema/catalog validity: is this action/component allowed **in this surface**? | Allow-list (Phase 2) plus `A2UiActionPolicy` / `A2UiSurfacePolicy` (Phase 3; **not** `A2UiGenerationPolicy`) |
+| **Execute** | `POST /a2ui/actions` → host handlers | Shipped; allow-list + confirmation/visibility on this branch |
 
 `A2UiGenerationPolicy` is ChatOptions (model, temperature, max tokens). Do not extend it for application rules.
 

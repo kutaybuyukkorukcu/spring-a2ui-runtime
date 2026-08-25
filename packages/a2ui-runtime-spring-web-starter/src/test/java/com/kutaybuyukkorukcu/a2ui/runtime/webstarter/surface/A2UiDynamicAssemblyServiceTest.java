@@ -11,6 +11,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionAllowList;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionHandler;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiSurfacePolicy;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiUserAction;
 import org.junit.jupiter.api.Test;
 
@@ -160,6 +161,36 @@ class A2UiDynamicAssemblyServiceTest {
         A2UiMessage.UpdateComponents update = (A2UiMessage.UpdateComponents) messages.get(1);
         assertThat(update.components().get(0).componentProperties().get("action"))
                 .isEqualTo(Map.of("event", Map.of("name", "submit")));
+    }
+
+    @Test
+    void shouldRejectHiddenButtonAfterCatalogValidation() {
+        A2UiSurfacePolicy hideButton = () -> Set.of("Button");
+        A2UiDynamicAssemblyService restricted = new A2UiDynamicAssemblyService(
+                new A2UiDynamicComponentNormalizer(),
+                validator,
+                new com.fasterxml.jackson.databind.ObjectMapper(),
+                A2UiActionAllowList.empty(),
+                hideButton);
+
+        assertThatThrownBy(() -> restricted.assemble(submitButtonArgs(), A2UiCatalogIds.BASIC_V0_9, "main"))
+                .isInstanceOf(SurfaceExecutionException.class)
+                .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
+                .isEqualTo(SurfaceErrorCodes.COMPONENT_NOT_ALLOWED);
+    }
+
+    @Test
+    void shouldAssembleWhenHiddenComponentTypesEmpty() {
+        A2UiDynamicAssemblyService restricted = new A2UiDynamicAssemblyService(
+                new A2UiDynamicComponentNormalizer(),
+                validator,
+                new com.fasterxml.jackson.databind.ObjectMapper(),
+                A2UiActionAllowList.empty(),
+                A2UiSurfacePolicy.none());
+
+        List<A2UiMessage> messages = restricted.assemble(submitButtonArgs(), A2UiCatalogIds.BASIC_V0_9, "main");
+
+        assertThat(messages).hasSize(2);
     }
 
     @Test

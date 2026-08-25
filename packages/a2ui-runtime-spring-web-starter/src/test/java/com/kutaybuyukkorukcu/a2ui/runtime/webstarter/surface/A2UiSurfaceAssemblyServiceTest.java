@@ -9,6 +9,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionAllowList;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionHandler;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiSurfacePolicy;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiFixedSurfaceSpec;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiTemplateDefinition;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiTemplateRegistry;
@@ -50,6 +51,36 @@ class A2UiSurfaceAssemblyServiceTest {
                 registry,
                 validator,
                 A2UiActionAllowList.fromHandlers(List.of(new NamedHandler(Set.of("submit")))));
+
+        List<A2UiMessage> messages = restricted.assemble(
+                TEMPLATE_ID, "main", A2UiCatalogIds.BASIC_V0_9, Map.of());
+
+        assertThat(messages).isNotEmpty();
+        assertThat(A2UiActionAllowList.extractActionNames(messages)).containsExactly("submit");
+    }
+
+    @Test
+    void shouldRejectHiddenButtonAfterCatalogValidation() {
+        A2UiSurfaceAssemblyService restricted = new A2UiSurfaceAssemblyService(
+                registry,
+                validator,
+                A2UiActionAllowList.empty(),
+                () -> Set.of("Button"));
+
+        assertThatThrownBy(() -> restricted.assemble(
+                TEMPLATE_ID, "main", A2UiCatalogIds.BASIC_V0_9, Map.of()))
+                .isInstanceOf(SurfaceExecutionException.class)
+                .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
+                .isEqualTo(SurfaceErrorCodes.COMPONENT_NOT_ALLOWED);
+    }
+
+    @Test
+    void shouldAssembleWhenHiddenComponentTypesEmpty() {
+        A2UiSurfaceAssemblyService restricted = new A2UiSurfaceAssemblyService(
+                registry,
+                validator,
+                A2UiActionAllowList.empty(),
+                A2UiSurfacePolicy.none());
 
         List<A2UiMessage> messages = restricted.assemble(
                 TEMPLATE_ID, "main", A2UiCatalogIds.BASIC_V0_9, Map.of());

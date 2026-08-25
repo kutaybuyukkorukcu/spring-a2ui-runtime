@@ -6,6 +6,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiUserAction;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionAllowList;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionHandler;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiSurfacePolicy;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.Ordered;
 
@@ -139,6 +140,34 @@ class A2UiGenerationContextFactoryTest {
         assertThat(context.dynamicSuffix().indexOf("Registered actions:"))
                 .isLessThan(context.dynamicSuffix().indexOf(USER_CONTENT));
         assertThat(context.staticPrefix()).doesNotContain("Registered actions:");
+    }
+
+    @Test
+    void policyContributorPutsHiddenTypesOnlyInDynamicSuffix() {
+        A2UiSurfacePolicy hideBalance = () -> Set.of("AccountBalance");
+        A2UiGenerationContextFactory withPolicy = new A2UiGenerationContextFactory(List.of(
+                new CoreCatalogContributor(registry),
+                new PolicyContributor(hideBalance)));
+
+        A2UiGenerationContext context = withPolicy.build(request(USER_CONTENT, CONTEXT_HINTS, null));
+
+        assertThat(context.dynamicSuffix()).contains("Hidden component types:");
+        assertThat(context.dynamicSuffix()).contains("AccountBalance");
+        assertThat(context.dynamicSuffix()).contains("Do not emit these component types.");
+        assertThat(context.staticPrefix()).doesNotContain("Hidden component types:");
+        assertThat(context.staticPrefix()).doesNotContain("AccountBalance");
+    }
+
+    @Test
+    void policyContributorAddsNothingWhenHiddenTypesEmpty() {
+        A2UiGenerationContextFactory withPolicy = new A2UiGenerationContextFactory(List.of(
+                new CoreCatalogContributor(registry),
+                new PolicyContributor(A2UiSurfacePolicy.none())));
+
+        A2UiGenerationContext context = withPolicy.build(request(USER_CONTENT, CONTEXT_HINTS, null));
+
+        assertThat(context.dynamicSuffix()).doesNotContain("Hidden component types:");
+        assertThat(context.staticPrefix()).doesNotContain("Hidden component types:");
     }
 
     private static A2UiGenerationRequest request(String content, String hints, Set<String> allowedTypes) {

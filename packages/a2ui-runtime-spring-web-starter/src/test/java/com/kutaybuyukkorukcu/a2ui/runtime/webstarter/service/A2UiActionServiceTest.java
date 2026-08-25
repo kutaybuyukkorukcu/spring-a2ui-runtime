@@ -7,6 +7,8 @@ import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiValidationContext;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.*;
 import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiActionPolicy;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiSurfacePolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -220,6 +222,110 @@ class A2UiActionServiceTest {
         A2UiActionResponse result = realService.handleClientEvent(event, "req-1");
         assertThat(result.accepted()).isTrue();
         assertThat(result.messageCount()).isEqualTo(2);
+    }
+
+    @Test
+    void shouldRejectUnconfirmedActionBeforeSupports() {
+        A2UiUserAction userAction = new A2UiUserAction("approve", "main", "btn-1", null, Map.of());
+        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        A2UiActionPolicy confirmApprove = name -> "approve".equals(name);
+        A2UiActionService restricted = new A2UiActionService(
+                List.of(handler), metrics, validator, A2UiActionAllowList.empty(), confirmApprove);
+
+        assertThatThrownBy(() -> restricted.handleClientEvent(event, "req-1"))
+                .isInstanceOf(A2UiActionException.class)
+                .extracting(ex -> ((A2UiActionException) ex).getErrorCode())
+                .isEqualTo(A2UiActionErrorCodes.CONFIRMATION_REQUIRED);
+        verify(handler, never()).supports(any());
+        verify(handler, never()).handle(any(), any());
+        verify(metrics).recordActionRejected("confirmation");
+    }
+
+    @Test
+    void shouldHandleConfirmedActionWhenPolicyRequiresConfirmation() {
+        A2UiUserAction userAction = new A2UiUserAction(
+                "approve", "main", "btn-1", null, Map.of("confirmed", true));
+        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        List<A2UiMessage> responseMessages = List.of(
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9));
+        when(handler.supports(userAction)).thenReturn(true);
+        when(handler.handle(any(), anyString())).thenReturn(responseMessages);
+        when(validator.validate(any(), any(A2UiValidationContext.class))).thenReturn(List.of());
+        A2UiActionPolicy confirmApprove = name -> "approve".equals(name);
+        A2UiActionService restricted = new A2UiActionService(
+                List.of(handler), metrics, validator, A2UiActionAllowList.empty(), confirmApprove);
+
+        A2UiActionResponse result = restricted.handleClientEvent(event, "req-1");
+
+        assertThat(result.accepted()).isTrue();
+        assertThat(result.actionName()).isEqualTo("approve");
+        verify(handler).supports(userAction);
+        verify(handler).handle(userAction, "req-1");
+    }
+
+    @Test
+    void nonePolicySucceedsWithoutConfirmedFlag() {
+        A2UiUserAction userAction = new A2UiUserAction("submit", "main", "btn-1", null, Map.of());
+        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        List<A2UiMessage> responseMessages = List.of(
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9));
+        when(handler.supports(userAction)).thenReturn(true);
+        when(handler.handle(any(), anyString())).thenReturn(responseMessages);
+        when(validator.validate(any(), any(A2UiValidationContext.class))).thenReturn(List.of());
+        A2UiActionService restricted = new A2UiActionService(
+                List.of(handler), metrics, validator, A2UiActionAllowList.empty(), A2UiActionPolicy.none());
+
+        A2UiActionResponse result = restricted.handleClientEvent(event, "req-1");
+
+        assertThat(result.accepted()).isTrue();
+        verify(handler).supports(userAction);
+    }
+
+    @Test
+    void shouldRejectHandlerMessagesWithHiddenComponentTypeAfterValidate() {
+        A2UiUserAction userAction = new A2UiUserAction("submit", "main", "btn-1", null, Map.of());
+        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        List<A2UiMessage> messages = List.of(
+                new A2UiMessage.UpdateComponents("main", List.of(
+                        new A2UiMessage.ComponentDefinition("root", "Button", Map.of("child", "label")))));
+        when(handler.supports(userAction)).thenReturn(true);
+        when(handler.handle(any(), anyString())).thenReturn(messages);
+        when(validator.validate(any(), any(A2UiValidationContext.class))).thenReturn(List.of());
+        A2UiSurfacePolicy hideButton = () -> Set.of("Button");
+        A2UiActionService restricted = new A2UiActionService(
+                List.of(handler),
+                metrics,
+                validator,
+                A2UiActionAllowList.empty(),
+                A2UiActionPolicy.none(),
+                hideButton);
+
+        assertThatThrownBy(() -> restricted.handleClientEvent(event, "req-1"))
+                .isInstanceOf(A2UiActionException.class)
+                .extracting(ex -> ((A2UiActionException) ex).getErrorCode())
+                .isEqualTo(A2UiActionErrorCodes.COMPONENT_NOT_ALLOWED);
+        verify(metrics).recordActionRejected("component");
+        verify(validator).validate(any(), any(A2UiValidationContext.class));
+    }
+
+    @Test
+    void shouldHandleConfirmedActionWhenConfirmedFlagIsStringTrue() {
+        A2UiUserAction userAction = new A2UiUserAction(
+                "approve", "main", "btn-1", null, Map.of("confirmed", "true"));
+        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        List<A2UiMessage> responseMessages = List.of(
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9));
+        when(handler.supports(userAction)).thenReturn(true);
+        when(handler.handle(any(), anyString())).thenReturn(responseMessages);
+        when(validator.validate(any(), any(A2UiValidationContext.class))).thenReturn(List.of());
+        A2UiActionPolicy confirmApprove = name -> "approve".equals(name);
+        A2UiActionService restricted = new A2UiActionService(
+                List.of(handler), metrics, validator, A2UiActionAllowList.empty(), confirmApprove);
+
+        A2UiActionResponse result = restricted.handleClientEvent(event, "req-1");
+
+        assertThat(result.accepted()).isTrue();
+        verify(handler).handle(userAction, "req-1");
     }
 
     private static A2UiCatalogRegistry registryWithStatusBadge(String hostCatalog) {

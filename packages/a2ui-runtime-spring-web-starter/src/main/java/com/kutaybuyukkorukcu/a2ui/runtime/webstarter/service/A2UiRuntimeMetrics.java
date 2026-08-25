@@ -62,6 +62,20 @@ public class A2UiRuntimeMetrics {
         }
     }
 
+    public void recordActionRejected(String reason) {
+        incrementCounter("a2ui.action.rejected", "reason", reasonTag(reason));
+        incrementCounter("a2ui.policy.rejected", "reason", reasonTag(reason));
+    }
+
+    public void recordPolicyRejected(String reason) {
+        incrementCounter("a2ui.policy.rejected", "reason", reasonTag(reason));
+    }
+
+    public void recordActionExecuted() {
+        recordActionEvent("action");
+        incrementCounter("a2ui.action.executed");
+    }
+
     public void recordRendererError(String errorCode) {
         // no-op for now, can be extended
     }
@@ -98,10 +112,14 @@ public class A2UiRuntimeMetrics {
         }
     }
 
-    private void incrementCounter(String name) {
+    private void incrementCounter(String name, String... tags) {
         MeterRegistry registry = meterRegistrySupplier.get();
         if (registry != null) {
-            registry.counter(name).increment();
+            registry.counter(name, tags).increment();
         }
+    }
+
+    private static String reasonTag(String reason) {
+        return reason == null || reason.isBlank() ? "unknown" : reason;
     }
 }

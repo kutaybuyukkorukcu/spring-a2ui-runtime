@@ -12,6 +12,9 @@ import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionAllowList;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiComponentVisibility;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiSurfacePolicy;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -27,6 +30,8 @@ public class A2UiDynamicAssemblyService {
     private final A2UiMessageValidator messageValidator;
     private final ObjectMapper objectMapper;
     private final Supplier<A2UiActionAllowList> actionAllowList;
+    private final A2UiSurfacePolicy surfacePolicy;
+    private final A2UiRuntimeMetrics runtimeMetrics;
 
     public A2UiDynamicAssemblyService(
             A2UiDynamicComponentNormalizer componentNormalizer,
@@ -47,11 +52,41 @@ public class A2UiDynamicAssemblyService {
             A2UiDynamicComponentNormalizer componentNormalizer,
             A2UiMessageValidator messageValidator,
             ObjectMapper objectMapper,
+            A2UiActionAllowList actionAllowList,
+            A2UiSurfacePolicy surfacePolicy) {
+        this(componentNormalizer, messageValidator, objectMapper, constantAllowList(actionAllowList), surfacePolicy);
+    }
+
+    public A2UiDynamicAssemblyService(
+            A2UiDynamicComponentNormalizer componentNormalizer,
+            A2UiMessageValidator messageValidator,
+            ObjectMapper objectMapper,
             Supplier<A2UiActionAllowList> actionAllowList) {
+        this(componentNormalizer, messageValidator, objectMapper, actionAllowList, A2UiSurfacePolicy.none());
+    }
+
+    public A2UiDynamicAssemblyService(
+            A2UiDynamicComponentNormalizer componentNormalizer,
+            A2UiMessageValidator messageValidator,
+            ObjectMapper objectMapper,
+            Supplier<A2UiActionAllowList> actionAllowList,
+            A2UiSurfacePolicy surfacePolicy) {
+        this(componentNormalizer, messageValidator, objectMapper, actionAllowList, surfacePolicy, A2UiRuntimeMetrics.noop());
+    }
+
+    public A2UiDynamicAssemblyService(
+            A2UiDynamicComponentNormalizer componentNormalizer,
+            A2UiMessageValidator messageValidator,
+            ObjectMapper objectMapper,
+            Supplier<A2UiActionAllowList> actionAllowList,
+            A2UiSurfacePolicy surfacePolicy,
+            A2UiRuntimeMetrics runtimeMetrics) {
         this.componentNormalizer = componentNormalizer;
         this.messageValidator = messageValidator;
         this.objectMapper = objectMapper;
         this.actionAllowList = actionAllowList == null ? A2UiActionAllowList::empty : actionAllowList;
+        this.surfacePolicy = surfacePolicy == null ? A2UiSurfacePolicy.none() : surfacePolicy;
+        this.runtimeMetrics = runtimeMetrics == null ? A2UiRuntimeMetrics.noop() : runtimeMetrics;
     }
 
     public A2UiDynamicAssemblyService(
@@ -142,6 +177,7 @@ public class A2UiDynamicAssemblyService {
                     SurfaceErrorCodes.A2UI_VALIDATION_FAILED,
                     diagnostics);
         }
+        rejectHiddenComponents(messages);
         return List.copyOf(messages);
     }
 
@@ -151,6 +187,16 @@ public class A2UiDynamicAssemblyService {
                     "Unknown action: " + actionName,
                     SurfaceErrorCodes.UNKNOWN_ACTION,
                     Map.of("actionName", actionName));
+        });
+    }
+
+    private void rejectHiddenComponents(List<A2UiMessage> messages) {
+        A2UiComponentVisibility.firstHiddenType(messages, surfacePolicy).ifPresent(componentType -> {
+            runtimeMetrics.recordPolicyRejected("component");
+            throw new SurfaceExecutionException(
+                    "Component type not allowed: " + componentType,
+                    SurfaceErrorCodes.COMPONENT_NOT_ALLOWED,
+                    Map.of("componentType", componentType));
         });
     }
 

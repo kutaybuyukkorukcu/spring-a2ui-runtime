@@ -64,6 +64,14 @@ The default is an empty set. **Empty allow-list is fail-open:** routing stays `s
 
 Declare every name your buttons emit, including handlers that currently only implement `supports()`. If **any** handler declares names, undeclared names are denied even when another handler would `supports()` them. Hosts that have not opted in keep today's behavior.
 
+### Confirmation
+
+Hosts may register an `A2UiActionPolicy` bean. When `requiresConfirmation(name)` is true, `POST /a2ui/actions` rejects the call **before** `supports()` unless `action.context.confirmed` is boolean `true` or the string `"true"` (case-insensitive). The response is **409 Conflict** with `CONFIRMATION_REQUIRED`.
+
+Retry the same action with `context.confirmed=true` after the user confirms. The runtime does **not** emit a confirm surface; the host frontend owns that UI. `A2UiActionPolicy.none()` (the default missing bean) requires confirmation for no names.
+
+Hidden component types (`A2UiSurfacePolicy.hiddenComponentTypes()`) are denied after catalog validation on assemble and on handler response messages (`COMPONENT_NOT_ALLOWED`). An empty hidden set is fail-open.
+
 ## Request shape
 
 Clients POST:

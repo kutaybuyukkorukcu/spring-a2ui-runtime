@@ -42,6 +42,8 @@ public class A2UiActionController {
             HttpStatus status;
             if (A2UiActionErrorCodes.ACTION_NOT_HANDLED.equals(ex.getErrorCode())) {
                 status = HttpStatus.UNPROCESSABLE_ENTITY;
+            } else if (A2UiActionErrorCodes.CONFIRMATION_REQUIRED.equals(ex.getErrorCode())) {
+                status = HttpStatus.CONFLICT;
             } else if (A2UiActionErrorCodes.INVALID_ACTION_RESPONSE.equals(ex.getErrorCode())) {
                 status = HttpStatus.INTERNAL_SERVER_ERROR;
             } else {

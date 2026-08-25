@@ -8,6 +8,9 @@ import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionAllowList;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiComponentVisibility;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiSurfacePolicy;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiSurfaceSpec;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiTemplateDefinition;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiTemplateRegistry;
@@ -23,6 +26,8 @@ public class A2UiSurfaceAssemblyService {
     private final A2UiTemplateRegistry templateRegistry;
     private final A2UiMessageValidator messageValidator;
     private final Supplier<A2UiActionAllowList> actionAllowList;
+    private final A2UiSurfacePolicy surfacePolicy;
+    private final A2UiRuntimeMetrics runtimeMetrics;
 
     public A2UiSurfaceAssemblyService(A2UiTemplateRegistry templateRegistry, A2UiMessageValidator messageValidator) {
         this(templateRegistry, messageValidator, A2UiActionAllowList.empty());
@@ -38,10 +43,37 @@ public class A2UiSurfaceAssemblyService {
     public A2UiSurfaceAssemblyService(
             A2UiTemplateRegistry templateRegistry,
             A2UiMessageValidator messageValidator,
+            A2UiActionAllowList actionAllowList,
+            A2UiSurfacePolicy surfacePolicy) {
+        this(templateRegistry, messageValidator, constantAllowList(actionAllowList), surfacePolicy);
+    }
+
+    public A2UiSurfaceAssemblyService(
+            A2UiTemplateRegistry templateRegistry,
+            A2UiMessageValidator messageValidator,
             Supplier<A2UiActionAllowList> actionAllowList) {
+        this(templateRegistry, messageValidator, actionAllowList, A2UiSurfacePolicy.none());
+    }
+
+    public A2UiSurfaceAssemblyService(
+            A2UiTemplateRegistry templateRegistry,
+            A2UiMessageValidator messageValidator,
+            Supplier<A2UiActionAllowList> actionAllowList,
+            A2UiSurfacePolicy surfacePolicy) {
+        this(templateRegistry, messageValidator, actionAllowList, surfacePolicy, A2UiRuntimeMetrics.noop());
+    }
+
+    public A2UiSurfaceAssemblyService(
+            A2UiTemplateRegistry templateRegistry,
+            A2UiMessageValidator messageValidator,
+            Supplier<A2UiActionAllowList> actionAllowList,
+            A2UiSurfacePolicy surfacePolicy,
+            A2UiRuntimeMetrics runtimeMetrics) {
         this.templateRegistry = templateRegistry;
         this.messageValidator = messageValidator;
         this.actionAllowList = actionAllowList == null ? A2UiActionAllowList::empty : actionAllowList;
+        this.surfacePolicy = surfacePolicy == null ? A2UiSurfacePolicy.none() : surfacePolicy;
+        this.runtimeMetrics = runtimeMetrics == null ? A2UiRuntimeMetrics.noop() : runtimeMetrics;
     }
 
     public List<A2UiMessage> assemble(
@@ -75,6 +107,7 @@ public class A2UiSurfaceAssemblyService {
                     SurfaceErrorCodes.A2UI_VALIDATION_FAILED,
                     diagnostics);
         }
+        rejectHiddenComponents(messages);
         return List.copyOf(messages);
     }
 
@@ -84,6 +117,16 @@ public class A2UiSurfaceAssemblyService {
                     "Unknown action: " + actionName,
                     SurfaceErrorCodes.UNKNOWN_ACTION,
                     Map.of("actionName", actionName));
+        });
+    }
+
+    private void rejectHiddenComponents(List<A2UiMessage> messages) {
+        A2UiComponentVisibility.firstHiddenType(messages, surfacePolicy).ifPresent(componentType -> {
+            runtimeMetrics.recordPolicyRejected("component");
+            throw new SurfaceExecutionException(
+                    "Component type not allowed: " + componentType,
+                    SurfaceErrorCodes.COMPONENT_NOT_ALLOWED,
+                    Map.of("componentType", componentType));
         });
     }
 

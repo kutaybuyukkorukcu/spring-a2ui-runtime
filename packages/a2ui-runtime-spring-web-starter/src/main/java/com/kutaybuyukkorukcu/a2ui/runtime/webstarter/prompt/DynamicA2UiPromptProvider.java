@@ -4,6 +4,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionAllowList;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiSurfacePolicy;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 
 import java.util.List;
@@ -15,6 +16,7 @@ public final class DynamicA2UiPromptProvider {
     private final A2UiGenerationContextFactory contextFactory;
     private final A2UiRuntimeMetrics runtimeMetrics;
     private final A2UiActionAllowList actionAllowList;
+    private final A2UiSurfacePolicy surfacePolicy;
 
     public DynamicA2UiPromptProvider() {
         this(A2UiCatalogRegistry.shared());
@@ -42,11 +44,21 @@ public final class DynamicA2UiPromptProvider {
             A2UiGenerationContextFactory contextFactory,
             A2UiRuntimeMetrics runtimeMetrics,
             A2UiActionAllowList actionAllowList) {
+        this(catalogRegistry, contextFactory, runtimeMetrics, actionAllowList, A2UiSurfacePolicy.none());
+    }
+
+    public DynamicA2UiPromptProvider(
+            A2UiCatalogRegistry catalogRegistry,
+            A2UiGenerationContextFactory contextFactory,
+            A2UiRuntimeMetrics runtimeMetrics,
+            A2UiActionAllowList actionAllowList,
+            A2UiSurfacePolicy surfacePolicy) {
         this.contextFactory = contextFactory != null
                 ? contextFactory
                 : defaultFactory(catalogRegistry != null ? catalogRegistry : A2UiCatalogRegistry.shared());
         this.runtimeMetrics = runtimeMetrics != null ? runtimeMetrics : A2UiRuntimeMetrics.noop();
         this.actionAllowList = actionAllowList != null ? actionAllowList : A2UiActionAllowList.empty();
+        this.surfacePolicy = surfacePolicy != null ? surfacePolicy : A2UiSurfacePolicy.none();
     }
 
     public String createPrimarySystemPrompt() {
@@ -102,6 +114,10 @@ public final class DynamicA2UiPromptProvider {
         }
         if (!actionAllowList.isEmpty()) {
             prompt.add(actionAllowList.formatPlannerBlock());
+        }
+        String hiddenBlock = surfacePolicy.formatPlannerBlock();
+        if (!hiddenBlock.isBlank()) {
+            prompt.add(hiddenBlock);
         }
         return prompt.toString();
     }

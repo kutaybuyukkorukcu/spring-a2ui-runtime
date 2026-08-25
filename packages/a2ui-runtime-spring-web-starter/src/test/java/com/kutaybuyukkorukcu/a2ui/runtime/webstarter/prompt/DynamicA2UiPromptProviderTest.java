@@ -7,6 +7,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiUserAction;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionAllowList;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionHandler;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiSurfacePolicy;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
@@ -149,6 +150,28 @@ class DynamicA2UiPromptProviderTest {
 
         assertThat(plannerUserPrompt).contains("Registered actions:");
         assertThat(plannerUserPrompt).contains("approve");
+        assertThat(plannerUserPrompt).contains("show metrics");
+    }
+
+    @Test
+    void plannerUserPromptShouldIncludeHiddenComponentTypes() {
+        A2UiSurfacePolicy hideBalance = () -> Set.of("AccountBalance");
+        DynamicA2UiPromptProvider provider = new DynamicA2UiPromptProvider(
+                A2UiCatalogRegistry.shared(),
+                null,
+                A2UiRuntimeMetrics.noop(),
+                A2UiActionAllowList.empty(),
+                hideBalance);
+        A2UiPromptContext context = new A2UiPromptContext(
+                "show metrics",
+                "Intent: dashboard",
+                A2UiCatalogIds.BASIC_V0_9,
+                List.of());
+
+        String plannerUserPrompt = provider.createPlannerUserPrompt(context);
+
+        assertThat(plannerUserPrompt).contains("Hidden component types:");
+        assertThat(plannerUserPrompt).contains("AccountBalance");
         assertThat(plannerUserPrompt).contains("show metrics");
     }
 
