@@ -9,10 +9,14 @@ import com.kutaybuyukkorukcu.a2ui.runtime.surface.A2UiDynamicComponentNormalizer
 import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionAllowList;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionHandler;
+import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiUserAction;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -132,6 +136,33 @@ class A2UiDynamicAssemblyServiceTest {
     }
 
     @Test
+    void shouldRejectUnknownActionWhenAllowListNonEmpty() {
+        A2UiActionAllowList allowList = A2UiActionAllowList.fromHandlers(List.of(new NamedHandler(Set.of("save"))));
+        A2UiDynamicAssemblyService restricted = new A2UiDynamicAssemblyService(
+                new A2UiDynamicComponentNormalizer(), validator, new com.fasterxml.jackson.databind.ObjectMapper(), allowList);
+        RenderA2UiArgs args = submitButtonArgs();
+
+        assertThatThrownBy(() -> restricted.assemble(args, A2UiCatalogIds.BASIC_V0_9, "main"))
+                .isInstanceOf(SurfaceExecutionException.class)
+                .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
+                .isEqualTo(SurfaceErrorCodes.UNKNOWN_ACTION);
+    }
+
+    @Test
+    void shouldAssembleWhenAllowListContainsActionName() {
+        A2UiActionAllowList allowList = A2UiActionAllowList.fromHandlers(List.of(new NamedHandler(Set.of("submit"))));
+        A2UiDynamicAssemblyService restricted = new A2UiDynamicAssemblyService(
+                new A2UiDynamicComponentNormalizer(), validator, new com.fasterxml.jackson.databind.ObjectMapper(), allowList);
+
+        List<A2UiMessage> messages = restricted.assemble(submitButtonArgs(), A2UiCatalogIds.BASIC_V0_9, "main");
+
+        assertThat(messages).hasSize(2);
+        A2UiMessage.UpdateComponents update = (A2UiMessage.UpdateComponents) messages.get(1);
+        assertThat(update.components().get(0).componentProperties().get("action"))
+                .isEqualTo(Map.of("event", Map.of("name", "submit")));
+    }
+
+    @Test
     void shouldRejectBlankComponentIdInsteadOfDropping() {
         RenderA2UiArgs args = new RenderA2UiArgs(
                 "planner-surface",
@@ -192,5 +223,43 @@ class A2UiDynamicAssemblyServiceTest {
                 .isInstanceOf(SurfaceExecutionException.class)
                 .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
                 .isEqualTo(SurfaceErrorCodes.A2UI_VALIDATION_FAILED);
+    }
+
+    private static RenderA2UiArgs submitButtonArgs() {
+        return new RenderA2UiArgs(
+                "planner-surface",
+                "root",
+                List.of(
+                        Map.of(
+                                "id", "root",
+                                "component", "Button",
+                                "child", "label",
+                                "action", "submit",
+                                "variant", "primary"),
+                        Map.of("id", "label", "component", "Text", "text", "Go")),
+                null);
+    }
+
+    private static final class NamedHandler implements A2UiActionHandler {
+        private final Set<String> names;
+
+        private NamedHandler(Set<String> names) {
+            this.names = names;
+        }
+
+        @Override
+        public Set<String> actionNames() {
+            return names;
+        }
+
+        @Override
+        public boolean supports(A2UiUserAction userAction) {
+            return false;
+        }
+
+        @Override
+        public List<A2UiMessage> handle(A2UiUserAction userAction, String requestId) {
+            return List.of();
+        }
     }
 }

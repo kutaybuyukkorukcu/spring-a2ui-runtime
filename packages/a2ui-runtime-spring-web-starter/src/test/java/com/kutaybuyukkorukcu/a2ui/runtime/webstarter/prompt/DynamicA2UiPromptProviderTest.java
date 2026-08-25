@@ -3,6 +3,10 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogContribution;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
+import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
+import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiUserAction;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionAllowList;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionHandler;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
@@ -125,5 +129,49 @@ class DynamicA2UiPromptProviderTest {
         assertThat(retryPrompt).contains("show metrics");
         assertThat(retryPrompt).contains("UNKNOWN_COMPONENT_TYPE");
         assertThat(retryPrompt).contains("failed A2UI validation");
+    }
+
+    @Test
+    void plannerUserPromptShouldIncludeRegisteredActionsFromAllowList() {
+        A2UiActionAllowList allowList = A2UiActionAllowList.fromHandlers(List.of(new NamedActionHandler(Set.of("approve"))));
+        DynamicA2UiPromptProvider provider = new DynamicA2UiPromptProvider(
+                A2UiCatalogRegistry.shared(),
+                null,
+                A2UiRuntimeMetrics.noop(),
+                allowList);
+        A2UiPromptContext context = new A2UiPromptContext(
+                "show metrics",
+                "Intent: dashboard",
+                A2UiCatalogIds.BASIC_V0_9,
+                List.of());
+
+        String plannerUserPrompt = provider.createPlannerUserPrompt(context);
+
+        assertThat(plannerUserPrompt).contains("Registered actions:");
+        assertThat(plannerUserPrompt).contains("approve");
+        assertThat(plannerUserPrompt).contains("show metrics");
+    }
+
+    private static final class NamedActionHandler implements A2UiActionHandler {
+        private final Set<String> names;
+
+        private NamedActionHandler(Set<String> names) {
+            this.names = names;
+        }
+
+        @Override
+        public Set<String> actionNames() {
+            return names;
+        }
+
+        @Override
+        public boolean supports(A2UiUserAction userAction) {
+            return false;
+        }
+
+        @Override
+        public List<A2UiMessage> handle(A2UiUserAction userAction, String requestId) {
+            return List.of();
+        }
     }
 }

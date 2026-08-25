@@ -7,6 +7,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.surface.A2UiSurfaceBuffer;
 import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionAllowList;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiSurfaceSpec;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiTemplateDefinition;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.template.A2UiTemplateRegistry;
@@ -15,15 +16,32 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 public class A2UiSurfaceAssemblyService {
 
     private final A2UiTemplateRegistry templateRegistry;
     private final A2UiMessageValidator messageValidator;
+    private final Supplier<A2UiActionAllowList> actionAllowList;
 
     public A2UiSurfaceAssemblyService(A2UiTemplateRegistry templateRegistry, A2UiMessageValidator messageValidator) {
+        this(templateRegistry, messageValidator, A2UiActionAllowList.empty());
+    }
+
+    public A2UiSurfaceAssemblyService(
+            A2UiTemplateRegistry templateRegistry,
+            A2UiMessageValidator messageValidator,
+            A2UiActionAllowList actionAllowList) {
+        this(templateRegistry, messageValidator, constantAllowList(actionAllowList));
+    }
+
+    public A2UiSurfaceAssemblyService(
+            A2UiTemplateRegistry templateRegistry,
+            A2UiMessageValidator messageValidator,
+            Supplier<A2UiActionAllowList> actionAllowList) {
         this.templateRegistry = templateRegistry;
         this.messageValidator = messageValidator;
+        this.actionAllowList = actionAllowList == null ? A2UiActionAllowList::empty : actionAllowList;
     }
 
     public List<A2UiMessage> assemble(
@@ -35,6 +53,7 @@ public class A2UiSurfaceAssemblyService {
         List<A2UiMessage> messages = new ArrayList<>();
         messages.add(new A2UiMessage.CreateSurface(surfaceId, catalogId));
         messages.addAll(spec.buildMessages(surfaceId, slots));
+        rejectUnknownActions(messages);
 
         A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
         for (A2UiMessage message : messages) {
@@ -57,6 +76,25 @@ public class A2UiSurfaceAssemblyService {
                     diagnostics);
         }
         return List.copyOf(messages);
+    }
+
+    private void rejectUnknownActions(List<A2UiMessage> messages) {
+        resolveAllowList(actionAllowList).firstUnknownName(messages).ifPresent(actionName -> {
+            throw new SurfaceExecutionException(
+                    "Unknown action: " + actionName,
+                    SurfaceErrorCodes.UNKNOWN_ACTION,
+                    Map.of("actionName", actionName));
+        });
+    }
+
+    private static Supplier<A2UiActionAllowList> constantAllowList(A2UiActionAllowList actionAllowList) {
+        A2UiActionAllowList resolved = actionAllowList == null ? A2UiActionAllowList.empty() : actionAllowList;
+        return () -> resolved;
+    }
+
+    private static A2UiActionAllowList resolveAllowList(Supplier<A2UiActionAllowList> actionAllowList) {
+        A2UiActionAllowList resolved = actionAllowList.get();
+        return resolved == null ? A2UiActionAllowList.empty() : resolved;
     }
 
     private void validateSlots(A2UiTemplateDefinition definition, Map<String, String> slots) {

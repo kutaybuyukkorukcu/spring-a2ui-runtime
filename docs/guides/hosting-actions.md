@@ -46,6 +46,24 @@ public A2UiActionHandler confirmHandler(MyProductService productService) {
 
 Multiple handlers are supported; the first `supports()` match wins.
 
+### Declared action names
+
+Override `actionNames()` so the runtime can build an allow-list from every handler:
+
+```java
+@Override
+public Set<String> actionNames() {
+    return Set.of("confirm");
+}
+```
+
+The default is an empty set. **Empty allow-list is fail-open:** routing stays `supports()`-only, and assemble does not deny names. **If any handler declares names**, the union is deny-unknown:
+
+- **Assemble** (dynamic `renderA2Ui` and templates): `Button.action.event.name` not in the list fails fast with `UNKNOWN_ACTION`.
+- **`POST /a2ui/actions`:** the same check runs **before** `supports()` / `handle`.
+
+Declare every name your buttons emit, including handlers that currently only implement `supports()`. If **any** handler declares names, undeclared names are denied even when another handler would `supports()` them. Hosts that have not opted in keep today's behavior.
+
 ## Request shape
 
 Clients POST:

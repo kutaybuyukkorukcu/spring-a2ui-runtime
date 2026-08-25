@@ -3,6 +3,7 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionAllowList;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 
 import java.util.List;
@@ -13,6 +14,7 @@ public final class DynamicA2UiPromptProvider {
 
     private final A2UiGenerationContextFactory contextFactory;
     private final A2UiRuntimeMetrics runtimeMetrics;
+    private final A2UiActionAllowList actionAllowList;
 
     public DynamicA2UiPromptProvider() {
         this(A2UiCatalogRegistry.shared());
@@ -32,10 +34,19 @@ public final class DynamicA2UiPromptProvider {
             A2UiCatalogRegistry catalogRegistry,
             A2UiGenerationContextFactory contextFactory,
             A2UiRuntimeMetrics runtimeMetrics) {
+        this(catalogRegistry, contextFactory, runtimeMetrics, A2UiActionAllowList.empty());
+    }
+
+    public DynamicA2UiPromptProvider(
+            A2UiCatalogRegistry catalogRegistry,
+            A2UiGenerationContextFactory contextFactory,
+            A2UiRuntimeMetrics runtimeMetrics,
+            A2UiActionAllowList actionAllowList) {
         this.contextFactory = contextFactory != null
                 ? contextFactory
                 : defaultFactory(catalogRegistry != null ? catalogRegistry : A2UiCatalogRegistry.shared());
         this.runtimeMetrics = runtimeMetrics != null ? runtimeMetrics : A2UiRuntimeMetrics.noop();
+        this.actionAllowList = actionAllowList != null ? actionAllowList : A2UiActionAllowList.empty();
     }
 
     public String createPrimarySystemPrompt() {
@@ -88,6 +99,9 @@ public final class DynamicA2UiPromptProvider {
         }
         if (validationDiagnostics != null && !validationDiagnostics.isEmpty()) {
             prompt.add(formatValidationDiagnostics(validationDiagnostics));
+        }
+        if (!actionAllowList.isEmpty()) {
+            prompt.add(actionAllowList.formatPlannerBlock());
         }
         return prompt.toString();
     }

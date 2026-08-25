@@ -13,6 +13,7 @@ public class SurfaceErrorCodes {
     public static final String TOOL_CHOICE_UNAVAILABLE = A2UiErrorCode.TOOL_CHOICE_UNAVAILABLE.code();
     public static final String NO_COMPATIBLE_CATALOG = A2UiErrorCode.NO_COMPATIBLE_CATALOG.code();
     public static final String A2UI_VALIDATION_FAILED = A2UiErrorCode.A2UI_VALIDATION_FAILED.code();
+    public static final String UNKNOWN_ACTION = A2UiErrorCode.UNKNOWN_ACTION.code();
 
     private SurfaceErrorCodes() {}
 }
