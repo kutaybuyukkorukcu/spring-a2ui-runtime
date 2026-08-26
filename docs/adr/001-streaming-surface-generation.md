@@ -268,4 +268,4 @@ None — provider scope decided **OpenAI-first** for MVP; multi-provider parity 
 ## References
 
 - [A2UI v0.8 protocol](https://a2ui.org/)
-- Internal: `BACKLOG.md`, phase plans under `docs/plans/`
+- Internal: `BACKLOG.md`, [ADR 002](002-in-product-surfaces.md), [ADR 003](003-catalog-scoped-fail-fast.md)

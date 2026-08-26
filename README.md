@@ -129,11 +129,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for layout, PR expectations, and formatti
 * [REST API](docs/rest-api.md)  
 * [Dynamic generative UI](docs/guides/dynamic-generative-ui.md)  
 * [Hosting actions](docs/guides/hosting-actions.md)  
-* [Platform builder batteries plan](docs/plans/phase-platform-builder-batteries.md) — completed (Central `2.1.0`)  
 * [Changelog](CHANGELOG.md)  
 * [Backlog](BACKLOG.md) — execution order (near-term priority is locked)  
+* [ADR 001](docs/adr/001-streaming-surface-generation.md) · [ADR 002](docs/adr/002-in-product-surfaces.md) · [ADR 003](docs/adr/003-catalog-scoped-fail-fast.md)  
 
-See also [CONTRIBUTING.md](CONTRIBUTING.md) for ADRs and phase plans.
+See also [CONTRIBUTING.md](CONTRIBUTING.md) for ADRs.
 
 ## Contributing
 

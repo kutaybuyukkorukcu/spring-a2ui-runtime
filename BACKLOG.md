@@ -1,10 +1,8 @@
 # Backlog
 
-Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** ✅ → **Central `2.1.0` (Template + Catalog SPI)** ✅ → **Architecture revisions** ✅ → **Generate / govern / execute (Phase 1: generation context)** → **Later (this track: action allow-list, application policy, context cache)** → **Later (residual)**.
+Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** ✅ → **Central `2.1.0` (Template + Catalog SPI)** ✅ → **Architecture revisions** ✅ → **Generate / govern / execute** ✅ → **Later (residual)**.
 
-ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)` · `[docs/adr/002-in-product-surfaces.md](docs/adr/002-in-product-surfaces.md)`
-
-Implementation plans (for agents): `[docs/plans/phase-0-stream-infra.md](docs/plans/phase-0-stream-infra.md)` · `[docs/plans/phase-1-template-mvp.md](docs/plans/phase-1-template-mvp.md)` · `[docs/plans/phase-2-dynamic-generative-ui.md](docs/plans/phase-2-dynamic-generative-ui.md)` · `[docs/plans/phase-2.5-scalable-dynamic-runtime.md](docs/plans/phase-2.5-scalable-dynamic-runtime.md)` · `[docs/plans/phase-release-v0.8.md](docs/plans/phase-release-v0.8.md)` · `[docs/plans/phase-x-migrating-to-v0.9.md](docs/plans/phase-x-migrating-to-v0.9.md)` · `[docs/plans/phase-product-runtime-interaction.md](docs/plans/phase-product-runtime-interaction.md)` · `[docs/plans/phase-platform-builder-batteries.md](docs/plans/phase-platform-builder-batteries.md)` · `[docs/plans/architecture-revisions.md](docs/plans/architecture-revisions.md)` · `[docs/plans/phase-generation-context.md](docs/plans/phase-generation-context.md)`
+ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)` · `[docs/adr/002-in-product-surfaces.md](docs/adr/002-in-product-surfaces.md)` · `[docs/adr/003-catalog-scoped-fail-fast.md](docs/adr/003-catalog-scoped-fail-fast.md)`
 
 **Branches:** `main` (Phase X hard cutover merged) · Legacy patch line `1.1.x`.
 
@@ -79,8 +77,8 @@ Near-term **execution order stays locked** (see header). This section only expla
 | **Utilization on native SSE** | Text / progress / run lifecycle *around* surfaces — product UX without a second pipe |
 | **Platform builder batteries** ✅ | Adoption maturity: in-product surface docs+showcase, Template SPI, host A2UI catalog SPI, ops, multi-provider — Central **`2.1.0`** |
 | **Architecture revisions** ✅ | Catalog-scoped fail-fast, one compose module, wire hygiene in core |
-| **Generate / govern / execute** | Catalog-aware planner context (Phase 1); then action allow-lists and application policy — not another agent framework |
-| **Later (residual)** | v1.0 watch, multi-surface runtime, Spring AI hop adapter, Boot 4 |
+| **Generate / govern / execute** ✅ | Catalog-aware planner context, action allow-list, application policy — not another agent framework |
+| **Later (residual)** | v1.0 watch, multi-surface runtime, Spring AI hop adapter, Boot 4, provider prompt cache |
 
 ---
 
@@ -131,7 +129,7 @@ Each template: fixed `surfaceUpdate` adjacency list → slot-driven `dataModelUp
 
 Completed-phase class names (`TemplateSurfaceOrchestrator`, `DynamicSurfaceOrchestrator`, `A2UiSurfaceBufferOps`) were superseded by compose adapters in architecture revisions (`SpringAiSurfaceRuntime` + `GenerationModeAdapter`).
 
-**Plan:** `[docs/plans/phase-1-template-mvp.md](docs/plans/phase-1-template-mvp.md)`
+**Docs:** [ADR 001](docs/adr/001-streaming-surface-generation.md) · [authoring templates](docs/guides/authoring-templates.md)
 
 ---
 
@@ -139,7 +137,7 @@ Completed-phase class names (`TemplateSurfaceOrchestrator`, `DynamicSurfaceOrche
 
 Goal: LLM generates UI **from scratch** using only the standard catalog — incremental envelopes, no page templates, no monolithic JSON blob.
 
-**Plan:** `[docs/plans/phase-2-dynamic-generative-ui.md](docs/plans/phase-2-dynamic-generative-ui.md)`
+**Docs:** [dynamic generative UI](docs/guides/dynamic-generative-ui.md) · [ADR 001](docs/adr/001-streaming-surface-generation.md)
 
 **Starting point:** Replace legacy JSONL stub in `SpringAiSurfaceRuntime.streamDynamic()` with **two-hop tools** (`generateA2Ui` → forced `renderA2Ui`) → **v0.8 assembly** → SSE. Phase 1 template path stays untouched.
 
@@ -183,7 +181,7 @@ Phase 2 dynamic mode works end-to-end but relied on a **repair normalizer** that
 
 **Goal:** Production-grade dynamic mode = **constrain at source + strict server validation + bounded retry + thin assembler only** (no semantic repair).
 
-**Plan:** `[docs/plans/phase-2.5-scalable-dynamic-runtime.md](docs/plans/phase-2.5-scalable-dynamic-runtime.md)`
+**Docs:** [dynamic generative UI](docs/guides/dynamic-generative-ui.md) (no semantic repair) · [ops and diagnostics](docs/guides/ops-and-diagnostics.md)
 
 ### Release policy (v0.8)
 
@@ -257,7 +255,7 @@ Invalid structure → `A2UiMessageValidator` fail → bounded retry diagnostics 
 
 Runtime GA criteria are met (Phases 0–2.5). Release engineering complete.
 
-**Plan:** `[docs/plans/phase-release-v0.8.md](docs/plans/phase-release-v0.8.md)`
+**Docs:** [CONTRIBUTING](CONTRIBUTING.md) (version bumps on the release PR only)
 
 **Version:** `1.1.0` on [Maven Central](https://repo1.maven.org/maven2/com/kutaybuyukkorukcu/a2ui/runtime/) — protocol remains A2UI v0.8 (Legacy on a2ui.org; Phase X moves to v0.9.1).
 
@@ -278,7 +276,7 @@ Merged `fix/dynamic-primary-tool-failfast` (forced primary `generateA2Ui`, plann
 
 **Prerequisite:** `1.1.0` ✅ and patch `1.1.1` ✅. a2ui.org marks **v0.8 = Legacy**, **v0.9.1 = Current**.
 
-**Plan:** `[docs/plans/phase-x-migrating-to-v0.9.md](docs/plans/phase-x-migrating-to-v0.9.md)` · **Guide:** `[docs/guides/migrating-to-v0.9.1.md](docs/guides/migrating-to-v0.9.1.md)`
+**Docs:** [Migrating to v0.9.1](docs/guides/migrating-to-v0.9.1.md)
 
 **Status:** hard cutover on `main` — library SemVer **`2.0.0`**, wire `v0.9.1`, basic catalog, thin sanitize, templates + dynamic + FE demo on `@a2ui/react/v0_9` (`MessageProcessor` / `A2uiSurface`). Unit/integration tests green; live FE smoke ✅; Maven Central **`2.0.0`** published.
 
@@ -300,7 +298,7 @@ Tracked here so they do not block utilization sequencing, but should not be forg
 - Tighten planner retry feedback to protocol-shaped `VALIDATION_FAILED` (`code`, `surfaceId`, `path`, `message`) instead of only our `A2UiDiagnostic` list
 - `sendDataModel` is modeled on `createSurface` but is **not** a full bidirectional data-sync product yet — keep docs honest (default `false`)
 - Catalog validation: flattened local `allOf` props work for tool schema + lightweight checks; full networknt resolution of remote `common_types.json` `$ref`s is still weaker than an upstream JSON Schema suite
-- Historical Phase 0–2 / ADR docs still describe v0.8 sequences (intentional archive) — new contributors start from Phase X plan + migrating-to-v0.9.1 guide
+- Historical Phase 0–2 docs still describe v0.8 sequences (intentional) — new contributors start from [migrating to v0.9.1](docs/guides/migrating-to-v0.9.1.md)
 
 ---
 
@@ -308,7 +306,7 @@ Tracked here so they do not block utilization sequencing, but should not be forg
 
 A2UI is a **UI payload format**. A GenUI **platform** also needs text, progress, and run lifecycle *around* surfaces — in **our** vocabulary on A2UI-native SSE — without changing generation strategy (two-hop tools + validate + retry).
 
-**Plan:** `[docs/plans/phase-product-runtime-interaction.md](docs/plans/phase-product-runtime-interaction.md)` · **Agent:** `.cursor/agents/product-runtime-architect.md`
+**Docs:** [Native SSE utilization](docs/guides/native-sse-utilization.md)
 
 | Capability | Product need | Our SSE |
 |------------|--------------|---------|
@@ -330,7 +328,7 @@ A2UI is a **UI payload format**. A GenUI **platform** also needs text, progress,
 ## Done — Platform builder batteries (OSS DX)
 
 **Status:** ✅ Complete on `main`; library SemVer **`2.1.0`** publishes Template + Catalog SPIs to Maven Central.  
-**Plan:** [`docs/plans/phase-platform-builder-batteries.md`](docs/plans/phase-platform-builder-batteries.md)  
+**Docs:** [platform](docs/platform.md) · [registering catalogs](docs/guides/registering-catalogs.md) · [authoring templates](docs/guides/authoring-templates.md)  
 **Jobs research (historical):** decision/capture wedge. **Current identity:** [ADR 002](docs/adr/002-in-product-surfaces.md) — in-product surfaces (steps and islands); do not treat ops HITL as the box.  
 **Catalog stance:** We ship/validate the **basic** A2UI catalog. Slice **C2** = host **registers their A2UI catalog schemas** with the runtime (same altitude as `A2UiActionHandler`). Hosts keep renderers + design system. We do **not** become a component kit, catalog marketplace, or visual catalog/create site.
 
@@ -354,7 +352,7 @@ A2UI is a **UI payload format**. A GenUI **platform** also needs text, progress,
 ## Architecture revisions
 
 **Status:** Waves A–C complete. Later items (Spring AI adapter, starter split, Boot 4) stay unstarted.  
-**Plan:** [`docs/plans/architecture-revisions.md`](docs/plans/architecture-revisions.md)  
+**Docs:** [ADR 003](docs/adr/003-catalog-scoped-fail-fast.md)  
 **Does not reopen** [ADR 001](docs/adr/001-streaming-surface-generation.md) / [ADR 002](docs/adr/002-in-product-surfaces.md): dual generation modes stay; template remains a frozen capability; dynamic stays gravity; native SSE + fail-fast stay. Demos out of scope.
 
 Fail-fast must mean **this catalog**. Then collapse the compose pipe and pull wire hygiene into core. Spring AI 2.0 / Boot 4 stays later.
@@ -382,7 +380,7 @@ Fail-fast must mean **this catalog**. Then collapse the compose pipe and pull wi
 
 ---
 
-## Next — Generate, govern, execute
+## Done — Generate, govern, execute
 
 Catalog-aware generation context first, then action allow-lists and application policy. Native SSE stays the product pipe. We do **not** become another agent framework.
 
@@ -392,9 +390,9 @@ Catalog-aware generation context first, then action allow-lists and application 
 |-------|------------|---------|
 | ChatOptions | `A2UiGenerationPolicy` (temperature, max tokens, response format) | How the model is called |
 | Catalog validation | `A2UiMessageValidator` + catalog schema | Is this valid A2UI for **this catalog**? |
-| Application policy | Phase 3 `A2UiSurfacePolicy` / `A2UiActionPolicy` on `feat/surface-action-policy` (new names; do not extend ChatOptions) | Is this allowed **here**? |
+| Application policy | `A2UiSurfacePolicy` / `A2UiActionPolicy` (do not extend ChatOptions) | Is this allowed **here**? |
 
-**Plan (Phase 1):** [`docs/plans/phase-generation-context.md`](docs/plans/phase-generation-context.md). Phase 2+ get their own plan files when Phase 1 is on `main`.
+**Docs:** [dynamic generative UI](docs/guides/dynamic-generative-ui.md) (digest, contributors).
 
 ### Phase 0 — Lock the map
 
@@ -404,10 +402,10 @@ Short note here and in [`docs/platform.md`](docs/platform.md): generate / govern
 
 ### Phase 1 — Generation context (first code)
 
-**Status:** implemented on `feat/generation-context`. **Why first:** the quality gap is generation-side. The planner today gets type names + `rules.txt`. The catalog is already a validation artifact (`A2UiCatalogRegistry`); this phase also projects it as compact LLM context. Two-hop (`generateA2Ui` → forced `renderA2Ui`) stays.
+**Status:** shipped. **Why first:** the quality gap was generation-side. The planner used to get type names + `rules.txt`. The catalog is a validation artifact (`A2UiCatalogRegistry`) and is also projected as compact LLM context. Two-hop (`generateA2Ui` → forced `renderA2Ui`) stays.
 
 - Compact `renderPlannerDigest` on `A2UiCatalogRegistry` (component name + required/allowed props; optional type prune). Do **not** dump full catalog JSON **and** `renderA2Ui` tool schema.
-- `A2UiGenerationContext` (static prefix + dynamic suffix), `A2UiGenerationRequest`, `A2UiGenerationContextKey` (cache key type now; cache in Phase 4).
+- `A2UiGenerationContext` (static prefix + dynamic suffix), `A2UiGenerationRequest`, `A2UiGenerationContextKey`.
 - `A2UiGenerationContextContributor` SPI. Runtime: `CoreCatalogContributor` (digest + rules), `ExampleContributor` (host few-shots). **No** `ActionContributor` inventory until Phase 2 — do not fake handler metadata.
 - Optional `examplesText()` on `A2UiCatalogContribution` (default empty). Do not put `whenToUse` / `preferredFor` / `avoidWhen` on core catalog types.
 - Wire into `DynamicA2UiPromptProvider` / `A2UiDynamicTools`. Keep `createPlannerSystemPrompt(catalogId)` as façade; prune overload `createPlannerSystemPrompt(catalogId, allowedTypes)`.
@@ -417,7 +415,7 @@ Do **not** overload `A2UiGenerationPolicy`. Do **not** add `A2UiGenerationStrate
 
 ### Phase 2 — Action allow-list + inject into context ✅
 
-**Status:** implemented on `feat/action-allow-list`. **Plan:** [`docs/plans/phase-action-allow-list.md`](docs/plans/phase-action-allow-list.md).
+**Status:** shipped. **Docs:** [hosting actions](docs/guides/hosting-actions.md).
 
 **Why:** LLM emitting `transferMoney` is not enough. `A2UiActionService` already first-matches `supports()`. Missing: explicit registered names, deny unknown at **assemble** and at `POST /a2ui/actions`, and feed those names into the **dynamic** generation suffix so the planner cannot invent events.
 
@@ -426,9 +424,9 @@ Do **not** overload `A2UiGenerationPolicy`. Do **not** add `A2UiGenerationStrate
 - At `POST /a2ui/actions`: same allow-list **before** `supports()` / `handle`.
 - `ActionContributor` injects registered names into the generation **dynamic** suffix; planner user prompt includes the same block.
 
-### Phase 3 — Application policy (not ChatOptions) ✅ (this branch)
+### Phase 3 — Application policy (not ChatOptions) ✅
 
-**Status:** implemented on `feat/surface-action-policy`. **Plan:** [`docs/plans/phase-application-policy.md`](docs/plans/phase-application-policy.md).
+**Status:** shipped. **Docs:** [hosting actions](docs/guides/hosting-actions.md).
 
 **Why:** Policy answers “is this allowed **here**?” after schema/catalog validity. New type with a **new name** (`A2UiSurfacePolicy` / `A2UiActionPolicy`) so nobody extends `A2UiGenerationPolicy`.
 
@@ -440,20 +438,11 @@ First slices:
 
 Metrics: `a2ui.policy.rejected`, `a2ui.action.rejected` / `executed`.
 
-Do **not** mix prompt quality with security in one PR. Own plan file when starting.
-
-### Phase 4 — Static context cache + provider prompt cache (later)
-
-**Why:** Phase 1 decides *what* to give the model. Caching (not paying for the same static prefix) is efficiency. Caching before the static/dynamic split exists is premature.
-
-- In-process cache keyed by `A2UiGenerationContextKey` for the static prefix.
-- Optional provider prompt-cache only where Spring AI ChatOptions already support it (do not invent a new provider layer).
-- Token/duration metrics: `a2ui.generation.duration`, `a2ui.generation.tokens`, `a2ui.catalog.selected`.
-
-Own plan file when starting.
+Do **not** mix prompt quality with security in one PR.
 
 ### Later / never (this track)
 
+- In-process static-prefix cache — **overkill**; do not cache the planner static prefix keyed by `A2UiGenerationContextKey`.
 - Split schema vs catalog validators into separate classes — observability codes are enough until policy exists so “policy rejected” is distinct.
 - `A2UiGenerationRepairStrategy` as a generic SPI — keep one bounded validation retry; on policy reject **fail-fast** unless a later ADR says otherwise.
 - A2UI v1.0 Candidate (`actionResponse`) — watch; do not bump Current.
@@ -475,7 +464,11 @@ Items below stay **after** builder batteries (or never, if they fail the extensi
 - `JSON_SCHEMA` response format mode cleanup (ongoing reliability)  
 
 ~~Host A2UI catalog registration~~ → **batteries Slice C2** (SPI only — not us shipping catalogs)  
-~~Latency / caching patterns~~ → **folded into batteries Slice D** 
+~~Latency / caching patterns~~ → **folded into batteries Slice D**
+
+### Provider prompt cache (explore later)
+
+Where Spring AI `ChatOptions` already supports a provider prompt cache, we can explore using it. Do **not** invent a new provider layer. Own plan file if starting.
 
 ### Explicit non-goals (interop)
 
