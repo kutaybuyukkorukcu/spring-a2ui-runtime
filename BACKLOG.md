@@ -1,6 +1,6 @@
 # Backlog
 
-Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** ✅ → **Central `2.1.0` (Template + Catalog SPI)** ✅ → **Architecture revisions** ✅ → **Generate / govern / execute** ✅ → **Later (this track: context cache)** → **Later (residual)**.
+Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** ✅ → **Central `2.1.0` (Template + Catalog SPI)** ✅ → **Architecture revisions** ✅ → **Generate / govern / execute** ✅ → **Later (residual)**.
 
 ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)` · `[docs/adr/002-in-product-surfaces.md](docs/adr/002-in-product-surfaces.md)` · `[docs/adr/003-catalog-scoped-fail-fast.md](docs/adr/003-catalog-scoped-fail-fast.md)`
 
@@ -78,7 +78,7 @@ Near-term **execution order stays locked** (see header). This section only expla
 | **Platform builder batteries** ✅ | Adoption maturity: in-product surface docs+showcase, Template SPI, host A2UI catalog SPI, ops, multi-provider — Central **`2.1.0`** |
 | **Architecture revisions** ✅ | Catalog-scoped fail-fast, one compose module, wire hygiene in core |
 | **Generate / govern / execute** ✅ | Catalog-aware planner context, action allow-list, application policy — not another agent framework |
-| **Later (residual)** | v1.0 watch, multi-surface runtime, Spring AI hop adapter, Boot 4 |
+| **Later (residual)** | v1.0 watch, multi-surface runtime, Spring AI hop adapter, Boot 4, provider prompt cache |
 
 ---
 
@@ -405,7 +405,7 @@ Short note here and in [`docs/platform.md`](docs/platform.md): generate / govern
 **Status:** shipped. **Why first:** the quality gap was generation-side. The planner used to get type names + `rules.txt`. The catalog is a validation artifact (`A2UiCatalogRegistry`) and is also projected as compact LLM context. Two-hop (`generateA2Ui` → forced `renderA2Ui`) stays.
 
 - Compact `renderPlannerDigest` on `A2UiCatalogRegistry` (component name + required/allowed props; optional type prune). Do **not** dump full catalog JSON **and** `renderA2Ui` tool schema.
-- `A2UiGenerationContext` (static prefix + dynamic suffix), `A2UiGenerationRequest`, `A2UiGenerationContextKey` (cache key type now; cache in Phase 4).
+- `A2UiGenerationContext` (static prefix + dynamic suffix), `A2UiGenerationRequest`, `A2UiGenerationContextKey`.
 - `A2UiGenerationContextContributor` SPI. Runtime: `CoreCatalogContributor` (digest + rules), `ExampleContributor` (host few-shots). **No** `ActionContributor` inventory until Phase 2 — do not fake handler metadata.
 - Optional `examplesText()` on `A2UiCatalogContribution` (default empty). Do not put `whenToUse` / `preferredFor` / `avoidWhen` on core catalog types.
 - Wire into `DynamicA2UiPromptProvider` / `A2UiDynamicTools`. Keep `createPlannerSystemPrompt(catalogId)` as façade; prune overload `createPlannerSystemPrompt(catalogId, allowedTypes)`.
@@ -440,18 +440,9 @@ Metrics: `a2ui.policy.rejected`, `a2ui.action.rejected` / `executed`.
 
 Do **not** mix prompt quality with security in one PR.
 
-### Phase 4 — Static context cache + provider prompt cache (later)
-
-**Why:** Phase 1 decides *what* to give the model. Caching (not paying for the same static prefix) is efficiency. Caching before the static/dynamic split exists is premature.
-
-- In-process cache keyed by `A2UiGenerationContextKey` for the static prefix.
-- Optional provider prompt-cache only where Spring AI ChatOptions already support it (do not invent a new provider layer).
-- Token/duration metrics: `a2ui.generation.duration`, `a2ui.generation.tokens`, `a2ui.catalog.selected`.
-
-Own plan file when starting.
-
 ### Later / never (this track)
 
+- In-process static-prefix cache — **overkill**; do not cache the planner static prefix keyed by `A2UiGenerationContextKey`.
 - Split schema vs catalog validators into separate classes — observability codes are enough until policy exists so “policy rejected” is distinct.
 - `A2UiGenerationRepairStrategy` as a generic SPI — keep one bounded validation retry; on policy reject **fail-fast** unless a later ADR says otherwise.
 - A2UI v1.0 Candidate (`actionResponse`) — watch; do not bump Current.
@@ -473,7 +464,11 @@ Items below stay **after** builder batteries (or never, if they fail the extensi
 - `JSON_SCHEMA` response format mode cleanup (ongoing reliability)  
 
 ~~Host A2UI catalog registration~~ → **batteries Slice C2** (SPI only — not us shipping catalogs)  
-~~Latency / caching patterns~~ → **folded into batteries Slice D** 
+~~Latency / caching patterns~~ → **folded into batteries Slice D**
+
+### Provider prompt cache (explore later)
+
+Where Spring AI `ChatOptions` already supports a provider prompt cache, we can explore using it. Do **not** invent a new provider layer. Own plan file if starting.
 
 ### Explicit non-goals (interop)
 
