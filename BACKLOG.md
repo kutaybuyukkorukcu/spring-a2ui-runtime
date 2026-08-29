@@ -405,7 +405,7 @@ Short note here and in [`docs/platform.md`](docs/platform.md): generate / govern
 **Status:** shipped. **Why first:** the quality gap was generation-side. The planner used to get type names + `rules.txt`. The catalog is a validation artifact (`A2UiCatalogRegistry`) and is also projected as compact LLM context. Two-hop (`generateA2Ui` → forced `renderA2Ui`) stays.
 
 - Compact `renderPlannerDigest` on `A2UiCatalogRegistry` (component name + required/allowed props; optional type prune). Do **not** dump full catalog JSON **and** `renderA2Ui` tool schema.
-- `A2UiGenerationContext` (static prefix + dynamic suffix), `A2UiGenerationRequest`, `A2UiGenerationContextKey`.
+- `A2UiGenerationContext` (static prefix + dynamic suffix), `A2UiGenerationRequest`.
 - `A2UiGenerationContextContributor` SPI. Runtime: `CoreCatalogContributor` (digest + rules), `ExampleContributor` (host few-shots). **No** `ActionContributor` inventory until Phase 2 — do not fake handler metadata.
 - Optional `examplesText()` on `A2UiCatalogContribution` (default empty). Do not put `whenToUse` / `preferredFor` / `avoidWhen` on core catalog types.
 - Wire into `DynamicA2UiPromptProvider` / `A2UiDynamicTools`. Keep `createPlannerSystemPrompt(catalogId)` as façade; prune overload `createPlannerSystemPrompt(catalogId, allowedTypes)`.
@@ -442,7 +442,7 @@ Do **not** mix prompt quality with security in one PR.
 
 ### Later / never (this track)
 
-- In-process static-prefix cache — **overkill**; do not cache the planner static prefix keyed by `A2UiGenerationContextKey`.
+- In-process static-prefix cache — **overkill**; do not cache the planner static prefix.
 - Split schema vs catalog validators into separate classes — observability codes are enough until policy exists so “policy rejected” is distinct.
 - `A2UiGenerationRepairStrategy` as a generic SPI — keep one bounded validation retry; on policy reject **fail-fast** unless a later ADR says otherwise.
 - A2UI v1.0 Candidate (`actionResponse`) — watch; do not bump Current.

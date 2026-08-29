@@ -2,9 +2,7 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.StringJoiner;
-import java.util.stream.Collectors;
 
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 
@@ -27,7 +25,6 @@ public final class A2UiGenerationContextFactory {
         for (A2UiGenerationContextContributor contributor : contributors) {
             contributor.contribute(request, builder);
         }
-        builder.key(createKey(request, builder));
         appendDynamicSuffix(request, builder);
         return builder.build();
     }
@@ -41,31 +38,5 @@ public final class A2UiGenerationContextFactory {
             suffix.add("Context: " + request.contextHints());
         }
         builder.appendDynamic(suffix.toString());
-    }
-
-    private A2UiGenerationContextKey createKey(A2UiGenerationRequest request, A2UiGenerationContext.Builder builder) {
-        String catalogId = request.catalogId();
-        String model = request.model() == null ? "" : request.model();
-        String catalogVersion = Integer.toHexString(builder.staticPrefix().hashCode());
-        return new A2UiGenerationContextKey(
-                catalogId,
-                catalogVersion,
-                model,
-                request.generationMode(),
-                contributorFingerprint(),
-                allowedTypesFingerprint(request.allowedTypes()));
-    }
-
-    private static String allowedTypesFingerprint(Set<String> allowedTypes) {
-        if (allowedTypes == null || allowedTypes.isEmpty()) {
-            return "";
-        }
-        return allowedTypes.stream().sorted().collect(Collectors.joining(","));
-    }
-
-    private String contributorFingerprint() {
-        return contributors.stream()
-                .map(contributor -> contributor.getClass().getSimpleName())
-                .collect(Collectors.joining(","));
     }
 }

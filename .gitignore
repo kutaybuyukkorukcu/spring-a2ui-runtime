@@ -34,3 +34,5 @@ dist/
 .cursor/
 .agents/
 graphify-out/
+
+skills-lock.json

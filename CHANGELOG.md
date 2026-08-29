@@ -16,6 +16,10 @@ Library versions (`2.x`) speak A2UI **protocol** v0.9.1. The `1.1.x` line remain
 - **ChatOptions policy apply** — null policy fields no longer wipe host token/seed limits; `NONE` clears OpenAI response format and Vertex JSON mime; Generic customizer fails when a setter is missing
 - **Catalog schema locality** — empty schema is `UNKNOWN_COMPONENT_TYPE`; catalog id is derived from `createSurface` when context omits it; returned schemas and root data-model maps are copies; nested `UpdateDataModel` patches copy immutable maps
 
+### Removed
+
+- **`A2UiGenerationContextKey`** — unused cache key; `A2UiGenerationContext` is static prefix + dynamic suffix only
+
 ### Changed
 
 - **Unused 2.x knobs** — `a2ui.web.basePath`, `a2ui.web.stream.timeoutMs`, and advisor `failFast` / `messageValidation` are deprecated (unread; no remapping). Compose adapters, tools, sessions, and the core normalizer are documented as internal
