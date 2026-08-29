@@ -1,0 +1,50 @@
+name: Publish Packages
+
+on:
+  workflow_dispatch:
+  release:
+    types:
+      - published
+
+permissions:
+  contents: read
+
+jobs:
+  publish-central:
+    name: Publish To Maven Central
+    runs-on: ubuntu-latest
+    env:
+      MAVEN_USERNAME: ${{ secrets.CENTRAL_TOKEN_USERNAME }}
+      MAVEN_PASSWORD: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}
+      GPG_PASSPHRASE: ${{ secrets.CENTRAL_GPG_PASSPHRASE }}
+      CENTRAL_GPG_PRIVATE_KEY: ${{ secrets.CENTRAL_GPG_PRIVATE_KEY }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java and Maven Central credentials
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          server-id: central
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+          gpg-private-key: ${{ secrets.CENTRAL_GPG_PRIVATE_KEY }}
+          gpg-passphrase: GPG_PASSPHRASE
+
+      - name: Verify release secrets are present
+        run: |
+          test -n "$MAVEN_USERNAME"
+          test -n "$MAVEN_PASSWORD"
+          test -n "$GPG_PASSPHRASE"
+          test -n "$CENTRAL_GPG_PRIVATE_KEY"
+
+      - name: Publish reusable runtime packages
+        run: >-
+          mvn -B -ntp
+          -Pcentral-publish
+          -pl :a2ui-runtime-core,:a2ui-runtime-spring-starter,:a2ui-runtime-spring-web-starter
+          -am
+          deploy
