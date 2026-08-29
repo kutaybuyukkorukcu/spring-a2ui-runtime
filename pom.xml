@@ -194,6 +194,13 @@
                         <configuration>
                             <source>${java.version}</source>
                             <encoding>${project.build.sourceEncoding}</encoding>
+                            <tags>
+                                <tag>
+                                    <name>apiNote</name>
+                                    <placement>a</placement>
+                                    <head>API Note:</head>
+                                </tag>
+                            </tags>
                         </configuration>
                         <executions>
                             <execution>
