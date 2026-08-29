@@ -31,6 +31,8 @@ dist/
 .opencode/
 .superpowers/
 .github/
+!.github/workflows/
+!.github/workflows/**
 .cursor/
 .agents/
 graphify-out/
