@@ -51,10 +51,12 @@ Submit Buttons must declare `action.event.context` as path maps (for example
 
 ## Toward A2UI v1.0
 
-A2UI v1.0 Candidate discusses richer action response correlation
-(`actionResponse` / `wantResponse`). Design your host correlation ids and ack
-payloads so they can map cleanly when Current moves — do not wait on v1.0 to
-ship this loop on v0.9.1 `action` + follow-up messages.
+Ship this loop on v0.9.1 `action` + follow-up messages. The next runtime
+phase is **A2UI v1.0 actions / functions** ([BACKLOG](../../BACKLOG.md)):
+`event` stays the backend-agent write path; `functionCall` is a catalog
+executable (renderer-local or agent RPC), not a second name for the same
+handler. Keep host correlation ids and acks boring so they map to
+`functionCallId` / v1.0 ingress without a rewrite.
 
 ## After the decision
 

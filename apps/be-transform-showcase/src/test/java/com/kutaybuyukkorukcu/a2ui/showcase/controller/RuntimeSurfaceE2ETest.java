@@ -320,8 +320,8 @@ class RuntimeSurfaceE2ETest {
                                 .content("""
                                         {"action":{"name":"confirm","surfaceId":"main","sourceComponentId":"confirm-btn","timestamp":"2026-05-19T00:00:00Z","context":{}}}
                                         """))
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.code").value("ACTION_NOT_HANDLED"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("UNKNOWN_ACTION"));
     }
 
     @Test
@@ -370,7 +370,8 @@ class RuntimeSurfaceE2ETest {
                                 .content("""
                                         {"action":{"name":"unknown-action","surfaceId":"main","sourceComponentId":"btn-1","timestamp":"2026-05-19T00:00:00Z","context":{}}}
                                         """))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("UNKNOWN_ACTION"));
     }
 
     @Test

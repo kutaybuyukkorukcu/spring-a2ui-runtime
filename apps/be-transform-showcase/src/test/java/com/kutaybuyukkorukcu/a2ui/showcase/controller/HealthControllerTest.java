@@ -26,7 +26,7 @@ class HealthControllerTest {
         mockMvc.perform(get("/health"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("healthy"))
-                .andExpect(jsonPath("$.version").value("2.1.0"))
+                .andExpect(jsonPath("$.version").value("2.2.0"))
                 .andExpect(jsonPath("$.timestamp").exists());
     }
 
@@ -36,7 +36,7 @@ class HealthControllerTest {
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("payments-api workspace"))
-                .andExpect(jsonPath("$.version").value("2.1.0"))
+                .andExpect(jsonPath("$.version").value("2.2.0"))
                 .andExpect(jsonPath("$.endpoints.surfaceStream").exists())
                 .andExpect(jsonPath("$.endpoints.actions").exists())
                 .andExpect(jsonPath("$.endpoints.catalog").exists())

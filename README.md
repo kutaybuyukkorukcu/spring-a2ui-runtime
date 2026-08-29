@@ -14,9 +14,9 @@ If you are building generative UI on Spring, you should not have to hand-roll pr
 
 ## Status
 
-Library version **`2.1.0`** speaks **A2UI v0.9.1 Current** (hard cutover from `1.1.x`). Maven Central **`1.1.x`** remains the A2UI **v0.8 Legacy** patch line for older clients.
+Library version **`2.2.0`** speaks **A2UI v0.9.1 Current** (hard cutover from `1.1.x`). Maven Central **`1.1.x`** remains the A2UI **v0.8 Legacy** patch line for older clients.
 
-**Core MVP + builder batteries are shipped** (compose → validate → stream → fail-fast → actions, utilization, basic catalog, Template SPI, host A2UI catalog SPI, in-product surface docs/showcase, ops). Residual Later items live in [`BACKLOG.md`](BACKLOG.md).
+**Core MVP + builder batteries are shipped** (compose → validate → stream → fail-fast → actions, utilization, basic catalog, Template SPI, host A2UI catalog SPI, in-product surface docs/showcase, ops). **`2.2.0`** adds architecture revisions and generate / govern / execute on the same v0.9.1 wire. Next: A2UI v1.0 actions / functions in [`BACKLOG.md`](BACKLOG.md).
 
 Both generation modes ship. **When to use them** is [ADR 002](docs/adr/002-in-product-surfaces.md):
 
@@ -35,7 +35,7 @@ You do not need to build this repository to use the runtime. Add the web starter
 <dependency>
   <groupId>com.kutaybuyukkorukcu.a2ui.runtime</groupId>
   <artifactId>a2ui-runtime-spring-web-starter</artifactId>
-  <version>2.1.0</version>
+  <version>2.2.0</version>
 </dependency>
 ```
 

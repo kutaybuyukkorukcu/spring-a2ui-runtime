@@ -13,7 +13,7 @@ public class HealthController {
     public ResponseEntity<Map<String, Object>> health() {
         return ResponseEntity.ok(Map.of(
                 "status", "healthy",
-                "version", "2.1.0",
+                "version", "2.2.0",
                 "timestamp", System.currentTimeMillis()
         ));
     }
@@ -22,7 +22,7 @@ public class HealthController {
     public ResponseEntity<Map<String, Object>> info() {
         return ResponseEntity.ok(Map.of(
                 "name", ShowcaseWorkspace.PRODUCT_NAME,
-                "version", "2.1.0",
+                "version", "2.2.0",
                 "description",
                 "Spring GenUI host demo — a page the host owns, with one island whose tree depends on this record",
                 "endpoints", Map.of(

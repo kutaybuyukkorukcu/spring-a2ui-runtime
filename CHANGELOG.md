@@ -5,9 +5,19 @@ All notable changes to spring-a2ui-runtime are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project aims to follow [Semantic Versioning](https://semver.org/).
 
-Library versions (`2.x`) speak A2UI **protocol** v0.9.1. The `1.1.x` line remains A2UI v0.8 Legacy.
+Library versions (`2.x`) speak A2UI **protocol** v0.9.1. The `1.1.x` line remains A2UI v0.8 Legacy. Next protocol bump (A2UI v1.0 actions/functions) is library **`3.0.0` candidate** — see [`BACKLOG.md`](BACKLOG.md).
 
 ## [Unreleased]
+
+## [2.2.0] — 2026-08-29
+
+Minor release of the **A2UI v0.9.1** line: architecture revisions, generate / govern / execute, runtime hardening. Wire stays v0.9.1 (source-compatible with `2.1.0`).
+
+### Added
+
+- **Generation context** — compact catalog planner digest, `A2UiGenerationContext` / `A2UiGenerationContextContributor`, optional host `examplesText()` ([dynamic generative UI](docs/guides/dynamic-generative-ui.md))
+- **Action allow-list** — handlers declare `actionNames()`; deny-unknown at assemble and `POST /a2ui/actions` when any names are registered ([hosting actions](docs/guides/hosting-actions.md))
+- **Application policy** — `A2UiActionPolicy` confirmation hook and `A2UiSurfacePolicy` hidden component types (not `A2UiGenerationPolicy`)
 
 ### Fixed
 
@@ -30,6 +40,14 @@ Library versions (`2.x`) speak A2UI **protocol** v0.9.1. The `1.1.x` line remain
 - **Showcase** — payments-api workspace: known record `cfg-204` host-assembled ($0), unknown record `mig-311` dynamically composed from case context; one island; host ledger write gate (`submit_change` / `approve` / `reject` only; no empty-context defaults; decision buttons bind `changeId`)
 - **Form capture** — TextField `value` path is required; submit Buttons must declare `action.event.context` maps; showcase handler persists submitted values (including notes/rollback/risk) into the next assembled surface
 - **Templates** — library no longer ships bootstrap templates (`text-card`, `hero-cta`, `form-login`, `weather-card`). Register your own via `A2UiTemplateCustomizer`; the registry starts empty
+
+### Packages
+
+Published to Maven Central:
+
+- `com.kutaybuyukkorukcu.a2ui.runtime:a2ui-runtime-core:2.2.0`
+- `com.kutaybuyukkorukcu.a2ui.runtime:a2ui-runtime-spring-starter:2.2.0`
+- `com.kutaybuyukkorukcu.a2ui.runtime:a2ui-runtime-spring-web-starter:2.2.0`
 
 ## [2.1.0] — 2026-08-09
 
@@ -135,6 +153,7 @@ Published to Maven Central:
 Early publish of this repository to Maven Central (pre–Phase 0–2.5 GA).
 Kept for history; use **2.0.0** for v0.9.1 (or **1.1.1** for Legacy v0.8).
 
+[2.2.0]: https://github.com/kutaybuyukkorukcu/spring-a2ui-runtime/releases/tag/2.2.0
 [2.1.0]: https://github.com/kutaybuyukkorukcu/spring-a2ui-runtime/releases/tag/2.1.0
 [2.0.0]: https://github.com/kutaybuyukkorukcu/spring-a2ui-runtime/releases/tag/2.0.0
 [1.1.1]: https://github.com/kutaybuyukkorukcu/spring-a2ui-runtime/releases/tag/1.1.1

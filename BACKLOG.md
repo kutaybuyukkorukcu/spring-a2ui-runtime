@@ -1,6 +1,6 @@
 # Backlog
 
-Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** ✅ → **Central `2.1.0` (Template + Catalog SPI)** ✅ → **Architecture revisions** ✅ → **Generate / govern / execute** ✅ → **Later (residual)**.
+Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** ✅ → **Central `2.1.0` (Template + Catalog SPI)** ✅ → **Architecture revisions** ✅ → **Generate / govern / execute** ✅ → **Central `2.2.0` (v0.9.1 line)** ✅ → **A2UI v1.0 actions / functions** → **Later (residual)**.
 
 ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)` · `[docs/adr/002-in-product-surfaces.md](docs/adr/002-in-product-surfaces.md)` · `[docs/adr/003-catalog-scoped-fail-fast.md](docs/adr/003-catalog-scoped-fail-fast.md)`
 
@@ -65,6 +65,7 @@ Ship a Maven Central Spring Boot runtime that turns host intent plus context int
 - ~~v0.8 / Central `1.1.0`~~ → **Published**
 - ~~Patch `1.1.1` dynamic fail-fast~~ → **Published**
 - ~~Platform builder batteries~~ → **Shipped** (Central `2.1.0`)
+- ~~Architecture revisions + generate / govern / execute~~ → **Shipped** (library **`2.2.0`**)
 
 ### Roadmap narrative (product view)
 
@@ -78,7 +79,9 @@ Near-term **execution order stays locked** (see header). This section only expla
 | **Platform builder batteries** ✅ | Adoption maturity: in-product surface docs+showcase, Template SPI, host A2UI catalog SPI, ops, multi-provider — Central **`2.1.0`** |
 | **Architecture revisions** ✅ | Catalog-scoped fail-fast, one compose module, wire hygiene in core |
 | **Generate / govern / execute** ✅ | Catalog-aware planner context, action allow-list, application policy — not another agent framework |
-| **Later (residual)** | v1.0 watch, multi-surface runtime, Spring AI hop adapter, Boot 4, provider prompt cache |
+| **Central `2.2.0`** ✅ | Closes the v0.9.1 product line (architecture + generate/govern/execute). GitHub Release / Maven Central after this cut |
+| **A2UI v1.0 actions / functions** | Next: protocol action/function cutover, identity, event vs function, idempotency, routing observability — library **`3.0.0` candidate** |
+| **Later (residual)** | Multi-surface runtime, Spring AI hop adapter, Boot 4, provider prompt cache |
 
 ---
 
@@ -293,7 +296,7 @@ Merged `fix/dynamic-primary-tool-failfast` (forced primary `generateA2Ui`, plann
 
 Tracked here so they do not block utilization sequencing, but should not be forgotten:
 
-- Rename Java type `A2UiUserAction` to align with JSON property `action` (wire already correct; class name is confusing)
+- ~~Rename Java type `A2UiUserAction`~~ → **A2UI v1.0 actions / functions** (absorbed)
 - Remove deprecated buffer / `A2UiClientEvent.userAction()` shims once call sites are clean — they hide incomplete migrations
 - Tighten planner retry feedback to protocol-shaped `VALIDATION_FAILED` (`code`, `surfaceId`, `path`, `message`) instead of only our `A2UiDiagnostic` list
 - `sendDataModel` is modeled on `createSurface` but is **not** a full bidirectional data-sync product yet — keep docs honest (default `false`)
@@ -445,9 +448,120 @@ Do **not** mix prompt quality with security in one PR.
 - In-process static-prefix cache — **overkill**; do not cache the planner static prefix.
 - Split schema vs catalog validators into separate classes — observability codes are enough until policy exists so “policy rejected” is distinct.
 - `A2UiGenerationRepairStrategy` as a generic SPI — keep one bounded validation retry; on policy reject **fail-fast** unless a later ADR says otherwise.
-- A2UI v1.0 Candidate (`actionResponse`) — watch; do not bump Current.
+- ~~A2UI v1.0 Candidate (`actionResponse`)~~ → **A2UI v1.0 actions / functions** (next)
 - A2A `DataPart` / Agent Card adapter, AG-UI, MCP Apps, extra generation backends — demand-gated bridges only; never identity.
 - Spring AI hop adapter / Boot 4 — already architecture-revisions Later.
+
+---
+
+## Next — A2UI v1.0 actions / functions
+
+**Status:** map locked here. No code until identity + event-vs-function are decided (ADR).  
+**Library:** **`3.0.0` candidate** — protocol bump, same pattern as `2.0.0` for v0.9.1.  
+**Prerequisite:** library **`2.2.0`** (architecture + generate/govern/execute). GitHub Release / Maven Central follow this cut.  
+**Protocol:** A2UI **v1.0 Candidate** ([spec](https://a2ui.org/specification/v1.0-a2ui/), [evolution](https://a2ui.org/specification/v1.0-evolution-guide/)). v0.9.1 stays Current on the `2.x` line until this phase’s acceptance is met.  
+**Does not reopen** [ADR 001](docs/adr/001-streaming-surface-generation.md) / [ADR 002](docs/adr/002-in-product-surfaces.md) / [ADR 003](docs/adr/003-catalog-scoped-fail-fast.md): native SSE, fail-fast, in-product surfaces, catalog-scoped validation stay.
+
+Today the execute path is **one** pipe: `POST /a2ui/actions` with `{ action: { name, surfaceId, … } }` → first `A2UiActionHandler.supports()` → host messages. The v0.9 catalog already allows Button `action.event` **or** `action.functionCall`; we only allow-list and route **event names**. v1.0 makes that split real: events to the agent, functions as catalog-defined executables (renderer-local and/or agent RPC).
+
+**Sequencing (locked)**
+
+0. **Map** (this section) — open questions captured, not decided  
+1. **Identity + event vs function** — decide before wire code (slices 2–3)  
+2. **v1.0 action/function migration** — catalogs, envelopes, ingress (slice 1)  
+3. **Idempotency** — duplicate / retry semantics against that identity (slice 4)  
+4. **Routing + execution observability** — tags and traces after identity; counters can start earlier (slice 5)
+
+**Absorbs** Phase X follow-up: rename `A2UiUserAction` to match the JSON property `action` (and whatever v1.0 event vs function types need).
+
+### 1 — A2UI v1.0 action/function migration
+
+Hard cutover when Current moves, not a dual-protocol mode. Same discipline as Phase X.
+
+In scope when we bump:
+
+- Wire version `v1.0`; basic catalog + host `A2UiCatalogContribution` against v1.0 schemas (including catalog **`functions`** maps, UAX #31 names, optional per-call `catalogId`)
+- Agent→renderer envelopes: existing surface ops **plus** `callRendererFunction` / `agentFunctionResponse` (and `createSurface` optional embedded components/dataModel)
+- Renderer→agent ingress: `action` **and** `callAgentFunction` / `rendererFunctionResponse` / `error` — not only today’s `{ "action": … }`
+- Assemble + `POST` deny-unknown against the **decided** identity (slice 2), not a second allow-list invention
+- FE demo / showcase on a v1.0-capable renderer when one exists; until then, protocol tests without pretending the smoke client is Current
+
+Out of scope: foreign-client bridges; executing renderer-only functions on the JVM; becoming a function marketplace.
+
+**Acceptance (draft):** v1.0 envelopes assemble without semantic repair; validation uses v1.0 catalog + protocol rules; event and function paths are distinct; `2.x` remains v0.9.1.
+
+### 2 — Action identity / namespace
+
+**Today**
+
+| Layer | Identity |
+|-------|----------|
+| Diagnostics `routeKey` | `surfaceId:name` (`A2UiActionService`) |
+| Allow-list / planner block | **name only** (`A2UiActionHandler.actionNames()`) |
+| Routing | first `supports()` — handlers *may* check `surfaceId` |
+
+`surfaceId:name` is **not** the allow-list key. Two surfaces can share `approve`; the union is a flat name set. Empty allow-list stays fail-open.
+
+**Open (decide in ADR, then code)**
+
+- Is `surfaceId:name` enough for **events**? Enough for deny-unknown, planner context, metrics, and handler routing — or do we need catalog, component id, or a host-declared alias?
+- How do we **position names** next to v1.0 catalog **functions**? Protocol `FunctionCall` is `{ call, args, catalogId? }` resolved against the catalog `functions` map (then surface default `catalogId`). Events stay `event.name` (+ `context`). One identity model should cover:
+  - planner “only emit these”
+  - assemble fail-fast
+  - ingress routing
+  - metrics tags  
+  without collapsing `approve` (event) and `openUrl` (function) into one string bag.
+- Candidates to compare, not pick here: `surfaceId:name`; name-only (today’s allow-list); `catalogId:call` for functions; explicit handler-declared route keys.
+
+Do **not** put `catalogId` on the inbound event DTO unless the ADR says so (ADR 003: infer catalog from `CreateSurface`, else basic).
+
+### 3 — Agent action vs function
+
+v1.0 component `action` is one of:
+
+| Wire | Meaning | Who runs it |
+|------|---------|-------------|
+| `action.event` | User interaction → **backend agent** | Host `A2UiActionHandler` (today’s write path) |
+| `action.functionCall` | **Executable function** | Renderer if the catalog has it; otherwise renderer may send `callAgentFunction` |
+
+Plus stream RPCs: agent calls renderer (`callRendererFunction` → `rendererFunctionResponse`); renderer calls agent (`callAgentFunction` → `agentFunctionResponse`). Catalog `allowedCallers`: `rendererOnly` (default) / `agentOnly` / `rendererOrAgent`. Correlation id: `functionCallId`.
+
+**Position for this runtime**
+
+- **Event** = product write / agent turn. Ingress stays our native pipe (`POST /a2ui/actions` or its v1.0 successor). Host owns domain logic. We validate, allow-list, policy, route.
+- **Function** = catalog-typed executable. `rendererOnly` stays on the host FE (we do not run it). Agent-callable functions that the host registers are a **new** execute seam — not `supports(name)` pretending to be `openUrl`.
+- Dynamic values / `Checkable` `FunctionCall`s are the same catalog functions, not Button events.
+
+Today: schema accepts `functionCall`; allow-list extraction **ignores** it; POST has no function RPC. That is the gap this slice closes.
+
+Do **not** mix event names and function `call` names in one SPI without an ADR. Do **not** treat `functionCall` as a second way to hit the same handler.
+
+### 4 — Idempotency / duplicate action semantics
+
+**Today:** every POST is a new `handle()`. `requestId` (`X-A2UI-Request-Id`) is echoed, not a dedupe key. Double-click and client retry both re-execute. Hosts that need exactly-once do it in their DB.
+
+v1.0 `functionCallId` correlates **one invocation** across RPC messages; it is not by itself an idempotency key for `action.event`.
+
+**Open**
+
+- Duplicate **event** clicks: reject, replay last ack, or always execute? Runtime vs host?
+- Retries with the same `requestId` / `functionCallId`: at-most-once at the edge, or document “at-least-once; host must be idempotent”?
+- Confirmation retry (`context.confirmed=true`) must remain a **new** authorized call, not a duplicate of the 409.
+
+Prefer: runtime may dedupe **ingress** (same key → same ack); **domain writes stay host-owned**. Do not invent a platform outbox.
+
+### 5 — Routing + execution observability
+
+**Today:** `a2ui.action.executed`, `a2ui.action.rejected` / `a2ui.policy.rejected` (`reason`), `a2ui.runtime.action.event`. `routeKey` is on error maps, not on meters. No duration. Unknown action vs unhandled vs invalid response are codes, not metric tags. Renderer `error` events are barely counted.
+
+**Wanted (after identity)**
+
+- Route identity + **kind** (`event` vs `function`) + outcome (`executed` / `rejected` / `duplicate` / `unhandled`) on counters
+- Execution latency for POST (and later function RPC)
+- Structured logs: request id, route, kind, error code — **not** action `context` PII
+- Distinct codes for unknown **function** vs unknown **event**
+
+Do not high-cardinality-tag `surfaceId` if hosts mint unique ids per island. Follow [ops and diagnostics](docs/guides/ops-and-diagnostics.md) redaction.
 
 ---
 
@@ -458,7 +572,7 @@ Items below stay **after** builder batteries (or never, if they fail the extensi
 ### Deferred from batteries plan
 
 - Multi-surface / session handoff **as runtime** (docs patterns only in Slice A)  
-- A2UI v1.0 Candidate protocol bump (watch — `actionResponse` upgrades approval round-trip; separate plan when Current moves)  
+- ~~A2UI v1.0 Candidate protocol bump~~ → **A2UI v1.0 actions / functions** (next)  
 - First-party rich visualization component pack (**never** platform identity — hosts register types via catalog SPI + their FE)  
 - Catalog authoring UX / marketplace / “create your design system” site (A2UI / FE ecosystem; not us)  
 - `JSON_SCHEMA` response format mode cleanup (ongoing reliability)  
@@ -480,6 +594,7 @@ Where Spring AI `ChatOptions` already supports a provider prompt cache, we can e
 
 - Structured redacted logging for invalid payloads / validation diagnostics
 - Metrics: `a2ui.dynamic.surface.generated`, `a2ui.dynamic.validation.failed`, `a2ui.dynamic.validation.retry.success` / `retry.failed`, `a2ui.generation.context.chars` (Phase 1)
+- Action **routing** meters/tags — **A2UI v1.0 actions / functions** slice 5 (do not expand here)
 - Remove or honestly implement `JSON_SCHEMA` response format mode
 
 ---
@@ -496,3 +611,4 @@ Where Spring AI `ChatOptions` already supports a provider prompt cache, we can e
 | X     | v0.9 wire format, validation-failed loop, syntax healer (no semantic repair) |
 | Batteries C/C2 | Template `Builder` registration, `A2UiFixedSurfaceSpec`, `A2UiCatalogContribution` merge + validate, host-catalog negotiation, showcase `ops-approval` assembly |
 | Generation context | Planner digest + prune, generation-context builder, `examplesText()`, `a2ui.generation.context.chars` |
+| v1.0 actions / functions | Not started — event vs function ingress, identity, idempotency, route/kind/outcome meters |

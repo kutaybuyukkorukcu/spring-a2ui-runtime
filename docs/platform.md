@@ -84,8 +84,9 @@ Near-term **execution order is locked** in [`BACKLOG.md`](../BACKLOG.md). Do not
 3. **Utilization on native SSE** ✅ — text / progress / run lifecycle ([guide](guides/native-sse-utilization.md))  
 4. **Platform builder batteries** ✅ — in-product surface docs+showcase, **Template SPI**, **host A2UI catalog SPI**, ops, multi-provider — Central **`2.1.0`**  
 5. **Architecture revisions** ✅ — catalog-scoped fail-fast, one compose module, wire hygiene in core ([ADR 003](adr/003-catalog-scoped-fail-fast.md))  
-6. **Generate / govern / execute** ✅ — planner digest, action allow-list, application policy ([dynamic generative UI](guides/dynamic-generative-ui.md), [hosting actions](guides/hosting-actions.md)). `A2UiGenerationPolicy` stays ChatOptions.  
-7. **Later (residual)** — Spring AI hop adapter, starter split, Boot 4, provider prompt cache, v1.0 watch (see BACKLOG) — **not** “invent catalogs for hosts”
+6. **Generate / govern / execute** ✅ — planner digest, action allow-list, application policy ([dynamic generative UI](guides/dynamic-generative-ui.md), [hosting actions](guides/hosting-actions.md)). `A2UiGenerationPolicy` stays ChatOptions. Library **`2.2.0`**.  
+7. **A2UI v1.0 actions / functions** — next ([BACKLOG](../BACKLOG.md)): event vs function, identity, idempotency, routing observability — library **`3.0.0` candidate**  
+8. **Later (residual)** — Spring AI hop adapter, starter split, Boot 4, provider prompt cache — **not** “invent catalogs for hosts”
 
 ## Where to go next
 
@@ -105,4 +106,4 @@ Near-term **execution order is locked** in [`BACKLOG.md`](../BACKLOG.md). Do not
 - [ADR 001](adr/001-streaming-surface-generation.md) — stream-only, fail-fast, template + dynamic mechanisms  
 - [ADR 002](adr/002-in-product-surfaces.md) — in-product surfaces; when to compose vs assemble  
 - [ADR 003](adr/003-catalog-scoped-fail-fast.md) — catalog-scoped fail-fast, one compose module  
-- [`BACKLOG.md`](../BACKLOG.md) — Later residual (Spring AI adapter, starter split, Boot 4, provider prompt cache)  
+- [`BACKLOG.md`](../BACKLOG.md) — next: A2UI v1.0 actions / functions; Later residual (Spring AI adapter, starter split, Boot 4, provider prompt cache)  

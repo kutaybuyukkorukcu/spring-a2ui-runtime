@@ -2,7 +2,7 @@
 
 This guide covers the **hard cutover** from A2UI v0.8 (library `1.1.x`) to **v0.9.1 Current** (library **`2.0.0`**) in spring-a2ui — a Spring GenUI backend runtime.
 
-Legacy v0.8 stays on the **`1.1.x`** patch line only. There is no dual-protocol mode in `2.x`. Prefer the latest **`2.x`** line (e.g. **`2.1.0`**) for Template SPI and host catalog registration.
+Legacy v0.8 stays on the **`1.1.x`** patch line only. There is no dual-protocol mode in `2.x`. Prefer the latest **`2.x`** line (e.g. **`2.2.0`**) for Template SPI, host catalog registration, and generate / govern / execute.
 
 ## What changed
 
@@ -31,7 +31,7 @@ Default catalog id:
 <dependency>
   <groupId>com.kutaybuyukkorukcu.a2ui.runtime</groupId>
   <artifactId>a2ui-runtime-spring-web-starter</artifactId>
-  <version>2.1.0</version>
+  <version>2.2.0</version>
 </dependency>
 ```
 
