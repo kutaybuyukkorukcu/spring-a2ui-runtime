@@ -69,11 +69,17 @@ public A2UiCatalogContribution statusBadgeCatalogContribution() {
 returns for the basic catalog, so no `allOf` resolution is required on your
 side.
 
-Optional `examplesText()` supplies few-shot planner prose (not validation).
-It is concatenated like `rulesText()` — appended in registration order,
-separated by blank lines — and fed to the planner **static** prefix via
-`ExampleContributor`. Do not dump full catalog JSON into the prompt; the
-runtime uses a compact component digest plus rules plus optional examples.
+Optional `examplesText()` supplies few-shot planner shapes (not validation).
+Host-owned: the vendored basic catalog ships **none**. Contributions are
+concatenated in registration order, separated by blank lines, and fed to the
+planner **static** prefix via `ExampleContributor`. A closed complete
+`components` array is the intended few-shot (every `child` / `children` /
+`content` / `trigger` id is also an entry). An incomplete graph
+(`"child":"someId"` with no sibling) teaches the planner to copy the id and
+omit the component — do not ship that. Missing-id adjacency is a catalog
+**rule** (vendored `rules.txt`) and is fail-fast at assemble; examples do not
+replace it. Do not dump full catalog JSON into the prompt; the runtime uses a
+compact component digest plus rules plus host examples.
 
 Multiple contributions are supported (`ObjectProvider<A2UiCatalogContribution>`,
 ordered like any other Spring bean collection):
@@ -83,8 +89,9 @@ ordered like any other Spring bean collection):
   component types into it.
 - `rulesText()` is appended after the basic catalog's rules text, in
   registration order.
-- `examplesText()` is appended after any base examples text, in registration
-  order (planner few-shots only — not used for validation).
+- `examplesText()` is concatenated in registration order (planner few-shots
+  only — not used for validation). The runtime does not ship a base examples
+  file.
 
 ## What this enables
 
@@ -129,4 +136,3 @@ using your own React/Flutter/… catalog implementation.
 * [Catalog ownership](../platform.md#catalog-ownership-a2ui-aligned)
 * [FE design-system binding](fe-design-system-binding.md)
 * [REST API — catalog endpoint](../rest-api.md#get-basic-catalog)
-* [Builder batteries plan](../plans/phase-platform-builder-batteries.md) — Slice C2

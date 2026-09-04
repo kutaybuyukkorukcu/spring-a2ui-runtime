@@ -8,14 +8,15 @@ import {
 } from '@a2ui/web_core/v0_9';
 import {
   A2uiSurface,
+  MarkdownContext,
   basicCatalog,
   type ReactComponentImplementation,
 } from '@a2ui/react/v0_9';
+import { renderMarkdown } from '@a2ui/markdown-it';
 import {
   streamSurface,
   sendAction,
   fetchDemoInfo,
-  openAssembledRecord,
   extractActionResult,
   messagesWithoutDelete,
   applyDataModelSeeds,
@@ -122,6 +123,7 @@ export function App() {
           void refreshLedger();
 
           if (actionResult?.nextStep === 'approval') {
+            setIslandCaption('Layout was not generated.');
             setRunStatus('Host persisted the draft and returned the approval surface.');
           } else if (actionResult?.status === 'approved' || actionResult?.status === 'rejected') {
             setRunStatus(
@@ -221,7 +223,6 @@ export function App() {
         },
         (err) => setError(err),
         handleUtilizationEvent,
-        undefined,
         {
           intent: 'case_island',
           instructions: record.instructions,
@@ -250,20 +251,6 @@ export function App() {
     setRunStatus(null);
     applyMessages(processor, []);
 
-    if (record.surfaceKind === 'assembled') {
-      setLoading(true);
-      try {
-        const opened = await openAssembledRecord(record.id);
-        applyMessages(processor, opened.messages as A2uiMessage[]);
-        setIslandCaption(opened.caption);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to open record');
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-
     await composeRecord(record);
   }, [loading, processor, applyMessages, composeRecord]);
 
@@ -272,18 +259,20 @@ export function App() {
 
   return (
     <div className="app">
-      <header>
-        <h1>{demoInfo?.productName ?? 'payments-api workspace'}</h1>
-        <h2 className="story-title">{demoInfo?.storyTitle ?? 'Your page, one slot'}</h2>
-        <p>
-          {demoInfo?.storyBlurb
-            ?? 'This workspace is the product you own. The island is the only region that speaks A2UI.'}
-        </p>
-        {demoInfoError && (
-          <p className="demo-info-warning">
-            Demo metadata unavailable ({demoInfoError}). Start the showcase host on port 5001.
+      <header className="app-header">
+        <div className="app-header-copy">
+          <h1>{demoInfo?.productName ?? 'payments-api workspace'}</h1>
+          <h2 className="story-title">{demoInfo?.storyTitle ?? 'Your page, one slot'}</h2>
+          <p>
+            {demoInfo?.storyBlurb
+              ?? 'This workspace is the product you own. The island is the only region that speaks A2UI.'}
           </p>
-        )}
+          {demoInfoError && (
+            <p className="demo-info-warning">
+              Demo metadata unavailable ({demoInfoError}). Start the showcase host on port 5001.
+            </p>
+          )}
+        </div>
       </header>
 
       <div className="workspace">
@@ -344,9 +333,11 @@ export function App() {
                 </p>
               </div>
             ) : (
-              surfaces.map((surface) => (
-                <A2uiSurface key={surface.id} surface={surface} />
-              ))
+              <MarkdownContext.Provider value={renderMarkdown}>
+                {surfaces.map((surface) => (
+                  <A2uiSurface key={surface.id} surface={surface} />
+                ))}
+              </MarkdownContext.Provider>
             )}
           </div>
         </section>

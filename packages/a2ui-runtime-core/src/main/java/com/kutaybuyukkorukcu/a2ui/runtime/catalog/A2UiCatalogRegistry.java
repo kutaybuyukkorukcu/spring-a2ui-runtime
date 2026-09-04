@@ -69,7 +69,8 @@ public final class A2UiCatalogRegistry {
      * {@link #shared()}). Contributions targeting a new {@code catalogId} add a catalog;
      * contributions targeting an existing {@code catalogId} merge component types into it.
      * Contribution rules text is appended after the base catalog rules text.
-     * Contribution examples text is appended after the base catalog examples text.
+     * Contribution examples text is appended after any existing examples (the vendored basic
+     * catalog ships none — few-shots are host-owned via {@link A2UiCatalogContribution#examplesText()}).
      */
     public static A2UiCatalogRegistry withContributions(
             A2UiCatalogRegistry base, List<A2UiCatalogContribution> contributions) {
@@ -303,14 +304,17 @@ public final class A2UiCatalogRegistry {
     }
 
     private static String loadRulesText() {
-        try (InputStream inputStream = A2UiCatalogRegistry.class.getResourceAsStream(
-                "/" + BASIC_CATALOG_RULES_RESOURCE)) {
+        return loadClasspathText(BASIC_CATALOG_RULES_RESOURCE, "rules");
+    }
+
+    private static String loadClasspathText(String resourcePath, String kind) {
+        try (InputStream inputStream = A2UiCatalogRegistry.class.getResourceAsStream("/" + resourcePath)) {
             if (inputStream == null) {
                 return "";
             }
             return new String(inputStream.readAllBytes());
         } catch (IOException ex) {
-            throw new UncheckedIOException("Failed to load A2UI catalog rules", ex);
+            throw new UncheckedIOException("Failed to load A2UI catalog " + kind, ex);
         }
     }
 

@@ -50,13 +50,6 @@ export interface DemoInfo {
   ledger: LedgerEntry[];
 }
 
-export interface OpenRecordResponse {
-  recordId: string;
-  surfaceKind: SurfaceKind;
-  caption: string;
-  messages: unknown[];
-}
-
 export interface ActionResultPayload {
   action?: string;
   status?: string;
@@ -84,27 +77,11 @@ export async function fetchDemoInfo(): Promise<DemoInfo> {
   return response.json() as Promise<DemoInfo>;
 }
 
-export async function openAssembledRecord(recordId: string): Promise<OpenRecordResponse> {
-  const response = await fetch(`/api/demo/records/${encodeURIComponent(recordId)}/open`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Request-Id': crypto.randomUUID(),
-    },
-  });
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(errorBody.error || `Failed to open record: ${response.status}`);
-  }
-  return response.json() as Promise<OpenRecordResponse>;
-}
-
 export async function streamSurface(
   content: string,
   onMessage: (message: unknown) => void,
   onError: (error: string) => void,
   onUtilizationEvent?: (event: StreamUtilizationEvent) => void,
-  signal?: AbortSignal,
   context?: StreamContext,
 ): Promise<void> {
   const request: A2UiSurfaceRequest = {
@@ -122,7 +99,6 @@ export async function streamSurface(
       'X-Request-Id': crypto.randomUUID(),
     },
     body: JSON.stringify(request),
-    signal,
   });
 
   if (!response.ok) {

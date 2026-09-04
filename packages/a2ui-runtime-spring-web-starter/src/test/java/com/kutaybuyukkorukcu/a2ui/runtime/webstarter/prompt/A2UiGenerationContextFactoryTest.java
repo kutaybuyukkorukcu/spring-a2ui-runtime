@@ -30,6 +30,8 @@ class A2UiGenerationContextFactoryTest {
         assertThat(context.staticPrefix()).contains("required:");
         assertThat(context.staticPrefix()).contains("Catalog rules:");
         assertThat(context.staticPrefix()).doesNotContain(USER_CONTENT);
+        assertThat(context.staticPrefix()).doesNotContain("submitLabel");
+        assertThat(context.staticPrefix()).doesNotContain("submitText");
     }
 
     @Test

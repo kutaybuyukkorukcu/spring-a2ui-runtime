@@ -29,7 +29,7 @@ spring:
       api-key: ${OPENAI_API_KEY}
       chat:
         options:
-          model: gpt-4.1-nano
+          model: gpt-4.1
           temperature: 0.0
 ```
 

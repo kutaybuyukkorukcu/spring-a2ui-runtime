@@ -25,6 +25,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.containsStringIgnoringCase;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -62,22 +63,23 @@ class RuntimeSurfaceE2ETest {
     private A2UiSurfaceRuntime surfaceRuntime;
 
     @Test
-    @DisplayName("showcase should serve workspace demo info with two records")
+    @DisplayName("showcase should serve workspace demo info with one composed record")
     void shouldServeDemoInfoEndpoint() throws Exception {
         MvcResult result = mockMvc.perform(get(DEMO_INFO_PATH))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productName").value("payments-api workspace"))
                 .andExpect(jsonPath("$.generationMode").value("dynamic"))
                 .andExpect(jsonPath("$.storyTitle").value("Your page, one slot"))
+                .andExpect(jsonPath("$.storyBlurb", containsStringIgnoringCase("one island")))
+                .andExpect(jsonPath("$.storyBlurb", containsString("compose this case")))
+                .andExpect(jsonPath("$.storyBlurb", containsString("assembled")))
+                .andExpect(jsonPath("$.storyBlurb", containsString("Layout was not generated.")))
                 .andExpect(jsonPath("$.islandLabel").value("GenUI slot"))
                 .andExpect(jsonPath("$.records").isArray())
-                .andExpect(jsonPath("$.records.length()").value(2))
-                .andExpect(jsonPath("$.records[0].id").value("cfg-204"))
-                .andExpect(jsonPath("$.records[0].surfaceKind").value("assembled"))
-                .andExpect(jsonPath("$.records[0].caption").value("Layout was not generated."))
-                .andExpect(jsonPath("$.records[1].id").value("mig-311"))
-                .andExpect(jsonPath("$.records[1].surfaceKind").value("composed"))
-                .andExpect(jsonPath("$.records[1].caption").value("Composed for this case from the catalog."))
+                .andExpect(jsonPath("$.records.length()").value(1))
+                .andExpect(jsonPath("$.records[0].id").value("mig-311"))
+                .andExpect(jsonPath("$.records[0].surfaceKind").value("composed"))
+                .andExpect(jsonPath("$.records[0].caption").value("Composed for this case from the catalog."))
                 .andExpect(jsonPath("$.ledger").isArray())
                 .andExpect(jsonPath("$.primaryPrompt").doesNotExist())
                 .andExpect(jsonPath("$.samplePrompts").doesNotExist())
@@ -85,7 +87,7 @@ class RuntimeSurfaceE2ETest {
                 .andReturn();
 
         JsonNode composed = objectMapper.readTree(result.getResponse().getContentAsString())
-                .path("records").get(1);
+                .path("records").get(0);
         String content = composed.path("content").asText();
         assertThat(content).contains("schema migration");
         assertThat(content).containsIgnoringCase("rollback");
@@ -106,29 +108,12 @@ class RuntimeSurfaceE2ETest {
     }
 
     @Test
-    @DisplayName("opening known record returns assembled messages without surfaceRuntime")
-    void shouldOpenKnownRecordWithAssembledMessages() throws Exception {
+    @DisplayName("record open path is not served")
+    void shouldNotServeRecordOpen() throws Exception {
         mockMvc.perform(post(RECORD_OPEN_PATH.formatted("cfg-204")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.recordId").value("cfg-204"))
-                .andExpect(jsonPath("$.surfaceKind").value("assembled"))
-                .andExpect(jsonPath("$.caption").value("Layout was not generated."))
-                .andExpect(jsonPath("$.messages").isArray())
-                .andExpect(jsonPath("$.messages.length()").value(greaterThanOrEqualTo(3)))
-                .andExpect(content().string(containsString("createSurface")))
-                .andExpect(content().string(containsString("updateComponents")))
-                .andExpect(content().string(containsString("updateDataModel")))
-                .andExpect(content().string(containsString("submit_change")));
-
-        verifyNoInteractions(surfaceRuntime);
-    }
-
-    @Test
-    @DisplayName("opening unknown record is rejected because it must be streamed")
-    void shouldRejectOpeningComposedRecord() throws Exception {
+                .andExpect(status().isNotFound());
         mockMvc.perform(post(RECORD_OPEN_PATH.formatted("mig-311")))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString("/a2ui/surface/stream")));
+                .andExpect(status().isNotFound());
 
         verifyNoInteractions(surfaceRuntime);
     }

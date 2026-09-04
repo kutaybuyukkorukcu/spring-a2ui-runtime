@@ -30,7 +30,7 @@ public final class CoreCatalogContributor implements A2UiGenerationContextContri
                 Hard requirements:
                 - Include a root component with id "root" in the components array (required).
                 - components must be a flat array of objects with string "component" type and sibling props.
-                - Every child UI element must be its own entry in the flat array; reference children by id only.
+                - Every child UI element must be its own entry in the flat array; reference children by id only. Every child, children, content, and trigger id MUST also exist as a component id in the same array.
                 - List, Column, and Row use children as a bare string id array, or a template object {componentId, path}.
                 - Card uses a single child id (child) — wrap multiple children in a Column and set Card.child to that Column id.
                 - Text styling uses variant (h1–h5, body, caption) — not usageHint.

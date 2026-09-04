@@ -26,7 +26,7 @@ Optional **foreign-client bridges** are demand-gated later and never core identi
 |---------------|--------|
 | Product logic and domain services | Generation (template + dynamic) |
 | Design system, FE renderer, **A2UI catalog schemas they author** | Validation against registered catalogs, assembly, SSE envelopes |
-| App chrome / chat shell (if any) — capability, not our identity | Fail-fast errors, retry bounds, metrics |
+| App chrome / chat shell (if any) — same pipe, not our identity | Fail-fast errors, retry bounds, metrics |
 | Choice of Spring AI chat model | `POST /a2ui/actions` ingress |
 | `A2UiActionHandler`, `A2UiTemplateCustomizer`, `A2UiCatalogContribution` | Routing / envelope checks around those SPIs |
 
@@ -71,7 +71,7 @@ The runtime **validates** against registered catalogs and **executes** host `A2U
 
 ## Product wedge (jobs)
 
-**Genre: in-product surfaces** — a catalog-bounded region in a product builders already ship. Placements: a **step** in a host-owned process, or an **island** on a page (dynamically loaded slot). Native SSE into *their* chat is a capability, not the hunt.
+**Genre: in-product surfaces** — a catalog-bounded region in a product builders already ship. Placements of the **same** native SSE pipe: a **step** in a host-owned process, an **island** on a page (dynamically loaded slot), or a bubble in *their* chat (they mount an A2UI renderer; we do not ship a chat shell). World facts stay host tools or request context.
 
 We do not name verticals (ops, HITL, intake, shop) as identity; those are costumes. We do not replace page chrome or happy-path checkout. We do not own their database — surfaces carry **surface state**; the host supplies truth. Presentation-first hosted GenUI and React chat shells are adjacent products. Detail: [ADR 002](adr/002-in-product-surfaces.md).
 
@@ -85,8 +85,9 @@ Near-term **execution order is locked** in [`BACKLOG.md`](../BACKLOG.md). Do not
 4. **Platform builder batteries** ✅ — in-product surface docs+showcase, **Template SPI**, **host A2UI catalog SPI**, ops, multi-provider — Central **`2.1.0`**  
 5. **Architecture revisions** ✅ — catalog-scoped fail-fast, one compose module, wire hygiene in core ([ADR 003](adr/003-catalog-scoped-fail-fast.md))  
 6. **Generate / govern / execute** ✅ — planner digest, action allow-list, application policy ([dynamic generative UI](guides/dynamic-generative-ui.md), [hosting actions](guides/hosting-actions.md)). `A2UiGenerationPolicy` stays ChatOptions. Library **`2.2.0`**.  
-7. **A2UI v1.0 actions / functions** — next ([BACKLOG](../BACKLOG.md)): event vs function, identity, idempotency, routing observability — library **`3.0.0` candidate**  
-8. **Later (residual)** — Spring AI hop adapter, starter split, Boot 4, provider prompt cache — **not** “invent catalogs for hosts”
+7. **MVP demo (sample apps)** ✅ — island walkthrough (compose then assemble) in `apps/` ([ADR 002](adr/002-in-product-surfaces.md), [showcase](../apps/be-transform-showcase/README.md))  
+8. **A2UI v1.0 actions / functions** — next protocol line ([BACKLOG](../BACKLOG.md)): event vs function, identity, idempotency, routing observability — library **`3.0.0` candidate**  
+9. **Later (residual)** — Spring AI hop adapter, starter split, Boot 4, provider prompt cache — **not** “invent catalogs for hosts”
 
 ## Where to go next
 

@@ -3,6 +3,7 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
+import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiErrorCode;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiValidationContext;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage.ComponentDefinition;
@@ -143,8 +144,13 @@ public class A2UiDynamicAssemblyService {
         } catch (IllegalArgumentException ex) {
             throw new SurfaceExecutionException(
                     ex.getMessage(),
-                    SurfaceErrorCodes.TRANSFORM_FAILED,
-                    Map.of("root", root));
+                    SurfaceErrorCodes.A2UI_VALIDATION_FAILED,
+                    List.of(new A2UiDiagnostic(
+                            "components",
+                            A2UiErrorCode.INVALID_COMPONENT_DEFINITION.code(),
+                            A2UiErrorCode.INVALID_COMPONENT_DEFINITION.category().name(),
+                            ex.getMessage(),
+                            Map.of("root", root))));
         }
 
         List<A2UiMessage> messages = new ArrayList<>();

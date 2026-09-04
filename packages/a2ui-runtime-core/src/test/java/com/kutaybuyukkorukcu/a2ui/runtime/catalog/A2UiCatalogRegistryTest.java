@@ -129,6 +129,9 @@ class A2UiCatalogRegistryTest {
         String rules = registry.catalogRulesText();
         assertThat(rules).contains("bind 'value' to a data-model path");
         assertThat(rules).contains("action.event.context");
+        assertThat(rules).contains("MUST also exist as a component in the same array");
+        assertThat(rules).doesNotContain("submitText");
+        assertThat(rules).doesNotContain("submitLabel");
     }
 
     @Test
