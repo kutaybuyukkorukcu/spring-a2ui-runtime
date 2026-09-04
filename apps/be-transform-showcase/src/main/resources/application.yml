@@ -13,7 +13,7 @@ spring:
       base-url: ${OPENAI_BASE_URL:https://api.openai.com}
       chat:
         options:
-          model: ${OPENAI_MODEL:gpt-4.1-nano}
+          model: ${OPENAI_MODEL:gpt-4.1}
           temperature: 0.0
 
 a2ui:

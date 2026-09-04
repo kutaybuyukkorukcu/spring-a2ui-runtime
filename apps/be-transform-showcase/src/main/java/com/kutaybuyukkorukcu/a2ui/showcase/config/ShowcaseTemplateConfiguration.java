@@ -13,8 +13,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Host-registered templates used by {@code assemble} (known island, $0) and post-submit
- * approval. Not a second walkthrough of the same form.
+ * Host-registered templates: {@code ops-approval} is assembled after {@code submit_change} ($0).
+ * {@code change-intake} stays registered for template-mode smoke; it is not a selectable record.
  */
 @Configuration
 public class ShowcaseTemplateConfiguration {

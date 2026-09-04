@@ -119,6 +119,59 @@ class A2UiDynamicToolsTest {
     }
 
     @Test
+    void shouldRetryPlannerOnceAfterDanglingChildIdThenSucceed() {
+        AtomicInteger plannerCalls = new AtomicInteger();
+        AtomicReference<Map<String, Object>> toolContextRef = new AtomicReference<>();
+        when(requestSpec.toolContext(any())).thenAnswer(invocation -> {
+            toolContextRef.set(invocation.getArgument(0));
+            return requestSpec;
+        });
+        when(requestSpec.call()).thenAnswer(invocation -> {
+            int attempt = plannerCalls.incrementAndGet();
+            ToolContext renderContext = new ToolContext(toolContextRef.get());
+            if (attempt == 1) {
+                dynamicTools.renderA2Ui(
+                        "planner-surface",
+                        "root",
+                        List.of(Map.of(
+                                "id", "root",
+                                "component", "Button",
+                                "child", "submitText",
+                                "action", "submit")),
+                        null,
+                        renderContext);
+            } else {
+                dynamicTools.renderA2Ui(
+                        "planner-surface",
+                        "root",
+                        List.of(
+                                Map.of(
+                                        "id", "root",
+                                        "component", "Button",
+                                        "child", "submitText",
+                                        "action", "submit"),
+                                Map.of("id", "submitText", "component", "Text", "text", "Submit")),
+                        null,
+                        renderContext);
+            }
+            return callResponseSpec;
+        });
+
+        DynamicRenderSession session = new DynamicRenderSession(
+                "main", A2UiCatalogIds.BASIC_V0_9, "show a login form", null, A2UiRuntimeEventCollector.DISABLED);
+        ToolContext toolContext = new ToolContext(Map.of(A2UiDynamicTools.SESSION_CONTEXT_KEY, session));
+
+        String result = dynamicTools.generateA2Ui(toolContext);
+
+        assertThat(result).isEqualTo("Generated A2UI surface");
+        assertThat(plannerCalls.get()).isEqualTo(2);
+        assertThat(session.renderedMessages()).hasSize(2);
+        verify(runtimeMetrics).recordDynamicValidationFailed();
+        verify(runtimeMetrics).recordDynamicValidationRetrySuccess();
+        verify(runtimeMetrics).recordDynamicSurfaceGenerated();
+    }
+
+    @Test
     void shouldFailFastAfterSecondValidationFailure() {
         AtomicInteger plannerCalls = new AtomicInteger();
         AtomicReference<Map<String, Object>> toolContextRef = new AtomicReference<>();
@@ -169,5 +222,14 @@ class A2UiDynamicToolsTest {
 
         assertThat(callback.getToolDefinition().name()).isEqualTo("generateA2Ui");
         assertThat(callback.getToolDefinition().inputSchema()).contains("\"type\":\"object\"");
+    }
+
+    @Test
+    void shouldReturnDirectFromGenerateAndRenderCallbacks() {
+        ToolCallback generate = dynamicTools.buildGenerateA2UiToolCallback();
+        ToolCallback render = dynamicTools.buildRenderA2UiToolCallback(A2UiCatalogIds.BASIC_V0_9);
+
+        assertThat(generate.getToolMetadata().returnDirect()).isTrue();
+        assertThat(render.getToolMetadata().returnDirect()).isTrue();
     }
 }

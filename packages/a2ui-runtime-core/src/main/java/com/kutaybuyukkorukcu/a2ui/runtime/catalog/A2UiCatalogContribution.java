@@ -27,7 +27,7 @@ public interface A2UiCatalogContribution {
         return "";
     }
 
-    /** Optional few-shot examples for the planner static prefix. Default empty. */
+    /** Optional few-shot examples for the planner static prefix. Host-owned; default empty. */
     default String examplesText() {
         return "";
     }

@@ -3,6 +3,7 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogContribution;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
+import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage.ComponentDefinition;
 import com.kutaybuyukkorukcu.a2ui.runtime.surface.A2UiDynamicComponentNormalizer;
@@ -84,6 +85,34 @@ class A2UiDynamicAssemblyServiceTest {
                 .isInstanceOf(SurfaceExecutionException.class)
                 .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
                 .isEqualTo(SurfaceErrorCodes.TRANSFORM_FAILED);
+    }
+
+    @Test
+    void shouldTreatDanglingChildIdAsValidationFailure() {
+        RenderA2UiArgs args = new RenderA2UiArgs(
+                "planner-surface",
+                "root",
+                List.of(Map.of(
+                        "id", "root",
+                        "component", "Button",
+                        "child", "submitText",
+                        "action", "submit")),
+                null);
+
+        assertThatThrownBy(() -> assemblyService.assemble(args, A2UiCatalogIds.BASIC_V0_9, "main"))
+                .isInstanceOf(SurfaceExecutionException.class)
+                .satisfies(ex -> {
+                    SurfaceExecutionException failure = (SurfaceExecutionException) ex;
+                    assertThat(failure.getErrorCode()).isEqualTo(SurfaceErrorCodes.A2UI_VALIDATION_FAILED);
+                    assertThat(failure.getMessage()).contains("Unknown child component id: submitText");
+                    assertThat(failure.getDetails()).isInstanceOf(List.class);
+                    @SuppressWarnings("unchecked")
+                    List<A2UiDiagnostic> diagnostics = (List<A2UiDiagnostic>) failure.getDetails();
+                    assertThat(diagnostics)
+                            .singleElement()
+                            .extracting(A2UiDiagnostic::message)
+                            .isEqualTo("Unknown child component id: submitText");
+                });
     }
 
     @Test

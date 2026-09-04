@@ -1,6 +1,6 @@
 # Backlog
 
-Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** ✅ → **Central `2.1.0` (Template + Catalog SPI)** ✅ → **Architecture revisions** ✅ → **Generate / govern / execute** ✅ → **Central `2.2.0` (v0.9.1 line)** ✅ → **A2UI v1.0 actions / functions** → **Later (residual)**.
+Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** ✅ → **Central `2.1.0` (Template + Catalog SPI)** ✅ → **Architecture revisions** ✅ → **Generate / govern / execute** ✅ → **Central `2.2.0` (v0.9.1 line)** ✅ → **MVP demo (sample apps)** ✅ → **A2UI v1.0 actions / functions** → **Later (residual)**.
 
 ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)` · `[docs/adr/002-in-product-surfaces.md](docs/adr/002-in-product-surfaces.md)` · `[docs/adr/003-catalog-scoped-fail-fast.md](docs/adr/003-catalog-scoped-fail-fast.md)`
 
@@ -26,7 +26,7 @@ Ship a Maven Central Spring Boot runtime that turns host intent plus context int
 |--------|------------|
 | Spring-native **A2UI generation runtime + platform** | The A2UI grammar owner (Google / [a2ui.org](https://a2ui.org/)) |
 | Fail-fast, catalog-bounded surface producer | A foreign agent↔app interaction protocol as core identity |
-| Backend abstraction for GenUI product teams | A React/chat product shell (SSE into *their* chat is a capability) |
+| Backend abstraction for GenUI product teams | A React/chat product shell (SSE into *their* chat is the same pipe, not a shell we ship) |
 
 **Identity:** Spring GenUI backend platform.  
 **We do not** rebuild our core around third-party chat/agent-UI protocols. Optional **interop bridges** later are adapters only — not the product identity.
@@ -66,6 +66,7 @@ Ship a Maven Central Spring Boot runtime that turns host intent plus context int
 - ~~Patch `1.1.1` dynamic fail-fast~~ → **Published**
 - ~~Platform builder batteries~~ → **Shipped** (Central `2.1.0`)
 - ~~Architecture revisions + generate / govern / execute~~ → **Shipped** (library **`2.2.0`**)
+- ~~MVP demo (sample apps)~~ → **Shipped** ([ADR 002](docs/adr/002-in-product-surfaces.md); [`apps/be-transform-showcase`](apps/be-transform-showcase), [`apps/fe-a2ui-demo`](apps/fe-a2ui-demo))
 
 ### Roadmap narrative (product view)
 
@@ -80,6 +81,7 @@ Near-term **execution order stays locked** (see header). This section only expla
 | **Architecture revisions** ✅ | Catalog-scoped fail-fast, one compose module, wire hygiene in core |
 | **Generate / govern / execute** ✅ | Catalog-aware planner context, action allow-list, application policy — not another agent framework |
 | **Central `2.2.0`** ✅ | Closes the v0.9.1 product line (architecture + generate/govern/execute). GitHub Release / Maven Central after this cut |
+| **MVP demo (sample apps)** ✅ | Sample island in `apps/`: compose then assemble — [ADR 002](docs/adr/002-in-product-surfaces.md) |
 | **A2UI v1.0 actions / functions** | Next: protocol action/function cutover, identity, event vs function, idempotency, routing observability — library **`3.0.0` candidate** |
 | **Later (residual)** | Multi-surface runtime, Spring AI hop adapter, Boot 4, provider prompt cache |
 
@@ -454,11 +456,21 @@ Do **not** mix prompt quality with security in one PR.
 
 ---
 
+## Done — MVP demo (sample apps)
+
+**Status:** ✅ Complete. **Docs:** [ADR 002](docs/adr/002-in-product-surfaces.md) · [showcase](apps/be-transform-showcase/README.md) · [getting started](docs/guides/getting-started.md)
+
+Island sample in `apps/` only (no library SemVer / wire bump): one composed record (`mig-311`) → host-assembled approval → ledger. cfg-204 is not a selectable record. The sample FE has no chat composer; chat remains an equal **placement** of the same pipe ([ADR 002](docs/adr/002-in-product-surfaces.md)).
+
+Next: **A2UI v1.0 actions / functions** (below).
+
+---
+
 ## Next — A2UI v1.0 actions / functions
 
 **Status:** map locked here. No code until identity + event-vs-function are decided (ADR).  
 **Library:** **`3.0.0` candidate** — protocol bump, same pattern as `2.0.0` for v0.9.1.  
-**Prerequisite:** library **`2.2.0`** (architecture + generate/govern/execute). GitHub Release / Maven Central follow this cut.  
+**Prerequisite:** library **`2.2.0`** (architecture + generate/govern/execute) and the MVP demo sample in `apps/`.  
 **Protocol:** A2UI **v1.0 Candidate** ([spec](https://a2ui.org/specification/v1.0-a2ui/), [evolution](https://a2ui.org/specification/v1.0-evolution-guide/)). v0.9.1 stays Current on the `2.x` line until this phase’s acceptance is met.  
 **Does not reopen** [ADR 001](docs/adr/001-streaming-surface-generation.md) / [ADR 002](docs/adr/002-in-product-surfaces.md) / [ADR 003](docs/adr/003-catalog-scoped-fail-fast.md): native SSE, fail-fast, in-product surfaces, catalog-scoped validation stay.
 

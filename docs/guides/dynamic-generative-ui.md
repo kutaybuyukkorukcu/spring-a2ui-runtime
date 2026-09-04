@@ -9,7 +9,7 @@ spring-a2ui supports two surface generation modes so product builders can choose
 | **Template** | `a2ui.web.runtime.generation-mode=template` | LLM selects a **host-registered** template (`selectTemplate`) and fills slots (`renderTemplate`). Fixed adjacency lists — register templates via the [Template SPI](authoring-templates.md). The library ships none. |
 | **Dynamic** (library default) | `a2ui.web.runtime.generation-mode=dynamic` | LLM composes a surface from the **active** catalog via two-hop tools — no page templates. Default active catalog is the vendored **basic** v0.9 catalog; hosts can register additional catalogs via `A2UiCatalogContribution` (see [registering catalogs](registering-catalogs.md)). |
 
-The showcase streams **dynamic** only for the case-shaped island (unknown tree). Known islands and acks use host `assemble` (no model). Template mode remains available as a frozen capability; do not demo both modes as two prints of the same form.
+The showcase streams **dynamic** for the composed island (`mig-311`). The next step (approval) and other known trees use host `assemble` (no model). Template mode remains available as a frozen capability; do not demo both modes as two prints of the same form.
 
 **Catalog note:** A2UI production apps typically define catalogs that match their design system ([a2ui.org](https://a2ui.org/guides/defining-your-own-catalog/)). spring-a2ui owns validate/generate against registered schemas; hosts author schemas + FE renderers and register them with `A2UiCatalogContribution`. See [registering catalogs](registering-catalogs.md) and [platform catalog ownership](../platform.md#catalog-ownership-a2ui-aligned).
 
@@ -53,6 +53,7 @@ sequenceDiagram
 
 - **Primary agent** calls `generateA2Ui()` when a visual UI helps.
 - **Planner** (second ChatClient inside `generateA2Ui`) must call `renderA2Ui` exactly once with flat planner-friendly component objects.
+- Both tools are **one-shot** (`returnDirect`): Spring AI executes the forced tool and returns to the caller. It does not send the success string back under the same `tool_choice`, which would force the model to call the same tool again.
 - **`A2UiDynamicComponentNormalizer`** converts flat args to flat v0.9.1 `ComponentDefinition`s (thin sanitize only).
 - **`responseFormat=NONE`** in dynamic mode — tool calling is incompatible with global `JSON_OBJECT`.
 
@@ -68,20 +69,22 @@ Dynamic mode builds the planner system prompt in two layers:
 | **Dynamic suffix** | User content and context hints for this request |
 
 The `renderA2Ui` tool schema remains the structural constraint on planner
-output. Hosts add domain prose via `A2UiGenerationContextContributor` beans
-and optional `examplesText()` on `A2UiCatalogContribution` — not by extending
-core catalog types with selection metadata. The runtime does not dump full
-catalog JSON into the prompt.
+output. Few-shot shapes are host-owned via `examplesText()` on
+`A2UiCatalogContribution` (the vendored basic catalog ships none). Hosts may
+also add domain prose via `A2UiGenerationContextContributor` beans — not by
+extending core catalog types with selection metadata. The runtime does not dump
+full catalog JSON into the prompt.
 
 ## Validation retry
 
-If assembled messages fail `A2UiMessageValidator`:
+If assembled messages fail `A2UiMessageValidator`, or adjacency checks in the
+dynamic normalizer (unknown child ids, cycles, duplicate ids):
 
 1. Diagnostics are captured from the validation failure.
 2. The planner is invoked **once more** with diagnostics appended to the planner user prompt.
 3. A second validation failure → `SurfaceExecutionException` with `A2UI_VALIDATION_FAILED` → SSE `event: error` (fail-fast, no fallback surface).
 
-Unrelated errors (e.g. planner never calling `renderA2Ui`, transform failures) are **not** retried.
+Unrelated errors (e.g. planner never calling `renderA2Ui`, parse/transform failures) are **not** retried.
 
 Micrometer counters (also via Actuator: `GET /actuator/metrics/<name>` when `metrics` is exposed):
 
@@ -95,8 +98,8 @@ Micrometer counters (also via Actuator: `GET /actuator/metrics/<name>` when `met
 
 ## Running the showcase
 
-The `be-transform-showcase` app defaults to **dynamic** (one island: known
-record assembled, unknown record composed). `application-template.yml` is a
+The `be-transform-showcase` app defaults to **dynamic** (one composed record,
+then host-assembled approval). `application-template.yml` is a
 frozen-capability smoke, not the hero.
 
 ```bash

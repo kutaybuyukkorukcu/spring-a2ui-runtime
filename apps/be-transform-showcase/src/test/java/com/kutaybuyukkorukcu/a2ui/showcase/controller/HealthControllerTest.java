@@ -8,6 +8,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.containsStringIgnoringCase;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -40,8 +42,10 @@ class HealthControllerTest {
                 .andExpect(jsonPath("$.endpoints.surfaceStream").exists())
                 .andExpect(jsonPath("$.endpoints.actions").exists())
                 .andExpect(jsonPath("$.endpoints.catalog").exists())
-                .andExpect(jsonPath("$.endpoints.recordOpen").exists())
+                .andExpect(jsonPath("$.endpoints.recordOpen").doesNotExist())
                 .andExpect(jsonPath("$.notes.runtimeBoundary").exists())
-                .andExpect(jsonPath("$.notes.showcaseRole").exists());
+                .andExpect(jsonPath("$.notes.showcaseRole", containsStringIgnoringCase("one composed record")))
+                .andExpect(jsonPath("$.notes.showcaseRole", containsStringIgnoringCase("assemble")))
+                .andExpect(jsonPath("$.notes.showcaseRole", not(containsStringIgnoringCase("Two fixture records"))));
     }
 }

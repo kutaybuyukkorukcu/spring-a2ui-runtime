@@ -19,6 +19,7 @@ import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.ai.tool.definition.ToolDefinition;
+import org.springframework.ai.tool.metadata.ToolMetadata;
 import org.springframework.ai.tool.method.MethodToolCallback;
 
 import java.lang.reflect.Method;
@@ -34,6 +35,15 @@ import java.util.Map;
 public class A2UiDynamicTools {
 
     public static final String SESSION_CONTEXT_KEY = "a2ui.dynamicRenderSession";
+
+    /**
+     * Forced {@code tool_choice} plus Spring AI's default tool loop re-sends the same
+     * force after a success, so the model cannot stop. {@code returnDirect} executes
+     * the tool once and returns to the caller.
+     */
+    private static final ToolMetadata RETURN_DIRECT = ToolMetadata.builder()
+            .returnDirect(true)
+            .build();
 
     private final ChatClient.Builder chatClientBuilder;
     private final List<Advisor> advisors;
@@ -179,6 +189,7 @@ public class A2UiDynamicTools {
 
             return MethodToolCallback.builder()
                     .toolDefinition(toolDef)
+                    .toolMetadata(RETURN_DIRECT)
                     .toolMethod(generateMethod)
                     .toolObject(this)
                     .build();
@@ -201,6 +212,7 @@ public class A2UiDynamicTools {
 
             return MethodToolCallback.builder()
                     .toolDefinition(toolDef)
+                    .toolMetadata(RETURN_DIRECT)
                     .toolMethod(renderMethod)
                     .toolObject(this)
                     .build();

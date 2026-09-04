@@ -68,6 +68,8 @@ class DynamicA2UiPromptProviderTest {
         assertThat(plannerPrompt).contains("action.event.context");
         assertThat(plannerPrompt).contains("Never put the path string itself as the value");
         assertThat(plannerPrompt).contains("bind 'value' to a data-model path");
+        assertThat(plannerPrompt).contains("MUST also exist as a component id in the same array");
+        assertThat(plannerPrompt).doesNotContain("Examples:");
         assertThat(plannerPrompt).contains("required:");
         assertThat(plannerPrompt).contains("allowed:");
         assertThat(plannerPrompt).doesNotContain("$ref");
