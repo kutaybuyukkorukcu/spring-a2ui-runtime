@@ -1,8 +1,8 @@
-# ADR 002: In-product surfaces (steps and islands)
+# ADR 002: In-product surfaces (steps and slots)
 
 | Status | Accepted |
 |--------|----------|
-| Date | 2026-08-15 (chat placement amended 2026-09-04) |
+| Date | 2026-08-15 (chat placement amended 2026-09-04; island → slot and runtime identity 2026-09-05) |
 | Deciders | spring-a2ui maintainers |
 | Supersedes | Product *identity* and path *roles* implied by [ADR 001](001-streaming-surface-generation.md) (stream-only, fail-fast, and dual template/dynamic *mechanisms* still stand) |
 
@@ -12,23 +12,27 @@ ADR 001 decided **how** surfaces are produced (SSE, fail-fast, template tools vs
 
 That mechanism split is still correct. The **buyer promise** was not. A showcase that printed the same known form in template and dynamic modes trained the objection “I can ask a coding agent to build this page once.” A chat bubble is an equal *placement* of the same native SSE pipe, not a second product. We also do not own the builder’s database.
 
+**Island** was a weak word for the page placement: it collides with frontend-islands and sounds like an HTML dump. The payload is A2UI envelopes; the placement is a **slot** on a page they already ship.
+
+**Platform** as the noun on the box overclaimed. The artifacts are a **runtime** (`a2ui-runtime-*`). Starters, SPIs, and docs are batteries around that engine. We do not host chrome, a datastore, a workflow engine, or a chat shell.
+
 This ADR locks the terms we sell and demo.
 
 ## Decision
 
-spring-a2ui is a Spring runtime for **catalog-bounded surfaces in a product the builder owns**: compose → validate → stream → fail-fast → actions.
+spring-a2ui is a Spring **runtime** for **catalog-bounded surfaces in a product the builder owns**: compose → validate → stream → fail-fast → actions.
 
-**Sentence on the box:** catalog-bounded steps — and islands — in a product you own: validated, streamed, fail-fast, then your write path.
+**Sentence on the box:** catalog-bounded steps — and slots — in a product you own: validated, streamed, fail-fast, then your write path.
 
 ### Genre
 
 **In-product surfaces.** A region that speaks our envelopes. Placements (same pipe):
 
 - a **step** in a host-owned process (see [flow recompose](../guides/flow-recompose.md))
-- an **island** on a page they already ship (a dynamically loaded slot)
+- a **slot** on a page they already ship (a dynamically loaded region; their renderer, their widgets — not HTML)
 - a bubble in *their* chat — they mount an A2UI renderer; we do not ship a chat shell
 
-We do **not** name verticals (ops, HITL, intake, shop) as identity. Those are costumes. We do **not** replace page chrome or happy-path checkout. We do **not** ship a workflow engine, a datastore, or a chat shell.
+We do **not** name verticals (ops, HITL, intake, shop) as identity. Those are costumes. We do **not** replace page chrome or happy-path checkout. We do **not** ship a workflow engine, a datastore, a chat shell, or a hosted platform.
 
 ### Data
 
@@ -43,25 +47,26 @@ Catalog schemas and FE renderers (their design system) once. They do not ship a 
 | Path | Role | Near-term investment |
 |------|------|----------------------|
 | **Dynamic** (`generation-mode=dynamic`) | Engine for **unknown structure** — this case’s tree, this slot’s contents | **Gravity.** Reliability, catalogs, cheaper hops, fail-fast |
-| **Template** (`generation-mode=template`) | Frozen capability: LLM selects a registered tree and fills slots | **None.** Keep the SPI; do not grow the template product |
-| **Host `assemble`** | Known tree, **no** model call. Java fills slots the host already has | Preferred for predetermined layouts (acks, confirm-only islands) |
+| **Template** (`generation-mode=template`) | Frozen capability: LLM selects a registered spec and fills slot values | **None.** Keep the SPI; do not grow the template product |
+| **Host `assemble`** | Known tree, **no** model call. Java fills spec slot values the host already has | Preferred for predetermined layouts (acks, confirm-only slots) |
 
-Sending a predetermined layout through the planner is **misuse**, including in our own showcase. Dual-mode reprint of the same form is forbidden as a demo.
+A **template spec** is a host-registered A2UI tree. Host `assemble` and template **mode** both end in `A2UiSurfaceAssemblyService`. The difference is who chooses the spec id and slot values: your Java, or the LLM. Sending a predetermined layout through the planner is **misuse**, including in our own showcase. Dual-mode reprint of the same form is forbidden as a demo.
 
 ### Chat
 
-A bubble in *their* chat is an **equal placement** of the same native SSE pipe as a step or island — not a second runtime and not a chat product we ship. World facts stay host tools (or request `context` / `assemble`).
+A bubble in *their* chat is an **equal placement** of the same native SSE pipe as a step or slot — not a second runtime and not a chat product we ship. World facts stay host tools (or request `context` / `assemble`).
 
 ## Consequences
 
-- Living docs ([platform](../platform.md), cookbook, README, BACKLOG product direction) use this identity. Do not treat historical “decision + capture / ops HITL” copy as current identity.
-- Showcase must prove something a one-shot generated page cannot: a **case-shaped island** and/or a process with a **known $0 step** plus an **unknown dynamic step**, plus a write gate on `A2UiActionHandler`. A chat sample is not required to prove the pipe.
+- Living docs ([positioning](../platform.md), cookbook, README, BACKLOG product direction) use this identity. Do not treat historical “decision + capture / ops HITL” copy as current identity. Do not use **platform** as what we are, or **island** as the page placement.
+- Showcase must prove something a one-shot generated page cannot: a **case-shaped slot** and/or a process with a **known $0 step** plus an **unknown dynamic step**, plus a write gate on `A2UiActionHandler`. A chat sample is not required to prove the pipe.
 - Roadmap gravity stays on dynamic composition. Template SPI remains supported. Do not add bootstrap templates or template-authoring product work unless a later ADR reopens this.
 - “GenUI” remains accurate for the stack. It is not the first sentence on the box.
 
 ## References
 
 - [ADR 001](001-streaming-surface-generation.md) — stream-only, fail-fast, template + dynamic mechanisms
-- [Platform positioning](../platform.md)
+- [Runtime positioning](../platform.md)
 - [Golden-path cookbook](../guides/golden-path-cookbook.md) — when not to compose
 - [Flow recompose](../guides/flow-recompose.md) — host-owned process state
+- [CONTEXT.md](../../CONTEXT.md) — glossary

@@ -4,7 +4,7 @@
 |--------|----------|
 | Date | 2026-08-23 |
 | Deciders | spring-a2ui maintainers |
-| Complements | [ADR 001](001-streaming-surface-generation.md) (stream-only, fail-fast, template + dynamic) · [ADR 002](002-in-product-surfaces.md) (in-product steps and islands) |
+| Complements | [ADR 001](001-streaming-surface-generation.md) (stream-only, fail-fast, template + dynamic) · [ADR 002](002-in-product-surfaces.md) (in-product steps and slots) |
 
 ## Context
 

@@ -12,9 +12,9 @@ ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surf
 
 ### Vision
 
-Be the **backend GenUI platform for OSS / Spring product builders**: teams keep their design system and frontend; spring-a2ui owns generation, catalog validation, streaming, fail-fast errors, and the hard reliability path — so generative UI is a dependency, not a research project.
+Be the **backend GenUI runtime for OSS / Spring product builders**: teams keep their design system and frontend; spring-a2ui owns generation, catalog validation, streaming, fail-fast errors, and the hard reliability path — so generative UI is a dependency, not a research project.
 
-**Promise:** catalog-bounded **steps and islands** in a product they own — validated, streamed, fail-fast, then their write path ([ADR 002](docs/adr/002-in-product-surfaces.md)). We abstract **GenUI backend** complexity (compose → validate → stream → actions) on the JVM so builders can focus on product. Positioning home: [`docs/platform.md`](docs/platform.md).
+**Promise:** catalog-bounded **steps and slots** in a product they own — validated, streamed, fail-fast, then their write path ([ADR 002](docs/adr/002-in-product-surfaces.md)). We abstract **GenUI backend** complexity (compose → validate → stream → actions) on the JVM so builders can focus on product. Positioning home: [`docs/platform.md`](docs/platform.md).
 
 ### Mission
 
@@ -24,11 +24,11 @@ Ship a Maven Central Spring Boot runtime that turns host intent plus context int
 
 | We are | We are not |
 |--------|------------|
-| Spring-native **A2UI generation runtime + platform** | The A2UI grammar owner (Google / [a2ui.org](https://a2ui.org/)) |
+| Spring-native **A2UI generation runtime** | The A2UI grammar owner (Google / [a2ui.org](https://a2ui.org/)) |
 | Fail-fast, catalog-bounded surface producer | A foreign agent↔app interaction protocol as core identity |
 | Backend abstraction for GenUI product teams | A React/chat product shell (SSE into *their* chat is the same pipe, not a shell we ship) |
 
-**Identity:** Spring GenUI backend platform.  
+**Identity:** Spring GenUI backend runtime.  
 **We do not** rebuild our core around third-party chat/agent-UI protocols. Optional **interop bridges** later are adapters only — not the product identity.
 
 ### Primary persona
@@ -81,9 +81,9 @@ Near-term **execution order stays locked** (see header). This section only expla
 | **Architecture revisions** ✅ | Catalog-scoped fail-fast, one compose module, wire hygiene in core |
 | **Generate / govern / execute** ✅ | Catalog-aware planner context, action allow-list, application policy — not another agent framework |
 | **Central `2.2.0`** ✅ | Closes the v0.9.1 product line (architecture + generate/govern/execute). GitHub Release / Maven Central after this cut |
-| **MVP demo (sample apps)** ✅ | Sample island in `apps/`: compose then assemble — [ADR 002](docs/adr/002-in-product-surfaces.md) |
+| **MVP demo (sample apps)** ✅ | Sample slot in `apps/`: compose then assemble — [ADR 002](docs/adr/002-in-product-surfaces.md) |
 | **A2UI v1.0 actions / functions** | Next: protocol action/function cutover, identity, event vs function, idempotency, routing observability — library **`3.0.0` candidate** |
-| **Later (residual)** | Multi-surface runtime, Spring AI hop adapter, Boot 4, provider prompt cache |
+| **Later (residual)** | Parallel two-hop generation, then host compose tools (facts hop); also multi-surface, Spring AI hop adapter, Boot 4, provider prompt cache |
 
 ---
 
@@ -309,7 +309,7 @@ Tracked here so they do not block utilization sequencing, but should not be forg
 
 ## After Phase X — product runtime utilization layer
 
-A2UI is a **UI payload format**. A GenUI **platform** also needs text, progress, and run lifecycle *around* surfaces — in **our** vocabulary on A2UI-native SSE — without changing generation strategy (two-hop tools + validate + retry).
+A2UI is a **UI payload format**. A GenUI **runtime** also needs text, progress, and run lifecycle *around* surfaces — in **our** vocabulary on A2UI-native SSE — without changing generation strategy (two-hop tools + validate + retry).
 
 **Docs:** [Native SSE utilization](docs/guides/native-sse-utilization.md)
 
@@ -334,7 +334,7 @@ A2UI is a **UI payload format**. A GenUI **platform** also needs text, progress,
 
 **Status:** ✅ Complete on `main`; library SemVer **`2.1.0`** publishes Template + Catalog SPIs to Maven Central.  
 **Docs:** [platform](docs/platform.md) · [registering catalogs](docs/guides/registering-catalogs.md) · [authoring templates](docs/guides/authoring-templates.md)  
-**Jobs research (historical):** decision/capture wedge. **Current identity:** [ADR 002](docs/adr/002-in-product-surfaces.md) — in-product surfaces (steps and islands); do not treat ops HITL as the box.  
+**Jobs research (historical):** decision/capture wedge. **Current identity:** [ADR 002](docs/adr/002-in-product-surfaces.md) — in-product surfaces (steps and slots); do not treat ops HITL as the box.  
 **Catalog stance:** We ship/validate the **basic** A2UI catalog. Slice **C2** = host **registers their A2UI catalog schemas** with the runtime (same altitude as `A2UiActionHandler`). Hosts keep renderers + design system. We do **not** become a component kit, catalog marketplace, or visual catalog/create site.
 
 **Core MVP:** shipped at Central `2.0.0`. Batteries are adoption maturity on top — not a second generation runtime.
@@ -439,7 +439,7 @@ First slices:
 
 1. Unknown action (already Phase 2)
 2. Confirmation hook (host says this name requires confirm; runtime does not invent a confirm UI semantically)
-3. **Component visibility:** can this island emit `AccountBalance`? Auth-gated types. Evaluate after catalog validation, before SSE.
+3. **Component visibility:** can this slot emit `AccountBalance`? Auth-gated types. Evaluate after catalog validation, before SSE.
 
 Metrics: `a2ui.policy.rejected`, `a2ui.action.rejected` / `executed`.
 
@@ -460,7 +460,7 @@ Do **not** mix prompt quality with security in one PR.
 
 **Status:** ✅ Complete. **Docs:** [ADR 002](docs/adr/002-in-product-surfaces.md) · [showcase](apps/be-transform-showcase/README.md) · [getting started](docs/guides/getting-started.md)
 
-Island sample in `apps/` only (no library SemVer / wire bump): one composed record (`mig-311`) → host-assembled approval → ledger. cfg-204 is not a selectable record. The sample FE has no chat composer; chat remains an equal **placement** of the same pipe ([ADR 002](docs/adr/002-in-product-surfaces.md)).
+Slot sample in `apps/` only (no library SemVer / wire bump): one composed record (`mig-311`) → host-assembled approval → ledger. cfg-204 is not a selectable record. The sample FE has no chat composer; chat remains an equal **placement** of the same pipe ([ADR 002](docs/adr/002-in-product-surfaces.md)).
 
 Next: **A2UI v1.0 actions / functions** (below).
 
@@ -573,19 +573,53 @@ Prefer: runtime may dedupe **ingress** (same key → same ack); **domain writes 
 - Structured logs: request id, route, kind, error code — **not** action `context` PII
 - Distinct codes for unknown **function** vs unknown **event**
 
-Do not high-cardinality-tag `surfaceId` if hosts mint unique ids per island. Follow [ops and diagnostics](docs/guides/ops-and-diagnostics.md) redaction.
+Do not high-cardinality-tag `surfaceId` if hosts mint unique ids per slot. Follow [ops and diagnostics](docs/guides/ops-and-diagnostics.md) redaction.
 
 ---
 
-## Later — residual platform maturity
+## Later — residual runtime maturity
 
-Items below stay **after** builder batteries (or never, if they fail the extension filter).
+Items below stay **after** builder batteries (or never, if they fail the extension filter). **A2UI v1.0 actions / functions** stays Next. Do not start the sequenced pair below until that map is done, unless a later note reorders.
+
+**Sequencing (locked, this pair):** parallel two-hop generation → host compose tools (facts hop). The facts hop adds wall-clock to `POST /a2ui/surface/stream`; do not stack it on serial hops.
+
+### Parallel two-hop generation
+
+**Status:** not started. **Before** host compose tools.  
+**Does not reopen** [ADR 001](docs/adr/001-streaming-surface-generation.md): still two hops, still forced one-shot `renderA2Ui`, still `returnDirect`.
+
+Today `generateA2Ui` nests `renderA2Ui` and the two LLM calls are serial. Overlap them (or otherwise cut two-hop wall-clock) so a later facts hop is not three sequential round trips on the stream endpoint.
+
+**In:** concurrent / overlapped execution inside the existing dynamic two-hop; keep fail-fast and utilization `toolProgress`.  
+**Out:** a third generation mode; speculative surfaces on the wire; relaxing forced `renderA2Ui`.
+
+Own plan file if starting.
+
+### Host compose tools (facts hop)
+
+**Status:** not started. **After** parallel two-hop generation.  
+**Does not reopen** [ADR 002](docs/adr/002-in-product-surfaces.md): world facts stay **host tools or request `context`**, not runtime internet. Chat stays an equal placement of the same native SSE pipe (no chat shell; history is host `context`).
+
+Today the host can prefetch and put truth in `context` — that path already works. Host tools are **not** callable inside compose: both hops set `toolCallbacks` to the runtime tool only and force one shot.
+
+**In:**
+- Host-registered tools (CRM, weather, search — *their* tools) may run on a **facts hop before the planner**
+- Tool results become this-run context; planner stays forced, one-shot `renderA2Ui`
+- Open-ended chat utterances can then get GenUI with live values without the host prefetching
+
+**Out:**
+- Runtime-owned internet / web-fetch
+- Host tools on the planner hop (do not mix fetch into component emit)
+- Chat shell, platform memory, or un-forcing `renderA2Ui` / reopening TPM tool loops
+- Starting this slice before parallel two-hop generation ships (or is explicitly waived)
+
+Own plan file if starting. Not the architecture-revisions Spring AI hop adapter (that hides *our* ChatClient/tools/ChatOptions).
 
 ### Deferred from batteries plan
 
 - Multi-surface / session handoff **as runtime** (docs patterns only in Slice A)  
 - ~~A2UI v1.0 Candidate protocol bump~~ → **A2UI v1.0 actions / functions** (next)  
-- First-party rich visualization component pack (**never** platform identity — hosts register types via catalog SPI + their FE)  
+- First-party rich visualization component pack (**never** runtime identity — hosts register types via catalog SPI + their FE)  
 - Catalog authoring UX / marketplace / “create your design system” site (A2UI / FE ecosystem; not us)  
 - `JSON_SCHEMA` response format mode cleanup (ongoing reliability)  
 

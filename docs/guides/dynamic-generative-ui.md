@@ -9,9 +9,9 @@ spring-a2ui supports two surface generation modes so product builders can choose
 | **Template** | `a2ui.web.runtime.generation-mode=template` | LLM selects a **host-registered** template (`selectTemplate`) and fills slots (`renderTemplate`). Fixed adjacency lists — register templates via the [Template SPI](authoring-templates.md). The library ships none. |
 | **Dynamic** (library default) | `a2ui.web.runtime.generation-mode=dynamic` | LLM composes a surface from the **active** catalog via two-hop tools — no page templates. Default active catalog is the vendored **basic** v0.9 catalog; hosts can register additional catalogs via `A2UiCatalogContribution` (see [registering catalogs](registering-catalogs.md)). |
 
-The showcase streams **dynamic** for the composed island (`mig-311`). The next step (approval) and other known trees use host `assemble` (no model). Template mode remains available as a frozen capability; do not demo both modes as two prints of the same form.
+The showcase streams **dynamic** for the composed slot (`mig-311`). The next step (approval) and other known trees use host `assemble` (no model). Template mode remains available as a frozen capability; do not demo both modes as two prints of the same form.
 
-**Catalog note:** A2UI production apps typically define catalogs that match their design system ([a2ui.org](https://a2ui.org/guides/defining-your-own-catalog/)). spring-a2ui owns validate/generate against registered schemas; hosts author schemas + FE renderers and register them with `A2UiCatalogContribution`. See [registering catalogs](registering-catalogs.md) and [platform catalog ownership](../platform.md#catalog-ownership-a2ui-aligned).
+**Catalog note:** A2UI production apps typically define catalogs that match their design system ([a2ui.org](https://a2ui.org/guides/defining-your-own-catalog/)). spring-a2ui owns validate/generate against registered schemas; hosts author schemas + FE renderers and register them with `A2UiCatalogContribution`. See [registering catalogs](registering-catalogs.md) and [catalog ownership](../platform.md#catalog-ownership-a2ui-aligned).
 
 ## A2UI v0.9.1 contract
 
@@ -103,7 +103,7 @@ then host-assembled approval). `application-template.yml` is a
 frozen-capability smoke, not the hero.
 
 ```bash
-# Dynamic island demo (default)
+# Dynamic slot demo (default)
 ./mvnw -pl apps/be-transform-showcase spring-boot:run
 
 # Template mode (optional smoke)

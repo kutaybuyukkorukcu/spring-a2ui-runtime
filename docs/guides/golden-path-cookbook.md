@@ -4,7 +4,7 @@ One sitting from a Spring Boot host to a **product loop**: stream a validated A2
 surface → optional utilization events → user action → host ack. Getting started
 stays the ≤15-minute first stream; this guide is the deeper path.
 
-Positioning: [Platform](../platform.md). Core MVP (Central `2.0.0`) is already
+Positioning: [Runtime](../platform.md). Core MVP (Central `2.0.0`) is already
 shipped — this cookbook is for adoption, not a second runtime.
 
 ## Who this is for
@@ -92,7 +92,7 @@ Guide: [Registering catalogs](registering-catalogs.md) ·
 ## 6. Known trees (assemble or template)
 
 When a surface shape is known ahead of time, **assemble** it in the host
-(no model call) — acks, confirm-only islands:
+(no model call) — acks, confirm-only slots:
 
 ```java
 List<A2UiMessage> messages = assemblyService.assemble(
@@ -144,4 +144,4 @@ output should error with diagnostics.
 * [Authoring templates](authoring-templates.md) — Template SPI  
 * [Registering catalogs](registering-catalogs.md) — host A2UI catalog SPI  
 * [REST API](../rest-api.md)  
-* [Builder batteries plan](../plans/phase-platform-builder-batteries.md)  
+* [Runtime positioning](../platform.md)  

@@ -5,7 +5,7 @@ using **spring-a2ui-runtime** (A2UI **v0.9.1**).
 
 The runtime owns **compose → validate → stream → fail-fast → actions**. Your app
 keeps product logic, design system, and FE renderer. For positioning and roadmap
-stages, see [Platform positioning](../platform.md).
+stages, see [Runtime positioning](../platform.md).
 For the v0.8 → v0.9.1 cutover, see [Migrating to v0.9.1](migrating-to-v0.9.1.md).
 
 For endpoint shapes and error codes, see [REST API](../rest-api.md).
@@ -114,7 +114,7 @@ host catalogs you [register](registering-catalogs.md)). Invalid planner output
 is retried once with diagnostics, then surfaced as `A2UI_VALIDATION_FAILED`.
 
 **Host `assemble`** is the right path when the tree is already known (acks,
-confirm-only islands): register a spec, inject `A2UiSurfaceAssemblyService`,
+confirm-only slots): register a spec, inject `A2UiSurfaceAssemblyService`,
 return messages from a controller or action handler — no model call. See
 [Authoring templates](authoring-templates.md#assemble-from-the-host-no-model).
 

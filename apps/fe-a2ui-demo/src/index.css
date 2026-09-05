@@ -177,7 +177,7 @@ button:disabled {
   background: #cbd5e1;
 }
 
-.island {
+.slot {
   background: #fff;
   border: 1px solid #94a3b8;
   border-radius: 10px;
@@ -187,7 +187,7 @@ button:disabled {
   box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
 }
 
-.island-header {
+.slot-header {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -198,7 +198,7 @@ button:disabled {
   border-radius: 9px 10px 0 0;
 }
 
-.island-label {
+.slot-label {
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.07em;
@@ -206,13 +206,13 @@ button:disabled {
   color: #334155;
 }
 
-.island-caption {
+.slot-caption {
   font-size: 0.8125rem;
   color: #475569;
 }
 
-.island .a2ui-error,
-.island .a2ui-run-status {
+.slot .a2ui-error,
+.slot .a2ui-run-status {
   margin: 0.65rem 1rem 0;
 }
 

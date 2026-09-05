@@ -1,7 +1,7 @@
 # Hosting actions in your Spring app
 
 spring-a2ui routes UI button clicks and other client actions to **your** code.
-The platform validates ingress and response envelopes; **you** own product logic,
+The runtime validates ingress and response envelopes; **you** own product logic,
 persistence, and what A2UI messages to return.
 
 ## Boundary

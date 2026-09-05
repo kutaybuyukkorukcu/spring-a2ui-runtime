@@ -80,6 +80,17 @@ List<A2UiMessage> messages = assemblyService.assemble(
 
 Template **mode** is only for LLM select+fill of a registered spec.
 
+## Spec vs mode vs assemble
+
+| | Template **spec** (`ops-approval`) | Template **mode** | Host **assemble** |
+|---|---|---|---|
+| What | A registered A2UI tree + named slot values | `generation-mode=template` | Java calls `A2UiSurfaceAssemblyService` |
+| Who picks the spec id | You, at registration | The **LLM** (`selectTemplate`) | **You**, in the handler |
+| Model? | n/a | Yes | No |
+| Ends in | — | `assemblyService.assemble(...)` | `assemblyService.assemble(...)` |
+
+Yes: `OPS_APPROVAL` is a template **spec**. Host assemble is how the demo uses it ($0). Template mode would let the model *choose* that spec — the frozen path we do not demo as the walkthrough.
+
 ## Alternative: implement `A2UiSurfaceSpec` yourself
 
 `A2UiFixedSurfaceSpec` covers the common case. For anything more custom
@@ -112,4 +123,4 @@ for LLM select+fill.
 * [Registering catalogs](registering-catalogs.md) — host component vocabulary SPI
 * [Hosting actions](hosting-actions.md) — wire button actions to your services
 * [Golden-path cookbook](golden-path-cookbook.md)
-* [Platform](../platform.md) — template vs dynamic generation modes
+* [Runtime positioning](../platform.md) — template vs dynamic generation modes

@@ -24,7 +24,7 @@ public class HealthController {
                 "name", ShowcaseWorkspace.PRODUCT_NAME,
                 "version", "2.2.0",
                 "description",
-                "Spring GenUI host demo — a page the host owns, with one island whose tree depends on this record",
+                "Spring GenUI host demo — a page the host owns, with one slot whose tree depends on this record",
                 "endpoints", Map.of(
                         "health", "GET /health",
                         "demoInfo", "GET /api/demo/info",
@@ -33,7 +33,7 @@ public class HealthController {
                         "actions", "POST /a2ui/actions"),
                 "notes", Map.of(
                         "runtimeBoundary", "Reusable routing, validation, and transport behavior lives in the runtime modules; this host stays thin.",
-                        "showcaseRole", "One composed record fills the island from the catalog; submit then host-assembles the approval step (no model). The host owns the ledger.")
+                        "showcaseRole", "One composed record fills the slot from the catalog; submit then host-assembles the approval step (no model). The host owns the ledger.")
         ));
     }
 }

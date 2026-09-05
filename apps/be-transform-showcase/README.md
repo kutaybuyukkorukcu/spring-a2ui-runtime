@@ -1,7 +1,7 @@
 # be-transform-showcase
 
 Thin Spring Boot **host** for spring-a2ui (port `5001`). Runs a **payments-api workspace**:
-a page the host owns, with **one island** whose tree is composed for **this case**.
+a page the host owns, with **one slot** whose tree is composed for **this case**.
 The next step (approval) is **assembled** — *Layout was not generated.*
 
 That is the [ADR 002](../../docs/adr/002-in-product-surfaces.md) proof: in-product surfaces,
@@ -14,7 +14,7 @@ Pair with [`apps/fe-a2ui-demo`](../fe-a2ui-demo).
 | Profile | Mode | Role |
 |---------|------|------|
 | `dynamic` (**default**) | Catalog composition | Record `mig-311` composes this case from the catalog |
-| `template` | Frozen capability | LLM selects a registered tree. **Not** a second walkthrough of the same island |
+| `template` | Frozen capability | LLM selects a registered tree. **Not** a second walkthrough of the same slot |
 
 ```bash
 export OPENAI_API_KEY=...
@@ -37,7 +37,7 @@ Open http://localhost:3000 — the FE loads the workspace from `GET /api/demo/in
 
 ## 60-second walkthrough
 
-Story: **your page, one slot.** One composed record fills the island; submit then
+Story: **your page, one slot.** One composed record fills the slot; submit then
 assembles approval.
 
 1. Select **mig-311** (schema migration, staging failed, customer-impacting). The FE
@@ -64,7 +64,7 @@ showcase. Dual-mode reprint of the same form is forbidden.
 | Workspace fixture (`mig-311` case copy) | `demo.ShowcaseWorkspace` |
 | Change ledger (in-memory) | `demo.change.InMemoryChangeStore` |
 | Actions (`submit_change` → assembled approval, `approve` / `reject`) | `ShowcaseChangeActionHandler` |
-| Templates (`change-intake` for template-mode smoke, `ops-approval` for assemble) | `ShowcaseTemplateConfiguration` |
+| Specs (`change-intake` for template-mode smoke, `ops-approval` for assemble) | `ShowcaseTemplateConfiguration` |
 | Planner few-shots (Button + Text sibling) | `ShowcaseCatalogContribution` |
 | Demo metadata | `GET /api/demo/info` |
 

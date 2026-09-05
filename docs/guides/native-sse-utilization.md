@@ -94,4 +94,4 @@ Builders who use CopilotKit or other clients on the FE integrate with our
 * [Action round-trip](action-round-trip.md)  
 * [Hosting actions](hosting-actions.md) — `A2UiActionHandler` → your DB  
 * [REST API](../rest-api.md) — stream and action endpoints  
-* [Platform positioning](../platform.md)  
+* [Runtime positioning](../platform.md)  

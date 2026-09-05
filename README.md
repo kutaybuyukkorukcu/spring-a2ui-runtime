@@ -6,11 +6,11 @@
 
 Canonical GitHub repository: [`kutaybuyukkorukcu/spring-a2ui-runtime`](https://github.com/kutaybuyukkorukcu/spring-a2ui-runtime).
 
-A Spring Boot **GenUI backend runtime / platform** for [A2UI](https://a2ui.org/): validate catalog components, assemble surfaces, and stream them to clients over native SSE.
+A Spring Boot **GenUI backend runtime** for [A2UI](https://a2ui.org/): validate catalog components, assemble surfaces, and stream them to clients over native SSE.
 
-**Vision:** abstract GenUI backend infrastructure so OSS / Spring product builders can focus on product. You keep your design system and frontend; we own compose → validate → stream → fail-fast → actions. Catalog-bounded **steps and islands** in a product you own — not a chat shell and not a page generator. Generative UI becomes a Maven Central dependency, not a research project. The product pipe is **A2UI-native SSE**; optional foreign-client bridges are demand-gated later and never core identity.
+**Vision:** abstract GenUI backend infrastructure so OSS / Spring product builders can focus on product. You keep your design system and frontend; we own compose → validate → stream → fail-fast → actions. Catalog-bounded **steps and slots** in a product you own — not a chat shell and not a page generator. Generative UI becomes a Maven Central dependency, not a research project. The product pipe is **A2UI-native SSE**; optional foreign-client bridges are demand-gated later and never core identity.
 
-If you are building generative UI on Spring, you should not have to hand-roll prompts, parsers, and fail-open demos. This platform owns the hard reliability path so your app can ship product behavior. Identity: [ADR 002](docs/adr/002-in-product-surfaces.md).
+If you are building generative UI on Spring, you should not have to hand-roll prompts, parsers, and fail-open demos. This runtime owns the hard reliability path so your app can ship product behavior. Identity: [ADR 002](docs/adr/002-in-product-surfaces.md).
 
 ## Status
 
@@ -98,7 +98,7 @@ Sample apps under `apps/` (`be-transform-showcase`, `fe-a2ui-demo`) are for loca
 ```shell
 export OPENAI_API_KEY=...
 
-# Backend — dynamic island demo (showcase default)
+# Backend — dynamic slot demo (showcase default)
 mvn -pl apps/be-transform-showcase spring-boot:run
 
 # Backend — template profile (frozen-capability smoke)
@@ -121,7 +121,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for layout, PR expectations, and formatti
 
 ## Documentation
 
-* [Platform positioning](docs/platform.md) — what we are, catalog ownership, roadmap  
+* [Runtime positioning](docs/platform.md) — what we are, catalog ownership, roadmap  
 * [Getting started](docs/guides/getting-started.md)  
 * [Golden-path cookbook](docs/guides/golden-path-cookbook.md) — product loop  
 * [Ops and diagnostics](docs/guides/ops-and-diagnostics.md) · [Multi-provider Spring AI](docs/guides/multi-provider-spring-ai.md)  

@@ -45,7 +45,7 @@ export interface DemoInfo {
   generationMode: 'template' | 'dynamic';
   storyTitle: string;
   storyBlurb: string;
-  islandLabel: string;
+  slotLabel: string;
   records: DemoRecord[];
   ledger: LedgerEntry[];
 }

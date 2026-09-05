@@ -9,7 +9,7 @@ public record DemoInfoResponse(
     String generationMode,
     String storyTitle,
     String storyBlurb,
-    String islandLabel,
+    String slotLabel,
     List<RecordInfo> records,
     List<LedgerEntry> ledger) {
 

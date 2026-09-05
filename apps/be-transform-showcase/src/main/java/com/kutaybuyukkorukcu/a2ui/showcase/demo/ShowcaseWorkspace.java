@@ -9,7 +9,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 /**
- * Host-owned workspace fixtures: one payments-api island record. The case is composed by the FE
+ * Host-owned workspace fixtures: one payments-api slot record. The case is composed by the FE
  * via {@code POST /a2ui/surface/stream}; the next step (approval) is assembled with no model.
  */
 @Component
@@ -19,20 +19,20 @@ public class ShowcaseWorkspace {
   public static final String COMPOSED_RECORD_ID = "mig-311";
   public static final String SURFACE_KIND_COMPOSED = "composed";
   public static final String COMPOSED_CAPTION = "Composed for this case from the catalog.";
-  public static final String ISLAND_LABEL = "GenUI slot";
+  public static final String SLOT_LABEL = "GenUI slot";
 
   static final String STORY_TITLE = "Your page, one slot";
 
   static final String STORY_BLURB =
       "This workspace is the product you own. Chrome and the ledger stay on the host."
-          + " One island: compose this case from the catalog. The next step (approval) is"
+          + " One slot: compose this case from the catalog. The next step (approval) is"
           + " assembled — Layout was not generated.";
 
   static final String UNKNOWN_CASE_CONTENT =
       "Case mig-311 on payments-api is a schema migration. Staging failed. This is"
           + " customer-impacting. Still unknown and must be captured before review: notes"
           + " from the last failed staging run, the production rollback window, and extra"
-          + " risk beyond a config-only change. Compose an island for this case from the"
+          + " risk beyond a config-only change. Compose a slot for this case from the"
           + " catalog so an engineer can submit it for review.";
 
   static final String UNKNOWN_CASE_INSTRUCTIONS =
@@ -58,7 +58,7 @@ public class ShowcaseWorkspace {
         generationMode,
         STORY_TITLE,
         STORY_BLURB,
-        ISLAND_LABEL,
+        SLOT_LABEL,
         records(),
         ledgerSnapshot());
   }

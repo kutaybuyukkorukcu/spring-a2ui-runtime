@@ -44,7 +44,7 @@ that your FE registers for rendering.
 ## What we will not provide
 
 - A marketplace of catalogs or a visual “create your design system” product  
-- First-party chart/table kits as platform identity  
+- First-party chart/table kits as runtime identity  
 - Pixel themes for your brand — theme in your FE  
 
 ## Next reading

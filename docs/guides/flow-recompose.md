@@ -3,7 +3,7 @@
 Multi-step **in-product surfaces** without a platform memory or session store.
 The host owns collected state; each stream (or assemble) is steered with that
 state via request `context`. Placements of the same pipe: a process **step**, an
-**island** on a page they already ship, or a bubble in *their* chat (host A2UI
+a **slot** on a page they already ship, or a bubble in *their* chat (host A2UI
 renderer; world facts stay host tools). Identity: [ADR 002](../adr/002-in-product-surfaces.md).
 
 We do **not** ship a workflow engine.

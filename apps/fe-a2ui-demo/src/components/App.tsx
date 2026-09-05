@@ -68,7 +68,7 @@ export function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [islandCaption, setIslandCaption] = useState<string | null>(null);
+  const [slotCaption, setSlotCaption] = useState<string | null>(null);
   const [runStatus, setRunStatus] = useState<string | null>(null);
   const [toolProgress, setToolProgress] = useState<string | null>(null);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
@@ -123,7 +123,7 @@ export function App() {
           void refreshLedger();
 
           if (actionResult?.nextStep === 'approval') {
-            setIslandCaption('Layout was not generated.');
+            setSlotCaption('Layout was not generated.');
             setRunStatus('Host persisted the draft and returned the approval surface.');
           } else if (actionResult?.status === 'approved' || actionResult?.status === 'rejected') {
             setRunStatus(
@@ -169,16 +169,16 @@ export function App() {
     setRunStatus(null);
     setToolProgress(null);
     setSelectedId(null);
-    setIslandCaption(null);
+    setSlotCaption(null);
   }, [processor, applyMessages]);
 
   const handleUtilizationEvent = useCallback((event: StreamUtilizationEvent) => {
     switch (event.type) {
       case 'runStarted':
-        setRunStatus('Composing island for this case…');
+        setRunStatus('Composing slot for this case…');
         break;
       case 'runFinished':
-        setRunStatus('Island ready.');
+        setRunStatus('Slot ready.');
         setToolProgress(null);
         break;
       case 'runError':
@@ -224,7 +224,7 @@ export function App() {
         (err) => setError(err),
         handleUtilizationEvent,
         {
-          intent: 'case_island',
+          intent: 'case_slot',
           instructions: record.instructions,
         },
       );
@@ -245,7 +245,7 @@ export function App() {
   const openRecord = useCallback(async (record: DemoRecord) => {
     if (loading) return;
     setSelectedId(record.id);
-    setIslandCaption(record.caption);
+    setSlotCaption(record.caption);
     setError(null);
     setToolProgress(null);
     setRunStatus(null);
@@ -265,7 +265,7 @@ export function App() {
           <h2 className="story-title">{demoInfo?.storyTitle ?? 'Your page, one slot'}</h2>
           <p>
             {demoInfo?.storyBlurb
-              ?? 'This workspace is the product you own. The island is the only region that speaks A2UI.'}
+              ?? 'This workspace is the product you own. The slot is the only region that speaks A2UI.'}
           </p>
           {demoInfoError && (
             <p className="demo-info-warning">
@@ -301,10 +301,10 @@ export function App() {
           </button>
         </aside>
 
-        <section className="island" aria-label={demoInfo?.islandLabel ?? 'GenUI slot'}>
-          <div className="island-header">
-            <span className="island-label">{demoInfo?.islandLabel ?? 'GenUI slot'}</span>
-            {islandCaption && <span className="island-caption">{islandCaption}</span>}
+        <section className="slot" aria-label={demoInfo?.slotLabel ?? 'GenUI slot'}>
+          <div className="slot-header">
+            <span className="slot-label">{demoInfo?.slotLabel ?? 'GenUI slot'}</span>
+            {slotCaption && <span className="slot-caption">{slotCaption}</span>}
           </div>
 
           {error && (
@@ -327,7 +327,7 @@ export function App() {
                 <p>
                   {loading
                     ? (selectedRecord?.surfaceKind === 'composed'
-                      ? 'Composing island for this case…'
+                      ? 'Composing slot for this case…'
                       : 'Filling slot…')
                     : 'Select a record. This slot is the only region that speaks A2UI.'}
                 </p>
@@ -346,7 +346,7 @@ export function App() {
       <section className="ledger" aria-label="Host ledger">
         <h3>Ledger</h3>
         {ledger.length === 0 ? (
-          <p className="ledger-empty">No writes yet. Submitting from the island persists here — in this Spring host.</p>
+          <p className="ledger-empty">No writes yet. Submitting from the slot persists here — in this Spring host.</p>
         ) : (
           <table>
             <thead>

@@ -9,17 +9,18 @@ Library versions (`2.x`) speak A2UI **protocol** v0.9.1. The `1.1.x` line remain
 
 ## [Unreleased]
 
+### Changed
+
+- **Identity language** — we are a **runtime**, not a platform. Page placements are **slots**, not islands ([ADR 002](docs/adr/002-in-product-surfaces.md), [CONTEXT.md](CONTEXT.md))
+- **Catalog few-shots** — vendored basic catalog ships no `examples.txt`; planner few-shots are host-owned via `A2UiCatalogContribution.examplesText()`. Showcase registers a closed Button + Text sibling graph (complete `components` array) as a host contribution
+- **Showcase** — slot workspace lists only composed record `mig-311`; `cfg-204` is no longer selectable; `submit_change` still host-assembles `ops-approval` (no model)
+- **Sample FE** — slot workspace only (compose then assemble); pin basic-catalog tokens to the light host chrome and render Text markdown so headings are not raw `##`
+- **Docs** — MVP demo plan folded; next is A2UI v1.0 actions / functions
+
 ### Fixed
 
 - **Dynamic compose one-shot tools** — `generateA2Ui` and `renderA2Ui` return directly after one execution so forced OpenAI `tool_choice` cannot loop the same tool until TPM death
 - **Dangling child ids** — planner graphs that reference a missing id (e.g. Button `child: "submitText"` with no such component) are `A2UI_VALIDATION_FAILED` and retried once with diagnostics, instead of a non-retried `TRANSFORM_FAILED`
-
-### Changed
-
-- **Catalog few-shots** — vendored basic catalog ships no `examples.txt`; planner few-shots are host-owned via `A2UiCatalogContribution.examplesText()`. Showcase registers a closed Button + Text sibling graph (complete `components` array) as a host contribution
-- **Showcase** — island workspace lists only composed record `mig-311`; `cfg-204` is no longer selectable; `submit_change` still host-assembles `ops-approval` (no model)
-- **Sample FE** — island workspace only (compose then assemble); pin basic-catalog tokens to the light host chrome and render Text markdown so headings are not raw `##`
-- **Docs** — MVP demo plan folded; next is A2UI v1.0 actions / functions
 
 ## [2.2.0] — 2026-08-29
 
