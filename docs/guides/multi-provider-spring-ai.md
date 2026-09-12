@@ -131,7 +131,7 @@ Showcase write-gate path: [Action round-trip](action-round-trip.md).
 | Topic | Reality |
 |-------|---------|
 | Golden path | OpenAI (+ Groq-compatible OpenAI API) |
-| Dynamic + force tool | Best on OpenAI-compatible options today |
+| Dynamic + force tool | OpenAI-shaped today (`A2UiForcedToolChoiceFactory`). Anthropic/Gemini without OpenAI types on the classpath do **not** force `generateA2Ui` / `renderA2Ui`. Runtime work: [BACKLOG Later](../../BACKLOG.md#dynamic-compose-tool-forcing-beyond-openai) |
 | Schema / JSON mode | Provider-specific; do not assume `JSON_SCHEMA` everywhere |
 | Cost / latency | Varies widely — budget in [ops](ops-and-diagnostics.md) |
 

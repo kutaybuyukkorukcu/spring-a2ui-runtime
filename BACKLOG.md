@@ -60,7 +60,7 @@ Ship a Maven Central Spring Boot runtime that turns host intent plus context int
 - ~~Tool API shape~~ → **Builder + runtime `@Tool` adapters**
 - ~~Is dynamic A2UI in scope?~~ → **Yes — Phase 2 (shipped)**
 - ~~Generation product: basic catalog only~~ → **basic + host `A2UiCatalogContribution` SPI** (Central `2.1.0`)
-- ~~Provider scope~~ → **OpenAI-first for MVP**; Anthropic / Gemini / Groq documented ([multi-provider guide](docs/guides/multi-provider-spring-ai.md))
+- ~~Provider scope~~ → **OpenAI-first for MVP**; Groq via OpenAI-compatible API; Anthropic / Gemini **recipes** documented ([multi-provider guide](docs/guides/multi-provider-spring-ai.md)). **Dynamic force-tool still OpenAI-shaped** — Later residual below
 - ~~Platform vs foreign protocol-as-core~~ → **Platform**; native SSE remains identity
 - ~~v0.8 / Central `1.1.0`~~ → **Published**
 - ~~Patch `1.1.1` dynamic fail-fast~~ → **Published**
@@ -83,7 +83,7 @@ Near-term **execution order stays locked** (see header). This section only expla
 | **Central `2.2.0`** ✅ | Closes the v0.9.1 product line (architecture + generate/govern/execute). GitHub Release / Maven Central after this cut |
 | **MVP demo (sample apps)** ✅ | Sample slot in `apps/`: compose then assemble — [ADR 002](docs/adr/002-in-product-surfaces.md) |
 | **A2UI v1.0 actions / functions** | Next: protocol action/function cutover, identity, event vs function, idempotency, routing observability — library **`3.0.0` candidate** |
-| **Later (residual)** | Parallel two-hop generation, then host compose tools (facts hop); also multi-surface, Spring AI hop adapter, Boot 4, provider prompt cache |
+| **Later (residual)** | Parallel two-hop generation, then host compose tools (facts hop); **dynamic compose tool forcing beyond OpenAI**; also multi-surface, Spring AI hop adapter, Boot 4, provider prompt cache |
 
 ---
 
@@ -583,6 +583,8 @@ Items below stay **after** builder batteries (or never, if they fail the extensi
 
 **Sequencing (locked, this pair):** parallel two-hop generation → host compose tools (facts hop). The facts hop adds wall-clock to `POST /a2ui/surface/stream`; do not stack it on serial hops.
 
+**Independent of that pair (still Later, still 2.x):** [dynamic compose tool forcing beyond OpenAI](#dynamic-compose-tool-forcing-beyond-openai). Does not jump v1.0 as Next.
+
 ### Parallel two-hop generation
 
 **Status:** not started. **Before** host compose tools.  
@@ -614,6 +616,31 @@ Today the host can prefetch and put truth in `context` — that path already wor
 - Starting this slice before parallel two-hop generation ships (or is explicitly waived)
 
 Own plan file if starting. Not the architecture-revisions Spring AI hop adapter (that hides *our* ChatClient/tools/ChatOptions).
+
+### Dynamic compose tool forcing beyond OpenAI
+
+**Status:** not started. **Independent** of the parallel two-hop → facts hop pair and of A2UI v1.0 wire. Library **2.x** (not `3.0.0`). Does not jump v1.0 as Next in this file.
+
+**Does not reopen** [ADR 001](docs/adr/001-streaming-surface-generation.md): still two hops, still forced one-shot `generateA2Ui` / `renderA2Ui`, still `returnDirect`. Golden path stays OpenAI.
+
+Today `A2UiForcedToolChoiceFactory` builds OpenAI `tool_choice` only. If OpenAI `ChatOptions` types are on the classpath, construction failure is fail-closed (`TOOL_CHOICE_UNAVAILABLE`). If those types are absent, it returns empty `ChatOptions` and Anthropic/Vertex continue **without** forcing — dynamic compose can skip the tool. Groq via an OpenAI-compatible base URL already uses the OpenAI path. Batteries Slice E shipped **recipes** (template-first); that is not forced dynamic compose.
+
+**In:**
+- Classpath-conditional forced tool choice for Anthropic and Vertex AI Gemini (same hop names)
+- Fail-closed when the active provider cannot force — extend `TOOL_CHOICE_UNAVAILABLE`, no silent skip
+- Keep one-shot `returnDirect` (do not reopen TPM tool loops)
+- Tests that construct provider options when types are present and fail-closed when construction fails
+- Showcase or guide smoke: one successful **dynamic** stream on Anthropic and on Gemini, or an honest documented skip if Spring AI cannot force that provider yet
+
+**Out:**
+- A new provider abstraction layer
+- Changing the getting-started golden path off OpenAI
+- Promising every model quality-matches OpenAI compose
+- Azure as a separate SDK when it is OpenAI-compatible (already covered)
+- Benchmarks / published latency numbers (not this slice)
+- Docs-only recipes (already shipped)
+
+Own plan file if starting.
 
 ### Deferred from batteries plan
 

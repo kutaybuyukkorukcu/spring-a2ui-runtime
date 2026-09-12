@@ -87,7 +87,7 @@ Near-term **execution order is locked** in [`BACKLOG.md`](../BACKLOG.md). Do not
 6. **Generate / govern / execute** ✅ — planner digest, action allow-list, application policy ([dynamic generative UI](guides/dynamic-generative-ui.md), [hosting actions](guides/hosting-actions.md)). `A2UiGenerationPolicy` stays ChatOptions. Library **`2.2.0`**.  
 7. **MVP demo (sample apps)** ✅ — slot walkthrough (compose then assemble) in `apps/` ([ADR 002](adr/002-in-product-surfaces.md), [showcase](../apps/be-transform-showcase/README.md))  
 8. **A2UI v1.0 actions / functions** — next protocol line ([BACKLOG](../BACKLOG.md)): event vs function, identity, idempotency, routing observability — library **`3.0.0` candidate**  
-9. **Later (residual)** — parallel two-hop generation, then host compose tools (facts hop); Spring AI hop adapter, starter split, Boot 4, provider prompt cache — **not** “invent catalogs for hosts”
+9. **Later (residual)** — parallel two-hop generation, then host compose tools (facts hop); dynamic compose tool forcing beyond OpenAI; Spring AI hop adapter, starter split, Boot 4, provider prompt cache — **not** “invent catalogs for hosts”
 
 ## Where to go next
 
@@ -107,4 +107,4 @@ Near-term **execution order is locked** in [`BACKLOG.md`](../BACKLOG.md). Do not
 - [ADR 001](adr/001-streaming-surface-generation.md) — stream-only, fail-fast, template + dynamic mechanisms  
 - [ADR 002](adr/002-in-product-surfaces.md) — in-product surfaces; when to compose vs assemble  
 - [ADR 003](adr/003-catalog-scoped-fail-fast.md) — catalog-scoped fail-fast, one compose module  
-- [`BACKLOG.md`](../BACKLOG.md) — next: A2UI v1.0 actions / functions; Later residual (Spring AI adapter, starter split, Boot 4, provider prompt cache)  
+- [`BACKLOG.md`](../BACKLOG.md) — next: A2UI v1.0 actions / functions; Later residual (dynamic compose tool forcing beyond OpenAI; Spring AI adapter, starter split, Boot 4, provider prompt cache)  
