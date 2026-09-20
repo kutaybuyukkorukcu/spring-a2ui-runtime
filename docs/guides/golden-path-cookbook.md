@@ -10,17 +10,12 @@ shipped — this cookbook is for adoption, not a second runtime.
 ## Who this is for
 
 Spring teams embedding **catalog-bounded surfaces** inside products they own —
-a process step or a slot on a page they already ship — not building a ChatGPT
-clone and not adopting a hosted UI model. Identity: [ADR 002](../adr/002-in-product-surfaces.md).
-
-| Need | Prefer |
-|------|--------|
-| In-process Boot starter, A2UI catalog, fail-fast, your FE | **spring-a2ui** |
-| Hosted prompt → UI DSL + React SDK | Thesys C1 (different packaging) |
-| Chat shell + AG-UI + Spring AI demo path | CopilotKit (complementary shell; not our identity) |
+a process step or a slot on a page they already ship — not a chat product
+shell and not a hosted UI model. Identity: [ADR 002](../adr/002-in-product-surfaces.md).
 
 You keep design system + FE + domain DB. We own compose → validate → stream →
-fail-fast → actions.
+fail-fast → actions. The runtime is an in-process Spring Boot starter on
+Maven Central, with A2UI-native SSE and fail-fast catalog validation.
 
 ## 1. Dependency and mode
 

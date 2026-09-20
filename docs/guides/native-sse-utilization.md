@@ -81,11 +81,10 @@ The sample FE in `apps/fe-a2ui-demo` demonstrates this in `api.ts` and `App.tsx`
 
 ## What we are not
 
-* **Not** AG-UI / CopilotKit — we do not ship their event enums or chat shells.
-* **Not** a foreign-client bridge — we are not building an AG-UI translation
-  module; native SSE is the product pipe.
+* **Not** a chat product shell — we do not ship client event enums or chrome.
+* **Not** a foreign-client bridge — native SSE is the product pipe.
 
-Builders who use CopilotKit or other clients on the FE integrate with our
+Builders who use a third-party chat client on the FE integrate with our
 **A2UI-native SSE** directly, or wrap utilization events in their own adapter.
 
 ## Next reading

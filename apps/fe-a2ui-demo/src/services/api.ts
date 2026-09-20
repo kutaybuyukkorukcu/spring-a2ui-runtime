@@ -20,6 +20,22 @@ interface A2UiSurfaceRequest {
 
 export type SurfaceKind = 'assembled' | 'composed';
 
+export type DemoStepKind = 'assembled' | 'composed' | 'action';
+
+export interface DemoStep {
+  id: string;
+  label: string;
+  kind: DemoStepKind;
+  caption?: string;
+}
+
+export interface DemoSurface {
+  recordId: string;
+  step: string;
+  caption: string;
+  messages: unknown[];
+}
+
 export interface DemoRecord {
   id: string;
   title: string;
@@ -46,6 +62,7 @@ export interface DemoInfo {
   storyTitle: string;
   storyBlurb: string;
   slotLabel: string;
+  steps: DemoStep[];
   records: DemoRecord[];
   ledger: LedgerEntry[];
 }
@@ -57,7 +74,8 @@ export interface ActionResultPayload {
   service?: string;
   changeType?: string;
   summary?: string;
-  nextStep?: string;
+  recordId?: string;
+  nextStep?: 'compose' | 'approval' | 'outcome' | string;
 }
 
 const CATALOG_ID = 'https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json';
@@ -75,6 +93,14 @@ export async function fetchDemoInfo(): Promise<DemoInfo> {
     throw new Error(`Failed to load demo info: ${response.status}`);
   }
   return response.json() as Promise<DemoInfo>;
+}
+
+export async function fetchDemoSurface(recordId: string): Promise<DemoSurface> {
+  const response = await fetch(`/api/demo/records/${encodeURIComponent(recordId)}/open`);
+  if (!response.ok) {
+    throw new Error(`Failed to open record: ${response.status}`);
+  }
+  return response.json() as Promise<DemoSurface>;
 }
 
 export async function streamSurface(

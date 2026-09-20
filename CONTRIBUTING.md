@@ -17,10 +17,9 @@ issue. See [SECURITY.md](SECURITY.md).
 
 ## Questions vs bugs
 
-* **Usage / “how do I…?”** — open a
-  [GitHub Discussion](https://github.com/kutaybuyukkorukcu/spring-a2ui-runtime/discussions)
-  (or an issue if Discussions are not enabled yet). Point at the relevant doc
-  under [`docs/`](docs/) when you can.
+* **Usage / “how do I…?”** — open an
+  [issue](https://github.com/kutaybuyukkorukcu/spring-a2ui-runtime/issues).
+  Point at the relevant doc under [`docs/`](docs/) when you can.
 * **Bug** — open an issue with steps to reproduce, Spring Boot / Spring AI
   versions, `generation-mode` (`template` or `dynamic`), and a minimal sample if
   possible.
@@ -40,7 +39,7 @@ Before filing something new, search existing
 | `packages/a2ui-runtime-spring-web-starter` | HTTP + SSE endpoints (auto-configuration) |
 | `apps/be-transform-showcase` | Sample host application (not published) |
 | `apps/fe-a2ui-demo` | Sample `@a2ui/react` client (not published) |
-| `docs/` | ADRs, guides, API reference, in-flight phase plans |
+| `docs/` | ADRs, guides, API reference, in-flight phase plans, [later architectural backlog](docs/architectural-backlog.md) |
 
 Reusable behavior belongs in `packages/`. Showcase-only shortcuts stay in
 `apps/`.
@@ -70,12 +69,12 @@ mvn spotless:apply -B -ntp
 ```shell
 export OPENAI_API_KEY=...
 
-# Template mode (default Spring profile in the showcase)
+# Dynamic mode (showcase default)
 mvn -pl apps/be-transform-showcase spring-boot:run
 
-# Dynamic mode
+# Template profile (frozen-capability smoke)
 mvn -pl apps/be-transform-showcase spring-boot:run \
-  -Dspring-boot.run.arguments="--spring.profiles.active=dynamic"
+  -Dspring-boot.run.arguments="--spring.profiles.active=template"
 ```
 
 Frontend demo:

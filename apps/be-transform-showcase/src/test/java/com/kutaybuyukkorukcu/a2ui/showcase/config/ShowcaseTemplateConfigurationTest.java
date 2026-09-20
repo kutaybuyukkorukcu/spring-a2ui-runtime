@@ -35,7 +35,9 @@ class ShowcaseTemplateConfigurationTest {
     void shouldRegisterHostChangeTemplatesOnly() {
         assertThat(templateRegistry.templateIds()).containsExactlyInAnyOrder(
                 ShowcaseTemplateConfiguration.CHANGE_INTAKE,
-                ShowcaseTemplateConfiguration.OPS_APPROVAL);
+                ShowcaseTemplateConfiguration.CASE_BRIEF,
+                ShowcaseTemplateConfiguration.OPS_APPROVAL,
+                ShowcaseTemplateConfiguration.CHANGE_OUTCOME);
     }
 
     @Test
@@ -121,6 +123,65 @@ class ShowcaseTemplateConfigurationTest {
                 .orElseThrow();
         assertThat(update.components()).anyMatch(component -> "reject-btn".equals(component.id()));
         assertDecisionButtonsBindChangeId(messages, true);
+    }
+
+    @Test
+    @DisplayName("case-brief assembles a validated surface bound to capture_remaining")
+    void shouldAssembleValidCaseBriefSurface() {
+        List<A2UiMessage> messages = assemblyService.assemble(
+                ShowcaseTemplateConfiguration.CASE_BRIEF,
+                "main",
+                A2UiCatalogIds.BASIC_V0_9,
+                Map.of(
+                        "title", "mig-311 · schema migration",
+                        "flags", "staging failed · customer-impacting",
+                        "knownFacts", "Host already knows: service payments-api.",
+                        "whyCompose", "Still unknown: notes, rollback window, and extra risk.",
+                        "continueLabel", "Capture remaining facts",
+                        "recordId", "mig-311"));
+
+        assertEmptyDiagnostics(messages);
+        A2UiMessage.UpdateComponents update = messages.stream()
+                .filter(A2UiMessage.UpdateComponents.class::isInstance)
+                .map(A2UiMessage.UpdateComponents.class::cast)
+                .findFirst()
+                .orElseThrow();
+        A2UiMessage.ComponentDefinition capture = update.components().stream()
+                .filter(component -> "capture-btn".equals(component.id()))
+                .findFirst()
+                .orElseThrow();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> action = (Map<String, Object>) capture.componentProperties().get("action");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> event = (Map<String, Object>) action.get("event");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> context = (Map<String, Object>) event.get("context");
+        assertThat(event.get("name")).isEqualTo("capture_remaining");
+        assertThat(context).containsEntry("recordId", Map.of("path", "/recordId"));
+        assertThat(update.components()).noneMatch(component -> "TextField".equals(component.component()));
+    }
+
+    @Test
+    @DisplayName("change-outcome assembles a validated display-only surface")
+    void shouldAssembleValidChangeOutcomeSurface() {
+        List<A2UiMessage> messages = assemblyService.assemble(
+                ShowcaseTemplateConfiguration.CHANGE_OUTCOME,
+                "main",
+                A2UiCatalogIds.BASIC_V0_9,
+                Map.of(
+                        "title", "Recorded in your ledger",
+                        "meta", "payments-api · migration · chg-demo",
+                        "body", "Change chg-demo is approved. The write stayed in this Spring host.",
+                        "rollback", "Cutover uses the rollback window you captured: 15-minute window."));
+
+        assertEmptyDiagnostics(messages);
+        A2UiMessage.UpdateComponents update = messages.stream()
+                .filter(A2UiMessage.UpdateComponents.class::isInstance)
+                .map(A2UiMessage.UpdateComponents.class::cast)
+                .findFirst()
+                .orElseThrow();
+        assertThat(update.components()).noneMatch(component -> "Button".equals(component.component()));
+        assertThat(update.components()).anyMatch(component -> "rollback-txt".equals(component.id()));
     }
 
     @SuppressWarnings("unchecked")

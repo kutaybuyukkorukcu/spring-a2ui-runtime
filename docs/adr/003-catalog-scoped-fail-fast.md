@@ -37,6 +37,8 @@ Does **not** reopen ADR 001 / 002: dual generation modes stay; template remains 
 - Split catalog wiring from the AI starter so host `assemble` does not pull Spring AI
 - Spring AI 2.0 / Boot 4 (blocked on the adapter; do not bump the BOM first)
 
+Review synthesis (do not start): [architectural backlog](../architectural-backlog.md).
+
 ## References
 
 - [Registering catalogs](../guides/registering-catalogs.md)

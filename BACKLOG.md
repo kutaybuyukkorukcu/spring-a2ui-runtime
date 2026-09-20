@@ -326,7 +326,7 @@ A2UI is a **UI payload format**. A GenUI **runtime** also needs text, progress, 
 1. **Phase X (v0.9.1)** ✅ — protocol currency  
 2. **Utilization on native SSE** ✅ — `run*` / `assistantText` / `toolProgress` ([guide](docs/guides/native-sse-utilization.md))  
 3. **Host-app actions cookbook** ✅ — [hosting-actions](docs/guides/hosting-actions.md)  
-4. **Non-goals:** foreign-client bridge / AG-UI as core; open HTML GenUI; platform datastore  
+4. **Non-goals:** foreign-client bridge as core; open HTML GenUI; platform datastore  
 
 ---
 
@@ -350,7 +350,7 @@ A2UI is a **UI payload format**. A GenUI **runtime** also needs text, progress, 
 
 **Extension filter:** deepen compose → validate → stream → fail-fast → actions; self-host in Boot; leave FE + domain + **catalog authoring/renderers** to builders; serve a high-gravity **decision/capture** job.
 
-**Still non-goals:** platform memory; workflow engine; platform GenUI datastore; foreign-client bridge as core; open HTML GenUI; chat shell; drill-down-as-LLM-loop; first-party chart/table kits as identity; **awesome-catalog / shadcn-like create product we operate**.
+**Still non-goals:** platform memory; workflow engine; platform GenUI datastore; foreign-client bridge as core; open HTML GenUI; chat shell; drill-down-as-LLM-loop; first-party chart/table kits as identity; **awesome-catalog / visual catalog-create product we operate**.
 
 ---
 
@@ -378,6 +378,8 @@ Fail-fast must mean **this catalog**. Then collapse the compose pipe and pull wi
 - [x] **C** Move dynamic normalizer + shared catalog schema inlining into core; fold `A2UiSurfaceBufferOps` into `A2UiSurfaceBuffer.apply`
 
 ### Later (this track — do not start)
+
+Detail (review synthesis, suggested order, extra deepening): [`docs/architectural-backlog.md`](docs/architectural-backlog.md).
 
 - Spring AI adapter (ChatClient / tools / forced tool-choice / ChatOptions behind one hop)
 - Split catalog wiring from the AI starter so host `assemble` does not pull Spring AI
@@ -451,7 +453,7 @@ Do **not** mix prompt quality with security in one PR.
 - Split schema vs catalog validators into separate classes — observability codes are enough until policy exists so “policy rejected” is distinct.
 - `A2UiGenerationRepairStrategy` as a generic SPI — keep one bounded validation retry; on policy reject **fail-fast** unless a later ADR says otherwise.
 - ~~A2UI v1.0 Candidate (`actionResponse`)~~ → **A2UI v1.0 actions / functions** (next)
-- A2A `DataPart` / Agent Card adapter, AG-UI, MCP Apps, extra generation backends — demand-gated bridges only; never identity.
+- A2A `DataPart` / Agent Card adapter, MCP Apps, extra generation backends — demand-gated bridges only; never identity.
 - Spring AI hop adapter / Boot 4 — already architecture-revisions Later.
 
 ---
@@ -659,7 +661,7 @@ Where Spring AI `ChatOptions` already supports a provider prompt cache, we can e
 
 ### Explicit non-goals (interop)
 
-- **Foreign-client bridge** (AG-UI / CopilotKit translation module) — not planned; native SSE is the product pipe  
+- **Foreign-client bridge** — not planned; native SSE is the product pipe  
 - **A2A / MCP** adjacency for agent discovery — never replaces native SSE as product identity  
 ---
 

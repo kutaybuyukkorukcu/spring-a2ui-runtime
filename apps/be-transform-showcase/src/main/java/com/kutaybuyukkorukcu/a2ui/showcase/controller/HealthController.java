@@ -28,12 +28,13 @@ public class HealthController {
                 "endpoints", Map.of(
                         "health", "GET /health",
                         "demoInfo", "GET /api/demo/info",
+                        "recordOpen", "GET /api/demo/records/{id}/open",
                         "surfaceStream", "POST /a2ui/surface/stream",
                         "catalog", "GET /a2ui/catalogs/basic-v0.9",
                         "actions", "POST /a2ui/actions"),
                 "notes", Map.of(
                         "runtimeBoundary", "Reusable routing, validation, and transport behavior lives in the runtime modules; this host stays thin.",
-                        "showcaseRole", "One composed record fills the slot from the catalog; submit then host-assembles the approval step (no model). The host owns the ledger.")
+                        "showcaseRole", "Open assembles a known brief; compose remaining unknown facts from the catalog; submit then host-assembles approval and the ledger outcome (no model). The host owns the ledger.")
         ));
     }
 }

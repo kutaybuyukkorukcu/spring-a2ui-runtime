@@ -15,7 +15,7 @@ We abstract GenUI backend infrastructure so teams can focus on product. Builders
 | Spring-native A2UI generation **runtime** | The A2UI grammar owner ([a2ui.org](https://a2ui.org/)) |
 | Fail-fast, catalog-bounded surface producer | A foreign agent↔app interaction protocol as core identity |
 | Backend abstraction for GenUI product teams | A chat product shell, FE design system, or hosted platform |
-| SPI host for actions, templates, and A2UI catalogs | An A2UI component marketplace, catalog SaaS, or shadcn-like design-system builder |
+| SPI host for actions, templates, and A2UI catalogs | An A2UI component marketplace, catalog SaaS, or visual catalog/create product we operate |
 
 **Product pipe:** A2UI-native SSE (`POST /a2ui/surface/stream`).  
 Optional **foreign-client bridges** are demand-gated later and never core identity — builders integrate with native SSE (or wrap in their own adapter).
@@ -107,4 +107,5 @@ Near-term **execution order is locked** in [`BACKLOG.md`](../BACKLOG.md). Do not
 - [ADR 001](adr/001-streaming-surface-generation.md) — stream-only, fail-fast, template + dynamic mechanisms  
 - [ADR 002](adr/002-in-product-surfaces.md) — in-product surfaces; when to compose vs assemble  
 - [ADR 003](adr/003-catalog-scoped-fail-fast.md) — catalog-scoped fail-fast, one compose module  
-- [`BACKLOG.md`](../BACKLOG.md) — next: A2UI v1.0 actions / functions; Later residual (dynamic compose tool forcing beyond OpenAI; Spring AI adapter, starter split, Boot 4, provider prompt cache)  
+- [`BACKLOG.md`](../BACKLOG.md) — next: A2UI v1.0 actions / functions; Later residual (dynamic compose tool forcing beyond OpenAI; Spring AI adapter, starter split, Boot 4, provider prompt cache)
+- [Architectural backlog (later)](architectural-backlog.md) — deferred `packages/` module deepening (assemble/compose split, shared fail-fast pipeline); not current Next  

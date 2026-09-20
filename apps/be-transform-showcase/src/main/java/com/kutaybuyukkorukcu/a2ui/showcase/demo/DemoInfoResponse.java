@@ -10,8 +10,11 @@ public record DemoInfoResponse(
     String storyTitle,
     String storyBlurb,
     String slotLabel,
+    List<StepInfo> steps,
     List<RecordInfo> records,
     List<LedgerEntry> ledger) {
+
+  public record StepInfo(String id, String label, String kind, String caption) {}
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public record RecordInfo(

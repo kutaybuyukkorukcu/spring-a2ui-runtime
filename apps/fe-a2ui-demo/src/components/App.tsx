@@ -17,6 +17,7 @@ import {
   streamSurface,
   sendAction,
   fetchDemoInfo,
+  fetchDemoSurface,
   extractActionResult,
   messagesWithoutDelete,
   applyDataModelSeeds,
@@ -73,7 +74,11 @@ export function App() {
   const [toolProgress, setToolProgress] = useState<string | null>(null);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [surfaces, setSurfaces] = useState<SurfaceModel<ReactComponentImplementation>[]>([]);
+  const [currentStep, setCurrentStep] = useState<string | null>(null);
   const processorRef = useRef<MessageProcessor<ReactComponentImplementation> | null>(null);
+  const selectedIdRef = useRef<string | null>(null);
+  const demoInfoRef = useRef<DemoInfo | null>(null);
+  const composeRecordRef = useRef<(record: DemoRecord) => Promise<void>>(async () => {});
 
   const refreshLedger = useCallback(async () => {
     try {
@@ -110,22 +115,37 @@ export function App() {
           const result = await sendAction({ action: resolved });
           if (!processor) return;
 
+          const actionResult = extractActionResult(result.messages);
           const inbound = messagesWithoutDelete(result.messages ?? []) as unknown as A2uiMessage[];
-          if (inbound.length > 0) {
+          if (actionResult?.nextStep !== 'compose' && inbound.length > 0) {
             applyMessages(processor, inbound);
           }
 
-          const actionResult = extractActionResult(result.messages);
           const row = ledgerFromAction(actionResult);
           if (row) {
             setLedger((current) => mergeLedger(current, row));
           }
           void refreshLedger();
 
-          if (actionResult?.nextStep === 'approval') {
+          if (actionResult?.nextStep === 'compose') {
+            const recordId = actionResult.recordId ?? selectedIdRef.current;
+            const record = demoInfoRef.current?.records.find((item) => item.id === recordId);
+            if (record) {
+              setSlotCaption(record.caption);
+              setCurrentStep('compose');
+              void composeRecordRef.current(record);
+            }
+          } else if (actionResult?.nextStep === 'approval') {
             setSlotCaption('Layout was not generated.');
+            setCurrentStep('approval');
             setRunStatus('Host persisted the draft and returned the approval surface.');
-          } else if (actionResult?.status === 'approved' || actionResult?.status === 'rejected') {
+          } else if (
+            actionResult?.nextStep === 'outcome'
+            || actionResult?.status === 'approved'
+            || actionResult?.status === 'rejected'
+          ) {
+            setSlotCaption('Layout was not generated.');
+            setCurrentStep('outcome');
             setRunStatus(
               actionResult.status === 'approved'
                 ? `Change ${actionResult.changeId ?? ''} approved in the host ledger.`
@@ -146,6 +166,7 @@ export function App() {
     void fetchDemoInfo()
       .then((info) => {
         setDemoInfo(info);
+        demoInfoRef.current = info;
         setLedger(info.ledger ?? []);
       })
       .catch((err: unknown) => {
@@ -170,6 +191,7 @@ export function App() {
     setToolProgress(null);
     setSelectedId(null);
     setSlotCaption(null);
+    setCurrentStep(null);
   }, [processor, applyMessages]);
 
   const handleUtilizationEvent = useCallback((event: StreamUtilizationEvent) => {
@@ -207,6 +229,7 @@ export function App() {
     setError(null);
     applyMessages(processor, []);
 
+    let streamFailed = false;
     try {
       await streamSurface(
         content,
@@ -218,10 +241,14 @@ export function App() {
             const detail = processingError instanceof Error
               ? processingError.message
               : String(processingError);
+            streamFailed = true;
             setError(`Invalid A2UI message from server: ${detail}`);
           }
         },
-        (err) => setError(err),
+        (err) => {
+          streamFailed = true;
+          setError(err);
+        },
         handleUtilizationEvent,
         {
           intent: 'case_slot',
@@ -229,7 +256,7 @@ export function App() {
         },
       );
 
-      if (record.dataModelSeeds) {
+      if (!streamFailed && record.dataModelSeeds) {
         processor.processMessages(
           applyDataModelSeeds(record.dataModelSeeds) as unknown as A2uiMessage[],
         );
@@ -241,21 +268,34 @@ export function App() {
       setLoading(false);
     }
   }, [processor, applyMessages, handleUtilizationEvent]);
+  composeRecordRef.current = composeRecord;
 
   const openRecord = useCallback(async (record: DemoRecord) => {
     if (loading) return;
     setSelectedId(record.id);
-    setSlotCaption(record.caption);
+    selectedIdRef.current = record.id;
+    setSlotCaption(null);
     setError(null);
     setToolProgress(null);
     setRunStatus(null);
+    setCurrentStep('brief');
     applyMessages(processor, []);
+    setLoading(true);
 
-    await composeRecord(record);
-  }, [loading, processor, applyMessages, composeRecord]);
+    try {
+      const surface = await fetchDemoSurface(record.id);
+      applyMessages(processor, surface.messages as unknown as A2uiMessage[]);
+      setSlotCaption(surface.caption);
+      setCurrentStep(surface.step ?? 'brief');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to open record');
+    } finally {
+      setLoading(false);
+    }
+  }, [loading, processor, applyMessages]);
 
   const records = demoInfo?.records ?? [];
-  const selectedRecord = records.find((record) => record.id === selectedId);
+  const currentStepIndex = demoInfo?.steps?.findIndex((item) => item.id === currentStep) ?? -1;
 
   return (
     <div className="app">
@@ -273,6 +313,29 @@ export function App() {
             </p>
           )}
         </div>
+        {demoInfo?.steps && demoInfo.steps.length > 0 && (
+          <ol className="step-rail" aria-label="Runtime walkthrough">
+            {demoInfo.steps.map((step, index) => {
+              const onApprovalSurface = currentStep === 'approval' && step.id === 'write';
+              const stateClass = currentStep == null
+                ? ''
+                : index < currentStepIndex && !onApprovalSurface
+                  ? ' is-done'
+                  : step.id === currentStep || onApprovalSurface
+                    ? ' is-current'
+                    : '';
+              return (
+                <li key={step.id} className={`step-rail-item${stateClass}`}>
+                  <span className="step-rail-index">{index + 1}</span>
+                  <span className="step-rail-copy">
+                    <span className="step-rail-label">{step.label}</span>
+                    <span className="step-rail-kind">{step.kind}</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        )}
       </header>
 
       <div className="workspace">
@@ -326,7 +389,7 @@ export function App() {
               <div className="a2ui-empty">
                 <p>
                   {loading
-                    ? (selectedRecord?.surfaceKind === 'composed'
+                    ? (currentStep === 'compose'
                       ? 'Composing slot for this case…'
                       : 'Filling slot…')
                     : 'Select a record. This slot is the only region that speaks A2UI.'}

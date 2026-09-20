@@ -42,9 +42,10 @@ class HealthControllerTest {
                 .andExpect(jsonPath("$.endpoints.surfaceStream").exists())
                 .andExpect(jsonPath("$.endpoints.actions").exists())
                 .andExpect(jsonPath("$.endpoints.catalog").exists())
-                .andExpect(jsonPath("$.endpoints.recordOpen").doesNotExist())
+                .andExpect(jsonPath("$.endpoints.recordOpen").value("GET /api/demo/records/{id}/open"))
                 .andExpect(jsonPath("$.notes.runtimeBoundary").exists())
-                .andExpect(jsonPath("$.notes.showcaseRole", containsStringIgnoringCase("one composed record")))
+                .andExpect(jsonPath("$.notes.showcaseRole", containsStringIgnoringCase("assembles a known brief")))
+                .andExpect(jsonPath("$.notes.showcaseRole", containsStringIgnoringCase("compose")))
                 .andExpect(jsonPath("$.notes.showcaseRole", containsStringIgnoringCase("assemble")))
                 .andExpect(jsonPath("$.notes.showcaseRole", not(containsStringIgnoringCase("Two fixture records"))));
     }

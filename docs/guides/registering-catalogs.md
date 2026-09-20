@@ -117,8 +117,8 @@ behavior: the vendored basic catalog only, via
 - Not a first-party component kit — we do not ship `StatusBadge` or any
   domain-specific widget as product identity.
 - Not a catalog marketplace or "awesome-a2ui-catalog" list we operate.
-- Not a visual catalog/design-system builder (shadcn-like create site) — that
-  stays with A2UI / FE ecosystem tooling.
+- Not a visual catalog/design-system builder — that stays with A2UI / FE
+  ecosystem tooling.
 - Not FE renderers — your app still implements the widgets for any type you
   register; the runtime only validates and generates against the schema.
 

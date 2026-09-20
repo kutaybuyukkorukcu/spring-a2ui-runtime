@@ -63,7 +63,7 @@ class RuntimeSurfaceE2ETest {
     private A2UiSurfaceRuntime surfaceRuntime;
 
     @Test
-    @DisplayName("showcase should serve workspace demo info with one composed record")
+    @DisplayName("showcase should serve workspace demo info with one composed record and five steps")
     void shouldServeDemoInfoEndpoint() throws Exception {
         MvcResult result = mockMvc.perform(get(DEMO_INFO_PATH))
                 .andExpect(status().isOk())
@@ -75,6 +75,16 @@ class RuntimeSurfaceE2ETest {
                 .andExpect(jsonPath("$.storyBlurb", containsString("assembled")))
                 .andExpect(jsonPath("$.storyBlurb", containsString("Layout was not generated.")))
                 .andExpect(jsonPath("$.slotLabel").value("GenUI slot"))
+                .andExpect(jsonPath("$.steps").isArray())
+                .andExpect(jsonPath("$.steps.length()").value(5))
+                .andExpect(jsonPath("$.steps[0].id").value("brief"))
+                .andExpect(jsonPath("$.steps[0].kind").value("assembled"))
+                .andExpect(jsonPath("$.steps[1].id").value("compose"))
+                .andExpect(jsonPath("$.steps[1].kind").value("composed"))
+                .andExpect(jsonPath("$.steps[2].id").value("approval"))
+                .andExpect(jsonPath("$.steps[3].id").value("write"))
+                .andExpect(jsonPath("$.steps[3].kind").value("action"))
+                .andExpect(jsonPath("$.steps[4].id").value("outcome"))
                 .andExpect(jsonPath("$.records").isArray())
                 .andExpect(jsonPath("$.records.length()").value(1))
                 .andExpect(jsonPath("$.records[0].id").value("mig-311"))
@@ -108,12 +118,41 @@ class RuntimeSurfaceE2ETest {
     }
 
     @Test
-    @DisplayName("record open path is not served")
-    void shouldNotServeRecordOpen() throws Exception {
-        mockMvc.perform(post(RECORD_OPEN_PATH.formatted("cfg-204")))
+    @DisplayName("record open assembles the known brief with no model")
+    void shouldAssembleCaseBriefOnOpen() throws Exception {
+        mockMvc.perform(get(RECORD_OPEN_PATH.formatted("mig-311")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recordId").value("mig-311"))
+                .andExpect(jsonPath("$.step").value("brief"))
+                .andExpect(jsonPath("$.caption").value("Layout was not generated."))
+                .andExpect(jsonPath("$.messages").isArray())
+                .andExpect(jsonPath("$.messages.length()").value(greaterThanOrEqualTo(2)))
+                .andExpect(content().string(containsString("capture_remaining")))
+                .andExpect(content().string(containsString("staging failed")))
+                .andExpect(content().string(containsString("customer-impacting")))
+                .andExpect(content().string(containsString("Capture remaining facts")))
+                .andExpect(content().string(not(containsString("TextField"))));
+
+        mockMvc.perform(get(RECORD_OPEN_PATH.formatted("cfg-204")))
                 .andExpect(status().isNotFound());
-        mockMvc.perform(post(RECORD_OPEN_PATH.formatted("mig-311")))
-                .andExpect(status().isNotFound());
+
+        verifyNoInteractions(surfaceRuntime);
+    }
+
+    @Test
+    @DisplayName("capture_remaining signals the FE to compose")
+    void shouldSignalComposeOnCaptureRemaining() throws Exception {
+        mockMvc.perform(
+                        post(ACTIONS_PATH)
+                                .header(REQUEST_ID_HEADER, "req-e2e-capture-remaining")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"action":{"name":"capture_remaining","surfaceId":"main","sourceComponentId":"capture-btn","timestamp":"2026-05-19T00:00:00Z","context":{"recordId":"mig-311"}}}
+                                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accepted").value(true))
+                .andExpect(content().string(containsString("\"nextStep\":\"compose\"")))
+                .andExpect(content().string(containsString("\"recordId\":\"mig-311\"")));
 
         verifyNoInteractions(surfaceRuntime);
     }
@@ -229,9 +268,40 @@ class RuntimeSurfaceE2ETest {
                 .andExpect(jsonPath("$.messages").isArray())
                 .andExpect(jsonPath("$.messages.length()").value(greaterThanOrEqualTo(3)))
                 .andExpect(content().string(containsString("\"status\":\"approved\"")))
-                .andExpect(content().string(containsString(changeId)));
+                .andExpect(content().string(containsString(changeId)))
+                .andExpect(content().string(containsString("Recorded in your ledger")))
+                .andExpect(content().string(containsString("\"nextStep\":\"outcome\"")));
 
         assertThat(changeStore.find(changeId).orElseThrow().status()).isEqualTo(ChangeStatus.APPROVED);
+    }
+
+    @Test
+    @DisplayName("approve assembles outcome from ledger including captured rollback")
+    void shouldAssembleOutcomeFromLedgerOnApprove() throws Exception {
+        MvcResult submit = mockMvc.perform(
+                        post(ACTIONS_PATH)
+                                .header(REQUEST_ID_HEADER, "req-e2e-submit-for-outcome")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"action":{"name":"submit_change","surfaceId":"main","sourceComponentId":"submit-btn","timestamp":"2026-05-19T00:00:00Z","context":{"service":"payments-api","changeType":"migration","summary":"Cut over retry index on payments-api","rollback":"15-minute window; restore payments-api 2.3."}}}
+                                        """))
+                .andExpect(status().isOk())
+                .andReturn();
+        String changeId = extractChangeId(submit);
+
+        mockMvc.perform(
+                        post(ACTIONS_PATH)
+                                .header(REQUEST_ID_HEADER, "req-e2e-approve-outcome")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"action":{"name":"approve","surfaceId":"main","sourceComponentId":"approve-btn","timestamp":"2026-05-19T00:00:00Z","context":{"changeId":"%s"}}}
+                                        """.formatted(changeId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accepted").value(true))
+                .andExpect(content().string(containsString(changeId)))
+                .andExpect(content().string(containsString("Recorded in your ledger")))
+                .andExpect(content().string(containsString("15-minute window; restore payments-api 2.3.")))
+                .andExpect(content().string(not(containsString("Approved: change "))));
     }
 
     @Test
@@ -248,7 +318,9 @@ class RuntimeSurfaceE2ETest {
                                         """.formatted(changeId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accepted").value(true))
-                .andExpect(content().string(containsString("\"status\":\"rejected\"")));
+                .andExpect(content().string(containsString("\"status\":\"rejected\"")))
+                .andExpect(content().string(containsString("Write was not applied")))
+                .andExpect(content().string(containsString("\"nextStep\":\"outcome\"")));
 
         assertThat(changeStore.find(changeId).orElseThrow().status()).isEqualTo(ChangeStatus.REJECTED);
     }

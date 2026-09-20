@@ -9,8 +9,9 @@ import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 /**
- * Host-owned workspace fixtures: one payments-api slot record. The case is composed by the FE
- * via {@code POST /a2ui/surface/stream}; the next step (approval) is assembled with no model.
+ * Host-owned workspace fixtures: one payments-api slot record. Opening assembles a known brief;
+ * remaining unknown facts are composed via {@code POST /a2ui/surface/stream}; later steps are
+ * assembled with no model.
  */
 @Component
 public class ShowcaseWorkspace {
@@ -24,9 +25,10 @@ public class ShowcaseWorkspace {
   static final String STORY_TITLE = "Your page, one slot";
 
   static final String STORY_BLURB =
-      "This workspace is the product you own. Chrome and the ledger stay on the host."
-          + " One slot: compose this case from the catalog. The next step (approval) is"
-          + " assembled — Layout was not generated.";
+      "This workspace is the product you own. Chrome, catalog, and the ledger stay on the host."
+          + " One slot: compose → validate → stream → fail-fast → actions: assemble known"
+          + " facts, compose this case's unknown tree from the catalog, then your write path."
+          + " Known steps are assembled — Layout was not generated.";
 
   static final String UNKNOWN_CASE_CONTENT =
       "Case mig-311 on payments-api is a schema migration. Staging failed. This is"
@@ -59,12 +61,32 @@ public class ShowcaseWorkspace {
         STORY_TITLE,
         STORY_BLURB,
         SLOT_LABEL,
+        steps(),
         records(),
         ledgerSnapshot());
   }
 
   public Optional<DemoInfoResponse.RecordInfo> findRecord(String id) {
     return records().stream().filter(record -> record.id().equals(id)).findFirst();
+  }
+
+  private List<DemoInfoResponse.StepInfo> steps() {
+    return List.of(
+        new DemoInfoResponse.StepInfo(
+            ShowcaseDemoSurfaces.STEP_BRIEF,
+            "Known brief",
+            "assembled",
+            ShowcaseDemoSurfaces.ASSEMBLED_CAPTION),
+        new DemoInfoResponse.StepInfo("compose", "Unknown intake", "composed", COMPOSED_CAPTION),
+        new DemoInfoResponse.StepInfo(
+            "approval", "Review", "assembled", ShowcaseDemoSurfaces.ASSEMBLED_CAPTION),
+        new DemoInfoResponse.StepInfo(
+            "write", "Write gate", "action", "The write stays in this Spring host."),
+        new DemoInfoResponse.StepInfo(
+            ShowcaseDemoSurfaces.STEP_OUTCOME,
+            "Your ledger",
+            "assembled",
+            ShowcaseDemoSurfaces.ASSEMBLED_CAPTION));
   }
 
   private List<DemoInfoResponse.RecordInfo> records() {

@@ -86,6 +86,77 @@ button:disabled {
   margin: 0;
 }
 
+.step-rail {
+  list-style: none;
+  margin: 0;
+  padding: 0.75rem 1.25rem 0.9rem;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.45rem;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.step-rail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0.35rem 0.4rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  color: #64748b;
+}
+
+.step-rail-item.is-done {
+  color: #334155;
+}
+
+.step-rail-item.is-current {
+  color: #1e3a8a;
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.step-rail-index {
+  flex: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.625rem;
+  font-weight: 700;
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.step-rail-item.is-current .step-rail-index {
+  background: #2563eb;
+  color: #fff;
+}
+
+.step-rail-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 0.05rem;
+}
+
+.step-rail-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.step-rail-kind {
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr);
@@ -382,6 +453,10 @@ button:disabled {
 
 @media (max-width: 800px) {
   .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .step-rail {
     grid-template-columns: 1fr;
   }
 }

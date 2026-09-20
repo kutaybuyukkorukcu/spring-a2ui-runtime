@@ -13,20 +13,25 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Host-registered templates: {@code ops-approval} is assembled after {@code submit_change} ($0).
- * {@code change-intake} stays registered for template-mode smoke; it is not a selectable record.
+ * Host-registered templates. Walkthrough assemble: {@code case-brief}, {@code ops-approval},
+ * {@code change-outcome} ($0). {@code change-intake} stays for template-mode smoke; it is not a
+ * selectable record.
  */
 @Configuration
 public class ShowcaseTemplateConfiguration {
 
   public static final String CHANGE_INTAKE = "change-intake";
+  public static final String CASE_BRIEF = "case-brief";
   public static final String OPS_APPROVAL = "ops-approval";
+  public static final String CHANGE_OUTCOME = "change-outcome";
 
   @Bean
   public A2UiTemplateCustomizer opsChangeTemplateCustomizer() {
     return builder -> {
       builder.register(changeIntakeDefinition());
+      builder.register(caseBriefDefinition());
       builder.register(opsApprovalDefinition());
+      builder.register(changeOutcomeDefinition());
     };
   }
 
@@ -40,6 +45,16 @@ public class ShowcaseTemplateConfiguration {
         ShowcaseTemplateConfiguration::changeIntakeSpec);
   }
 
+  private static A2UiTemplateDefinition caseBriefDefinition() {
+    A2UiSurfaceSpec spec = caseBriefSpec();
+    return new A2UiTemplateDefinition(
+        CASE_BRIEF,
+        "Known case brief — host facts already in hand; compose only what is still unknown",
+        spec.requiredSlots(),
+        spec.optionalSlots(),
+        ShowcaseTemplateConfiguration::caseBriefSpec);
+  }
+
   private static A2UiTemplateDefinition opsApprovalDefinition() {
     A2UiSurfaceSpec spec = opsApprovalSpec();
     return new A2UiTemplateDefinition(
@@ -48,6 +63,16 @@ public class ShowcaseTemplateConfiguration {
         spec.requiredSlots(),
         spec.optionalSlots(),
         ShowcaseTemplateConfiguration::opsApprovalSpec);
+  }
+
+  private static A2UiTemplateDefinition changeOutcomeDefinition() {
+    A2UiSurfaceSpec spec = changeOutcomeSpec();
+    return new A2UiTemplateDefinition(
+        CHANGE_OUTCOME,
+        "Change outcome — ledger-backed result after the host write gate",
+        spec.requiredSlots(),
+        spec.optionalSlots(),
+        ShowcaseTemplateConfiguration::changeOutcomeSpec);
   }
 
   private static A2UiSurfaceSpec changeIntakeSpec() {
@@ -66,11 +91,26 @@ public class ShowcaseTemplateConfiguration {
         .build();
   }
 
+  private static A2UiSurfaceSpec caseBriefSpec() {
+    return A2UiFixedSurfaceSpec.builder(CASE_BRIEF, "root")
+        .requiredSlots("title", "flags", "knownFacts", "whyCompose", "continueLabel", "recordId")
+        .components(ShowcaseTemplateConfiguration::caseBriefComponents)
+        .build();
+  }
+
   private static A2UiSurfaceSpec opsApprovalSpec() {
     return A2UiFixedSurfaceSpec.builder(OPS_APPROVAL, "root")
         .requiredSlots("title", "summary", "risk", "approveLabel", "changeId")
         .optionalSlots("rejectLabel", "meta")
         .components(ShowcaseTemplateConfiguration::opsApprovalComponents)
+        .build();
+  }
+
+  private static A2UiSurfaceSpec changeOutcomeSpec() {
+    return A2UiFixedSurfaceSpec.builder(CHANGE_OUTCOME, "root")
+        .requiredSlots("title", "body")
+        .optionalSlots("meta", "rollback")
+        .components(ShowcaseTemplateConfiguration::changeOutcomeComponents)
         .build();
   }
 
@@ -93,6 +133,23 @@ public class ShowcaseTemplateConfiguration {
                 "changeType", "/changeType",
                 "summary", "/summary")),
         text("submit-label-txt", "/submitLabel", null));
+  }
+
+  private static List<ComponentDefinition> caseBriefComponents(Map<String, String> slots) {
+    return List.of(
+        column(
+            "root",
+            List.of("title-txt", "flags-txt", "known-txt", "why-txt", "capture-btn")),
+        text("title-txt", "/title", "h2"),
+        text("flags-txt", "/flags", "caption"),
+        text("known-txt", "/knownFacts", "body"),
+        text("why-txt", "/whyCompose", "body"),
+        button(
+            "capture-btn",
+            "capture-label-txt",
+            "capture_remaining",
+            Map.of("recordId", "/recordId")),
+        text("capture-label-txt", "/continueLabel", null));
   }
 
   private static List<ComponentDefinition> opsApprovalComponents(Map<String, String> slots) {
@@ -125,6 +182,33 @@ public class ShowcaseTemplateConfiguration {
     if (hasReject) {
       components.add(button("reject-btn", "reject-label-txt", "reject", decisionContext));
       components.add(text("reject-label-txt", "/rejectLabel", null));
+    }
+    return List.copyOf(components);
+  }
+
+  private static List<ComponentDefinition> changeOutcomeComponents(Map<String, String> slots) {
+    boolean hasMeta = hasSlotValue(slots, "meta");
+    boolean hasRollback = hasSlotValue(slots, "rollback");
+
+    List<String> children = new ArrayList<>();
+    children.add("title-txt");
+    if (hasMeta) {
+      children.add("meta-txt");
+    }
+    children.add("body-txt");
+    if (hasRollback) {
+      children.add("rollback-txt");
+    }
+
+    List<ComponentDefinition> components = new ArrayList<>();
+    components.add(column("root", children));
+    components.add(text("title-txt", "/title", "h2"));
+    if (hasMeta) {
+      components.add(text("meta-txt", "/meta", "caption"));
+    }
+    components.add(text("body-txt", "/body", "body"));
+    if (hasRollback) {
+      components.add(text("rollback-txt", "/rollback", "caption"));
     }
     return List.copyOf(components);
   }

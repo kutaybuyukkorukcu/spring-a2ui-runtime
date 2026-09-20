@@ -2,11 +2,15 @@
 
 ## Supported Versions
 
-Security fixes are applied to the latest published release line.
+Security fixes are applied to the latest published release line. The `1.1.x`
+line remains the A2UI **v0.8** Legacy patch line.
 
 | Version | Supported |
 | ------- | --------- |
-| 1.1.x   | Yes       |
+| 2.2.x   | Yes (A2UI v0.9.1 Current) |
+| 2.1.x   | No — use 2.2.x |
+| 2.0.x   | No — use 2.2.x |
+| 1.1.x   | Yes (A2UI v0.8 Legacy) |
 | 1.0.x   | No        |
 | < 1.0   | No        |
 
