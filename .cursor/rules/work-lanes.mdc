@@ -1,0 +1,24 @@
+---
+description: Pick the model by work level — design, implementation, or chore
+alwaysApply: true
+---
+
+# Work levels
+
+Classify the work, then continue. The chat model stays put, so the level picks the model. You choose the steps inside a level.
+
+| Level | Model | Where it runs |
+|-------|--------|----------------|
+| Design and architecture | This chat's intelligent model | Here |
+| Implementation of an accepted design, and bug fixes | `composer-2.5` | Subagent |
+| Chores (git, tests, validation, translation, formatting) | `composer-2.5-fast` | Subagent |
+
+Launch a general-purpose subagent and pass that `model`. Hand it the goal, the decision, and the files. Let it decide the steps.
+
+Design stays here: trade-offs, shape, and the words in `docs/adr/` and `CONTEXT.md`. A settled design is what implementation receives.
+
+Commits use a conventional prefix (`feat`, `fix`, `docs`, `chore`, `refactor`) and a subject that says why.
+
+A cheaper run that would change a product decision comes back here. You decide. Record it in `docs/adr/` when it is hard to reverse, surprising, and a real trade-off. Product terms go in `CONTEXT.md`.
+
+`mvp-demo-host` and `mvp-demo-fe` run only when the user names them.

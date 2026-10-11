@@ -24,16 +24,18 @@ dist/
 *.local
 .env
 
-# Cursor: commit the project plugin switch. Ignore local-only rules and state.
-.cursor/rules/graphify.mdc
+# Cursor: commit project rules, agents, and skills. Ignore the rest, including local-only rules.
+.cursor/*
+!.cursor/rules/
+!.cursor/agents/
+!.cursor/skills/
+!.cursor/settings.json
 
 # Agent harness working memory — not product
 .opencode/
 .github/*
 !.github/workflows/
 !.github/workflows/**
-.cursor/*
-!.cursor/settings.json
 .agents/
 graphify-out/
 

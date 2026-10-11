@@ -1,0 +1,32 @@
+---
+description: Write repo docs and commit messages in spring-a2ui product language
+alwaysApply: true
+---
+
+# Docs & commit language
+
+Describe spring-a2ui in **our** product terms. Chat may use shortcuts for context; repo docs, ADRs, plans, READMEs, changelogs, and commit messages should not.
+
+## Prefer
+
+| Intent | Language |
+|--------|----------|
+| What we are | Spring GenUI backend **runtime** for OSS product builders |
+| What builders keep | Their design system and frontend |
+| What we own | Compose → validate → stream → fail-fast → actions |
+| Genre | In-product surfaces: process **steps** and page **slots** (not chat identity, not verticals like OPS/HITL) |
+| Optional later interop | Foreign-client bridge / optional interop adapter (demand-gated) |
+| What we are not | Chat product shell; foreign interaction protocol as core identity; their datastore; a hosted platform |
+
+## Accurate protocol / stack names are fine
+
+A2UI, A2A, ADK, MCP, Spring, Spring AI — when we actually integrate with or implement them.
+
+## Generic terms are fine
+
+Third-party chat clients, agent↔app pipes, FE shells.
+
+## Avoid as identity
+
+**Platform** as the noun on the box. Keep it only as a negation (we are not a platform datastore / memory / outbox).
+**Island** for a page placement — use **slot**. Spec *slot values* (`title`, `body`) are a different word; say **slot values** when you mean the template fill map.
