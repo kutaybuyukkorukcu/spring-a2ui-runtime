@@ -29,7 +29,6 @@ dist/
 
 # Agent harness working memory — not product
 .opencode/
-.superpowers/
 .github/*
 !.github/workflows/
 !.github/workflows/**
