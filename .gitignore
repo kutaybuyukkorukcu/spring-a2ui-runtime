@@ -24,7 +24,11 @@ dist/
 *.local
 .env
 
-# Cursor: commit project rules and agents. Ignore local-only rules.
+# Cursor: commit project rules, agents, and skills. Ignore the rest, including local-only rules.
+.cursor/*
+!.cursor/rules/
+!.cursor/agents/
+!.cursor/skills/
 .cursor/rules/graphify.mdc
 
 # Agent harness working memory — not product
@@ -33,7 +37,6 @@ dist/
 .github/*
 !.github/workflows/
 !.github/workflows/**
-.cursor/
 .agents/
 graphify-out/
 
