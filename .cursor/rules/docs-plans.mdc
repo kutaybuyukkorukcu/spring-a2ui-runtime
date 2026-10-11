@@ -1,0 +1,29 @@
+---
+description: Keep docs/plans only while a phase is in flight; fold into ADRs, guides, and BACKLOG when shipped.
+alwaysApply: true
+---
+
+# Phase plans
+
+`docs/plans/` is **in-flight execution**, not user-facing product docs. Canonical user docs are `docs/guides/`, `docs/adr/`, `docs/platform.md`, and `docs/rest-api.md`.
+
+## While a phase is in flight
+
+- Keep **one** plan under `docs/plans/` (In / Out / Done, constraints, branch).
+- Link it from the BACKLOG row for that phase.
+- Do **not** copy it into `.opencode/`, `.superpowers/`, or other harness folders.
+
+## When the phase has shipped (on `main`, BACKLOG ✅)
+
+Fold the plan away in the same change that records the outcome:
+
+1. Durable decisions → ADR and/or the matching guide.
+2. BACKLOG row stays as the checkmark + pointer to that durable doc (not the plan).
+3. **Delete** the plan file. Replace leftover links (README, CONTRIBUTING, agents, CHANGELOG) with the ADR/guide.
+4. Do not leave a stub “moved to …” plan.
+
+A feature-branch **Status: implemented on `feat/…`** is still in flight. Keep the plan until it is on `main` and folded.
+
+## Do not commit
+
+`.opencode/`, `.superpowers/`, `graphify-out/`, `.github/skills/`, session dumps. Keep `docs/plans/README.md` when the folder is otherwise empty.
