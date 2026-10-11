@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Work levels
 
-Classify the work, then continue. [ADR 004](../../docs/adr/004-agent-work-lanes.md) is why. You choose the steps inside a level.
+Classify the work, then continue. The chat model stays put, so the level picks the model. You choose the steps inside a level.
 
 | Level | Model | Where it runs |
 |-------|--------|----------------|
