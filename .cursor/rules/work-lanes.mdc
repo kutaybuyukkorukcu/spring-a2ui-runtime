@@ -7,15 +7,19 @@ alwaysApply: true
 
 Classify the work, then continue. The chat model stays put, so the level picks the model. You choose the steps inside a level.
 
+Never select Fast, and never pass a model slug that contains `fast`.
+
 | Level | Model | Where it runs |
 |-------|--------|----------------|
-| Design and architecture | This chat's intelligent model | Here |
+| Design, architecture, and brainstorming | `grok-4.7-high` | Here |
 | Implementation of an accepted design, and bug fixes | `composer-2.5` | Subagent |
-| Chores (git, tests, validation, translation, formatting) | `composer-2.5-fast` | Subagent |
+| Chores (tests, git, GitHub Actions, commits, pull requests, validation, translation, formatting) | `composer-2.5` | Subagent |
 
-Launch a general-purpose subagent and pass that `model`. Hand it the goal, the decision, and the files. Let it decide the steps.
+Composer 2.5 standard is the cheapest model these agents can run. Chores use it. A Fast variant costs more, so it is never a cheaper substitute.
 
-Design stays here: trade-offs, shape, and the words in `docs/adr/` and `CONTEXT.md`. A settled design is what implementation receives.
+Launch a general-purpose subagent for implementation, bug fixes, and chores, and pass `composer-2.5`. Hand it the goal, the decision, and the files. Let it decide the steps.
+
+Design, architecture, and brainstorming stay on Grok 4.7 high: trade-offs, shape, and the words in `docs/adr/` and `CONTEXT.md`. A settled design is what implementation receives.
 
 Commits use a conventional prefix (`feat`, `fix`, `docs`, `chore`, `refactor`) and a subject that says why.
 
