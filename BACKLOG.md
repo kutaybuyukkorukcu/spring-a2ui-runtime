@@ -4,6 +4,8 @@ Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ 
 
 ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)` · `[docs/adr/002-in-product-surfaces.md](docs/adr/002-in-product-surfaces.md)` · `[docs/adr/003-catalog-scoped-fail-fast.md](docs/adr/003-catalog-scoped-fail-fast.md)`
 
+**In flight:** [Stored model responses](docs/plans/runtime-verification.md) on `feat/stored-model-responses` — ten replayed OpenAI examples in tests. **A2UI v1.0 actions / functions** stays Next.
+
 **Branches:** `main` (Phase X hard cutover merged) · Legacy patch line `1.1.x`.
 
 ---
@@ -467,6 +469,12 @@ Slot sample in `apps/` only (no library SemVer / wire bump): one composed record
 Next: **A2UI v1.0 actions / functions** (below).
 
 ---
+
+## In flight — Stored model responses
+
+**Status:** implemented on `feat/stored-model-responses`. Plan: [stored model responses](docs/plans/runtime-verification.md). No ADR.
+
+About ten real OpenAI `renderA2Ui` payloads, replayed through real assemble. No evaluator and no other providers. Fixtures under `packages/a2ui-runtime-spring-web-starter/src/test/resources/model-responses/`.
 
 ## Next — A2UI v1.0 actions / functions
 
