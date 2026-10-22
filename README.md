@@ -29,6 +29,11 @@ Surfaces are streamed as **A2UI v0.9.1 envelopes over SSE** (`createSurface` / `
 
 ## Getting started
 
+For what the test suite already proves about production integration (deterministic
+coverage plus ten stored OpenAI `renderA2Ui` replays), see
+[What we prove](docs/guides/getting-started.md#what-we-prove) in the getting
+started guide.
+
 You do not need to build this repository to use the runtime. Add the web starter to a Spring Boot 3.4+ application (Java 21) that already configures Spring AI chat:
 
 ```xml

@@ -1,0 +1,33 @@
+{
+  "id" : "retry-then-valid",
+  "prompt" : "Render ONLY a root Button with child id labelChild and action submit. Do NOT include any component with id labelChild.",
+  "catalogId" : "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
+  "model" : "gpt-4.1",
+  "render" : null,
+  "renders" : [ {
+    "surfaceId" : "surface1",
+    "root" : "root",
+    "components" : [ {
+      "id" : "root",
+      "component" : "Button",
+      "child" : "labelChild",
+      "action" : "submit"
+    } ],
+    "data" : null
+  }, {
+    "surfaceId" : "surface1",
+    "root" : "root",
+    "components" : [ {
+      "id" : "root",
+      "component" : "Button",
+      "child" : "labelChild",
+      "action" : "submit"
+    }, {
+      "id" : "labelChild",
+      "component" : "Text",
+      "text" : "Submit"
+    } ],
+    "data" : null
+  } ],
+  "expect" : "accepted"
+}

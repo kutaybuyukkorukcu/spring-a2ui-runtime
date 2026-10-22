@@ -1,0 +1,18 @@
+{
+  "id" : "missing-prop",
+  "prompt" : "Root must be Text with id root and variant h2 only — do not include a text property.",
+  "catalogId" : "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
+  "model" : "gpt-4.1",
+  "render" : {
+    "surfaceId" : "surface1",
+    "root" : "root",
+    "components" : [ {
+      "id" : "root",
+      "component" : "Text",
+      "variant" : "h2"
+    } ],
+    "data" : null
+  },
+  "renders" : null,
+  "expect" : "A2UI_VALIDATION_FAILED"
+}

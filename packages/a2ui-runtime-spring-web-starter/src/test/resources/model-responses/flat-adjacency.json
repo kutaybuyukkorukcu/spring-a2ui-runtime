@@ -1,0 +1,26 @@
+{
+  "id" : "flat-adjacency",
+  "prompt" : "Show a column with two text lines: first \"Line one\", second \"Line two\".",
+  "catalogId" : "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
+  "model" : "gpt-4.1",
+  "render" : {
+    "surfaceId" : "simple-two-line-column",
+    "root" : "root",
+    "components" : [ {
+      "id" : "root",
+      "component" : "Column",
+      "children" : [ "text1", "text2" ]
+    }, {
+      "id" : "text1",
+      "component" : "Text",
+      "text" : "Line one"
+    }, {
+      "id" : "text2",
+      "component" : "Text",
+      "text" : "Line two"
+    } ],
+    "data" : null
+  },
+  "renders" : null,
+  "expect" : "accepted"
+}

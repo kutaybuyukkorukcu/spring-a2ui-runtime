@@ -1,0 +1,18 @@
+{
+  "id" : "host-type-on-basic",
+  "prompt" : "The root component MUST be component type StatusBadge with text Approved. Do not use Column or Text.",
+  "catalogId" : "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
+  "model" : "gpt-4.1",
+  "render" : {
+    "surfaceId" : "status-badge-approved",
+    "root" : "root",
+    "components" : [ {
+      "id" : "root",
+      "component" : "StatusBadge",
+      "text" : "Approved"
+    } ],
+    "data" : null
+  },
+  "renders" : null,
+  "expect" : "A2UI_VALIDATION_FAILED"
+}
