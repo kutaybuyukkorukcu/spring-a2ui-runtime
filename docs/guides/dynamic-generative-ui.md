@@ -55,7 +55,8 @@ sequenceDiagram
 - **Planner** (second ChatClient inside `generateA2Ui`) must call `renderA2Ui` exactly once with flat planner-friendly component objects.
 - Both tools are **one-shot** (`returnDirect`): Spring AI executes the forced tool and returns to the caller. It does not send the success string back under the same `tool_choice`, which would force the model to call the same tool again.
 - **`A2UiDynamicComponentNormalizer`** converts flat args to flat v0.9.1 `ComponentDefinition`s (thin sanitize only).
-- **`responseFormat=NONE`** in dynamic mode — tool calling is incompatible with global `JSON_OBJECT`.
+- **`responseFormat=NONE`** in dynamic mode. Tool calling is incompatible with global `JSON_OBJECT`.
+- Response format modes are `NONE` and `JSON_OBJECT` only. There is no `JSON_SCHEMA` mode. Dynamic compose constrains planner output with the `renderA2Ui` tool schema.
 
 Session state travels via Spring AI **`ToolContext`** (never `ThreadLocal`).
 

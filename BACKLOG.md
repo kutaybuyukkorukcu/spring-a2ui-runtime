@@ -650,7 +650,7 @@ Own plan file if starting.
 - ~~A2UI v1.0 Candidate protocol bump~~ → **A2UI v1.0 actions / functions** (next)  
 - First-party rich visualization component pack (**never** runtime identity — hosts register types via catalog SPI + their FE)  
 - Catalog authoring UX / marketplace / “create your design system” site (A2UI / FE ecosystem; not us)  
-- `JSON_SCHEMA` response format mode cleanup (ongoing reliability)  
+- ~~`JSON_SCHEMA` response format mode cleanup~~ → not a mode. `ResponseFormatMode` is `NONE` and `JSON_OBJECT` only.
 
 ~~Host A2UI catalog registration~~ → **batteries Slice C2** (SPI only — not us shipping catalogs)  
 ~~Latency / caching patterns~~ → **folded into batteries Slice D**
@@ -670,7 +670,7 @@ Where Spring AI `ChatOptions` already supports a provider prompt cache, we can e
 - Structured redacted logging for invalid payloads / validation diagnostics
 - Metrics: `a2ui.dynamic.surface.generated`, `a2ui.dynamic.validation.failed`, `a2ui.dynamic.validation.retry.success` / `retry.failed`, `a2ui.generation.context.chars` (Phase 1)
 - Action **routing** meters/tags — **A2UI v1.0 actions / functions** slice 5 (do not expand here)
-- Remove or honestly implement `JSON_SCHEMA` response format mode
+- ~~Remove or honestly implement `JSON_SCHEMA` response format mode~~ → removed from the contract. No working use on this line. `NONE` and `JSON_OBJECT` only. Dynamic mode resolves to `NONE`.
 
 ---
 
