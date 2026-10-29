@@ -1,8 +1,11 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
+import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiClientError;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionAllowList;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiSurfacePolicy;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
@@ -12,6 +15,10 @@ import java.util.Set;
 import java.util.StringJoiner;
 
 public final class DynamicA2UiPromptProvider {
+
+    static final String VALIDATION_FAILED = "VALIDATION_FAILED";
+
+    private static final ObjectMapper FEEDBACK_JSON = new ObjectMapper();
 
     private final A2UiGenerationContextFactory contextFactory;
     private final A2UiRuntimeMetrics runtimeMetrics;
@@ -103,6 +110,13 @@ public final class DynamicA2UiPromptProvider {
     }
 
     public String createPlannerUserPrompt(A2UiPromptContext context, List<A2UiDiagnostic> validationDiagnostics) {
+        return createPlannerUserPrompt(context, null, validationDiagnostics);
+    }
+
+    public String createPlannerUserPrompt(
+            A2UiPromptContext context,
+            String surfaceId,
+            List<A2UiDiagnostic> validationDiagnostics) {
         StringJoiner prompt = new StringJoiner("\n\n");
         prompt.add("Plan and render an A2UI surface for:");
         prompt.add(context.content());
@@ -110,7 +124,7 @@ public final class DynamicA2UiPromptProvider {
             prompt.add("Context: " + context.contextHints());
         }
         if (validationDiagnostics != null && !validationDiagnostics.isEmpty()) {
-            prompt.add(formatValidationDiagnostics(validationDiagnostics));
+            prompt.add(formatValidationDiagnostics(surfaceId, validationDiagnostics));
         }
         if (!actionAllowList.isEmpty()) {
             prompt.add(actionAllowList.formatPlannerBlock());
@@ -128,12 +142,36 @@ public final class DynamicA2UiPromptProvider {
                 new ExampleContributor(catalogRegistry)));
     }
 
-    private static String formatValidationDiagnostics(List<A2UiDiagnostic> validationDiagnostics) {
+    private static String formatValidationDiagnostics(
+            String surfaceId, List<A2UiDiagnostic> validationDiagnostics) {
         StringJoiner feedback = new StringJoiner("\n");
-        feedback.add("Previous renderA2Ui output failed A2UI validation. Fix these issues and call renderA2Ui again:");
+        feedback.add("Previous renderA2Ui output failed validation. Fix these issues and call renderA2Ui again:");
         for (A2UiDiagnostic diagnostic : validationDiagnostics) {
-            feedback.add("- [" + diagnostic.code() + "] " + diagnostic.path() + ": " + diagnostic.message());
+            feedback.add(validationFailedJson(surfaceId, diagnostic));
         }
         return feedback.toString();
+    }
+
+    private static String validationFailedJson(String surfaceId, A2UiDiagnostic diagnostic) {
+        A2UiClientError error = new A2UiClientError(
+                VALIDATION_FAILED,
+                surfaceId,
+                diagnostic.path(),
+                validationFailedMessage(diagnostic),
+                null);
+        try {
+            return FEEDBACK_JSON.writeValueAsString(error);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Could not write validation feedback", ex);
+        }
+    }
+
+    private static String validationFailedMessage(A2UiDiagnostic diagnostic) {
+        String detail = diagnostic.message() == null ? "" : diagnostic.message();
+        String code = diagnostic.code();
+        if (code == null || code.isBlank() || VALIDATION_FAILED.equals(code)) {
+            return detail;
+        }
+        return code + ": " + detail;
     }
 }

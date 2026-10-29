@@ -42,8 +42,10 @@ mismatch), not on a single transient failure.
 |------|---------------|------------|
 | `CONTENT_REQUIRED` | Empty `content` on stream | Send a non-blank prompt |
 | `NO_COMPATIBLE_CATALOG` | Client `supportedCatalogIds` miss server catalogs | Align basic id or register host catalog ([registering catalogs](registering-catalogs.md)) |
-| `A2UI_VALIDATION_FAILED` | Planner/tool output failed catalog validation after retry | Fix prompt/context; prefer host `assemble` for known trees, template mode second; check host catalog schemas |
+| `A2UI_VALIDATION_FAILED` | Planner/tool output failed catalog validation after one retry | Fix prompt/context; prefer host `assemble` for known trees, template mode second; check host catalog schemas |
 | `TRANSFORM_FAILED` / `TRANSFORM_PARSE_FAILED` | Tool/orchestration or parse failure | Check logs (`com.kutaybuyukkorukcu.a2ui`), model tool-calling support |
+
+The planner retry sends one client error object per diagnostic. Each object has `code` `VALIDATION_FAILED`, `surfaceId`, `path`, and `message`. The SSE error after that retry stays `A2UI_VALIDATION_FAILED`.
 
 Client rule: only pass A2UI JSON to your MessageProcessor; route utilization
 events (`run*`, `assistantText`, `toolProgress`) to your own chrome

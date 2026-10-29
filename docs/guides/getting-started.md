@@ -111,7 +111,7 @@ There is no silent fallback text surface.
 **Dynamic** is the starting point when this case’s tree is not predetermined.
 The LLM composes from the **active** catalog (vendored basic v0.9.1, plus any
 host catalogs you [register](registering-catalogs.md)). Invalid planner output
-is retried once with diagnostics, then surfaced as `A2UI_VALIDATION_FAILED`.
+is retried once. The retry prompt carries `VALIDATION_FAILED` (`code`, `surfaceId`, `path`, `message`). A second failure is surfaced as `A2UI_VALIDATION_FAILED`.
 
 **Host `assemble`** is the right path when the tree is already known (acks,
 confirm-only slots): register a spec, inject `A2UiSurfaceAssemblyService`,

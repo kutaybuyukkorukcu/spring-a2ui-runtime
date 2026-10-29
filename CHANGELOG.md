@@ -11,6 +11,7 @@ Library versions (`2.x`) speak A2UI **protocol** v0.9.1. The `1.1.x` line remain
 
 ### Changed
 
+- **Planner retry feedback.** The one validation retry sends `VALIDATION_FAILED` objects (`code`, `surfaceId`, `path`, `message`) to the planner. The catalog code stays in `message`. SSE after a second failure stays `A2UI_VALIDATION_FAILED`. Fail-fast and the single retry are unchanged.
 - **Identity language** — we are a **runtime**, not a platform. Page placements are **slots**, not islands ([ADR 002](docs/adr/002-in-product-surfaces.md), [CONTEXT.md](CONTEXT.md))
 - **Catalog few-shots** — vendored basic catalog ships no `examples.txt`; planner few-shots are host-owned via `A2UiCatalogContribution.examplesText()`. Showcase registers a closed Button + Text sibling graph (complete `components` array) as a host contribution
 - **Showcase** — slot workspace lists only composed record `mig-311`; `cfg-204` is no longer selectable; `submit_change` still host-assembles `ops-approval` (no model)

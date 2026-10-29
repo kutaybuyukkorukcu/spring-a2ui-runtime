@@ -80,9 +80,9 @@ full catalog JSON into the prompt.
 If assembled messages fail `A2UiMessageValidator`, or adjacency checks in the
 dynamic normalizer (unknown child ids, cycles, duplicate ids):
 
-1. Diagnostics are captured from the validation failure.
-2. The planner is invoked **once more** with diagnostics appended to the planner user prompt.
-3. A second validation failure → `SurfaceExecutionException` with `A2UI_VALIDATION_FAILED` → SSE `event: error` (fail-fast, no fallback surface).
+1. The runtime keeps the diagnostics from the validation failure.
+2. The planner runs once more. That user prompt includes one object per diagnostic, with `code` `VALIDATION_FAILED`, `surfaceId`, `path`, and `message`.
+3. A second validation failure throws `SurfaceExecutionException` with `A2UI_VALIDATION_FAILED`. The stream emits SSE `event: error`. There is no fallback surface.
 
 Unrelated errors (e.g. planner never calling `renderA2Ui`, parse/transform failures) are **not** retried.
 
