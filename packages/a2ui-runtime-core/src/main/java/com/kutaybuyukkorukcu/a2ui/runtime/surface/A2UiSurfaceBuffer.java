@@ -104,26 +104,8 @@ public final class A2UiSurfaceBuffer {
             return created;
         }
 
-        /** @deprecated use {@link #isCreated()} — v0.9.1 has no beginRendering */
-        @Deprecated
-        public boolean isRenderingBegun() {
-            return created;
-        }
-
-        /** @deprecated no-op compatibility for callers still setting beginRendering flags */
-        @Deprecated
-        public void setRenderingBegun(boolean begun) {
-            this.created = begun;
-        }
-
         public String getRootComponentId() {
             return hasComponent("root") ? "root" : null;
-        }
-
-        /** @deprecated root is always component id {@code root} in v0.9.1 */
-        @Deprecated
-        public void setRootComponentId(String rootComponentId) {
-            // no-op: root is identified by component id "root"
         }
 
         public void setCatalogId(String catalogId) {

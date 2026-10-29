@@ -58,6 +58,10 @@ POST `/a2ui/actions` payloads use:
 
 not `userAction`.
 
+`A2UiClientEvent` exposes `action()`. The Java method `userAction()` is removed. Hosts that still call it will not compile. The action payload stays on JSON property `action`.
+
+`A2UiSurfaceBuffer.SurfaceState` uses `isCreated()`. `isRenderingBegun()`, `setRenderingBegun(boolean)`, and `setRootComponentId(String)` are removed. The root component id is still `"root"` (`getRootComponentId()`).
+
 ## Planner / tools
 
 Dynamic mode still uses two-hop tools (`generateA2Ui` → `renderA2Ui`). The thin sanitizer:

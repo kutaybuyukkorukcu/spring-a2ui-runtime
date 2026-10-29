@@ -27,10 +27,4 @@ public record A2UiClientEvent(
     public boolean isError() {
         return error != null;
     }
-
-    /** @deprecated use {@link #action()} — kept for call-site migration clarity */
-    @Deprecated
-    public A2UiUserAction userAction() {
-        return action;
-    }
 }

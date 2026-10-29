@@ -299,7 +299,7 @@ Merged `fix/dynamic-primary-tool-failfast` (forced primary `generateA2Ui`, plann
 Tracked here so they do not block utilization sequencing, but should not be forgotten:
 
 - ~~Rename Java type `A2UiUserAction`~~ → **A2UI v1.0 actions / functions** (absorbed)
-- Remove deprecated buffer / `A2UiClientEvent.userAction()` shims once call sites are clean — they hide incomplete migrations
+- ~~Remove deprecated buffer / `A2UiClientEvent.userAction()` shims~~ → removed. Call `action()` and `isCreated()`. `getRootComponentId()` still reports id `root`.
 - Tighten planner retry feedback to protocol-shaped `VALIDATION_FAILED` (`code`, `surfaceId`, `path`, `message`) instead of only our `A2UiDiagnostic` list
 - `sendDataModel` is modeled on `createSurface` but is **not** a full bidirectional data-sync product yet — keep docs honest (default `false`)
 - Catalog validation: flattened local `allOf` props work for tool schema + lightweight checks; full networknt resolution of remote `common_types.json` `$ref`s is still weaker than an upstream JSON Schema suite
