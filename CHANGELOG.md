@@ -16,6 +16,7 @@ Library versions (`2.x`) speak A2UI **protocol** v0.9.1. The `1.1.x` line remain
 - **Showcase** — slot workspace lists only composed record `mig-311`; `cfg-204` is no longer selectable; `submit_change` still host-assembles `ops-approval` (no model)
 - **Sample FE** — slot workspace only (compose then assemble); pin basic-catalog tokens to the light host chrome and render Text markdown so headings are not raw `##`
 - **Docs** — MVP demo plan folded; next is A2UI v1.0 actions / functions
+- **Response format** — `ResponseFormatMode` stays `NONE` and `JSON_OBJECT`. `JSON_SCHEMA` is not a mode and does not bind. Dynamic compose still uses the `renderA2Ui` tool schema.
 
 ### Fixed
 
