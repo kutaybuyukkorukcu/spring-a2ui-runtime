@@ -73,6 +73,30 @@ class A2UiChatOptionsCustomizerTest {
     }
 
     @Test
+    void openAiAndVertexApplyEveryDeclaredResponseFormatMode() {
+        for (A2UiGenerationPolicyProperties.ResponseFormatMode mode
+                : A2UiGenerationPolicyProperties.ResponseFormatMode.values()) {
+            A2UiGenerationPolicy policy = new A2UiGenerationPolicy();
+            policy.setResponseFormat(mode);
+
+            OpenAiChatOptions openAi = (OpenAiChatOptions) new OpenAiChatOptionsCustomizer()
+                    .customize(null, policy);
+            VertexAiGeminiChatOptions vertex = (VertexAiGeminiChatOptions) new VertexAiGeminiChatOptionsCustomizer()
+                    .customize(null, policy);
+
+            if (mode == A2UiGenerationPolicyProperties.ResponseFormatMode.NONE) {
+                assertThat(openAi.getResponseFormat()).isNull();
+                assertThat(vertex.getResponseMimeType()).isNull();
+            } else if (mode == A2UiGenerationPolicyProperties.ResponseFormatMode.JSON_OBJECT) {
+                assertThat(openAi.getResponseFormat().getType()).isEqualTo(ResponseFormat.Type.JSON_OBJECT);
+                assertThat(vertex.getResponseMimeType()).isEqualTo("application/json");
+            } else {
+                throw new AssertionError("undeclared response format mode " + mode);
+            }
+        }
+    }
+
+    @Test
     void genericShouldFailWhenCopiedOptionsLackSetter() {
         A2UiGenerationPolicy policy = new A2UiGenerationPolicy();
         policy.setTemperature(0.0);

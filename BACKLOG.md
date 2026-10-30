@@ -299,7 +299,7 @@ Merged `fix/dynamic-primary-tool-failfast` (forced primary `generateA2Ui`, plann
 Tracked here so they do not block utilization sequencing, but should not be forgotten:
 
 - ~~Rename Java type `A2UiUserAction`~~ → **A2UI v1.0 actions / functions** (absorbed)
-- Remove deprecated buffer / `A2UiClientEvent.userAction()` shims once call sites are clean — they hide incomplete migrations
+- ~~Remove deprecated buffer / `A2UiClientEvent.userAction()` shims~~ → removed. Call `action()` and `isCreated()`. `getRootComponentId()` still reports id `root`.
 - ~~Tighten planner retry feedback to protocol-shaped `VALIDATION_FAILED`~~ → the one retry sends `code`, `surfaceId`, `path`, and `message`. SSE after the retry stays `A2UI_VALIDATION_FAILED`. Fail-fast and the single retry are unchanged.
 - `sendDataModel` is modeled on `createSurface` but is **not** a full bidirectional data-sync product yet — keep docs honest (default `false`)
 - Catalog validation: flattened local `allOf` props work for tool schema + lightweight checks; full networknt resolution of remote `common_types.json` `$ref`s is still weaker than an upstream JSON Schema suite
@@ -650,7 +650,7 @@ Own plan file if starting.
 - ~~A2UI v1.0 Candidate protocol bump~~ → **A2UI v1.0 actions / functions** (next)  
 - First-party rich visualization component pack (**never** runtime identity — hosts register types via catalog SPI + their FE)  
 - Catalog authoring UX / marketplace / “create your design system” site (A2UI / FE ecosystem; not us)  
-- `JSON_SCHEMA` response format mode cleanup (ongoing reliability)  
+- ~~`JSON_SCHEMA` response format mode cleanup~~ → not a mode. `ResponseFormatMode` is `NONE` and `JSON_OBJECT` only.
 
 ~~Host A2UI catalog registration~~ → **batteries Slice C2** (SPI only — not us shipping catalogs)  
 ~~Latency / caching patterns~~ → **folded into batteries Slice D**
@@ -670,7 +670,7 @@ Where Spring AI `ChatOptions` already supports a provider prompt cache, we can e
 - Structured redacted logging for invalid payloads / validation diagnostics
 - Metrics: `a2ui.dynamic.surface.generated`, `a2ui.dynamic.validation.failed`, `a2ui.dynamic.validation.retry.success` / `retry.failed`, `a2ui.generation.context.chars` (Phase 1)
 - Action **routing** meters/tags — **A2UI v1.0 actions / functions** slice 5 (do not expand here)
-- Remove or honestly implement `JSON_SCHEMA` response format mode
+- ~~Remove or honestly implement `JSON_SCHEMA` response format mode~~ → removed from the contract. No working use on this line. `NONE` and `JSON_OBJECT` only. Dynamic mode resolves to `NONE`.
 
 ---
 
