@@ -122,6 +122,7 @@ class DynamicA2UiPromptProviderTest {
 
         String retryPrompt = promptProvider.createPlannerUserPrompt(
                 context,
+                "main",
                 List.of(new com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic(
                         "$[0].components[0]",
                         "UNKNOWN_COMPONENT_TYPE",
@@ -130,8 +131,8 @@ class DynamicA2UiPromptProviderTest {
                         null)));
 
         assertThat(retryPrompt).contains("show metrics");
-        assertThat(retryPrompt).contains("UNKNOWN_COMPONENT_TYPE");
-        assertThat(retryPrompt).contains("failed A2UI validation");
+        assertThat(retryPrompt).contains(
+                "{\"code\":\"VALIDATION_FAILED\",\"surfaceId\":\"main\",\"path\":\"$[0].components[0]\",\"message\":\"UNKNOWN_COMPONENT_TYPE: component type is not supported\"}");
     }
 
     @Test

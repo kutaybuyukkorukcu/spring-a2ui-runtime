@@ -1,5 +1,7 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
@@ -17,6 +19,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.ToolCallback;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -73,9 +76,14 @@ class A2UiDynamicToolsTest {
     }
 
     @Test
-    void shouldRetryPlannerOnceAfterValidationFailureThenSucceed() {
+    void shouldRetryPlannerOnceAfterValidationFailureThenSucceed() throws Exception {
         AtomicInteger plannerCalls = new AtomicInteger();
         AtomicReference<Map<String, Object>> toolContextRef = new AtomicReference<>();
+        List<String> userPrompts = new ArrayList<>();
+        when(requestSpec.user(anyString())).thenAnswer(invocation -> {
+            userPrompts.add(invocation.getArgument(0));
+            return requestSpec;
+        });
         when(requestSpec.toolContext(any())).thenAnswer(invocation -> {
             toolContextRef.set(invocation.getArgument(0));
             return requestSpec;
@@ -111,6 +119,20 @@ class A2UiDynamicToolsTest {
 
         assertThat(result).isEqualTo("Generated A2UI surface");
         assertThat(plannerCalls.get()).isEqualTo(2);
+        assertThat(userPrompts).hasSize(2);
+        assertThat(userPrompts.get(0)).doesNotContain("VALIDATION_FAILED");
+        String feedback = userPrompts.get(1).lines()
+                .filter(line -> line.contains("VALIDATION_FAILED"))
+                .findFirst()
+                .orElseThrow();
+        Map<String, Object> error = new ObjectMapper().readValue(feedback, new TypeReference<>() {});
+        assertThat(error).containsOnlyKeys("code", "surfaceId", "path", "message");
+        assertThat(error).containsEntry("code", "VALIDATION_FAILED");
+        assertThat(error).containsEntry("surfaceId", "main");
+        assertThat(error).containsEntry("path", "$[1].updateComponents.components[0].component");
+        assertThat(error).containsEntry(
+                "message",
+                "UNKNOWN_COMPONENT_TYPE: component type is not supported by the published catalog");
         assertThat(session.renderedMessages()).hasSize(3);
         assertThat(session.renderedMessages().get(0)).isInstanceOf(A2UiMessage.CreateSurface.class);
         verify(runtimeMetrics).recordDynamicValidationFailed();

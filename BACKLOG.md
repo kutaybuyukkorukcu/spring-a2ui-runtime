@@ -300,7 +300,7 @@ Tracked here so they do not block utilization sequencing, but should not be forg
 
 - ~~Rename Java type `A2UiUserAction`~~ → **A2UI v1.0 actions / functions** (absorbed)
 - ~~Remove deprecated buffer / `A2UiClientEvent.userAction()` shims~~ → removed. Call `action()` and `isCreated()`. `getRootComponentId()` still reports id `root`.
-- Tighten planner retry feedback to protocol-shaped `VALIDATION_FAILED` (`code`, `surfaceId`, `path`, `message`) instead of only our `A2UiDiagnostic` list
+- ~~Tighten planner retry feedback to protocol-shaped `VALIDATION_FAILED`~~ → the one retry sends `code`, `surfaceId`, `path`, and `message`. SSE after the retry stays `A2UI_VALIDATION_FAILED`. Fail-fast and the single retry are unchanged.
 - `sendDataModel` is modeled on `createSurface` but is **not** a full bidirectional data-sync product yet — keep docs honest (default `false`)
 - Catalog validation: flattened local `allOf` props work for tool schema + lightweight checks; full networknt resolution of remote `common_types.json` `$ref`s is still weaker than an upstream JSON Schema suite
 - Historical Phase 0–2 docs still describe v0.8 sequences (intentional) — new contributors start from [migrating to v0.9.1](docs/guides/migrating-to-v0.9.1.md)

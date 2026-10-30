@@ -167,7 +167,8 @@ public class A2UiDynamicTools {
 
         plannerClient.prompt()
                 .system(promptProvider.createPlannerSystemPrompt(session.catalogId()))
-                .user(promptProvider.createPlannerUserPrompt(promptContext, validationDiagnostics))
+                .user(promptProvider.createPlannerUserPrompt(
+                        promptContext, session.surfaceId(), validationDiagnostics))
                 .toolCallbacks(renderToolCallback)
                 .toolContext(plannerToolContext)
                 .options(A2UiForcedToolChoiceFactory.forcedRenderA2UiToolChoice())
