@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.A2UiGenerationPolicy;
 import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.A2UiGenerationPolicyProperties;
 import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.A2UiProviderType;
+import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.AnthropicChatOptionsCustomizer;
 import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.GenericChatOptionsCustomizer;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
@@ -15,6 +16,8 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.springframework.ai.anthropic.AnthropicChatOptions;
+import org.springframework.ai.anthropic.api.AnthropicApi;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.mistralai.MistralAiChatOptions;
 import org.springframework.ai.mistralai.api.MistralAiApi;
@@ -24,7 +27,6 @@ class A2UiForcedToolChoiceFactoryTest {
 
     private static final Map<A2UiProviderType, String> UNSUPPORTED_OPTIONS =
             Map.of(
-                    A2UiProviderType.ANTHROPIC, "org.springframework.ai.anthropic.AnthropicChatOptions",
                     A2UiProviderType.VERTEX_AI_GEMINI,
                             "org.springframework.ai.vertexai.gemini.VertexAiGeminiChatOptions",
                     A2UiProviderType.GOOGLE_GENAI,
@@ -56,6 +58,35 @@ class A2UiForcedToolChoiceFactoryTest {
                 .contains("generateA2Ui");
         assertThat(String.valueOf(((OpenAiChatOptions) renderOptions).getToolChoice()))
                 .contains("renderA2Ui");
+    }
+
+    @Test
+    void shouldForceNamedAnthropicToolChoiceWhenThatProviderIsActive() {
+        ChatOptions generateOptions =
+                A2UiForcedToolChoiceFactory.forcedGenerateA2UiToolChoice(A2UiProviderType.ANTHROPIC);
+        ChatOptions renderOptions =
+                A2UiForcedToolChoiceFactory.forcedRenderA2UiToolChoice(A2UiProviderType.ANTHROPIC);
+
+        assertThat(generateOptions).isInstanceOf(AnthropicChatOptions.class);
+        assertThat(renderOptions).isInstanceOf(AnthropicChatOptions.class);
+        assertNamedAnthropicTool(generateOptions, "generateA2Ui");
+        assertNamedAnthropicTool(renderOptions, "renderA2Ui");
+    }
+
+    @Test
+    void shouldKeepNamedAnthropicToolWhenPolicyCopiesOptions() {
+        AnthropicChatOptions incoming =
+                (AnthropicChatOptions)
+                        A2UiForcedToolChoiceFactory.forcedGenerateA2UiToolChoice(A2UiProviderType.ANTHROPIC);
+        A2UiGenerationPolicy policy = new A2UiGenerationPolicy();
+        policy.setTemperature(0.0);
+        policy.setMaxTokens(1024);
+
+        ChatOptions customized = new AnthropicChatOptionsCustomizer().customize(incoming, policy);
+
+        assertNamedAnthropicTool(customized, "generateA2Ui");
+        assertThat(customized.getTemperature()).isEqualTo(0.0);
+        assertThat(customized.getMaxTokens()).isEqualTo(1024);
     }
 
     @Test
@@ -94,7 +125,6 @@ class A2UiForcedToolChoiceFactoryTest {
     @EnumSource(
             value = A2UiProviderType.class,
             names = {
-                "ANTHROPIC",
                 "VERTEX_AI_GEMINI",
                 "GOOGLE_GENAI",
                 "BEDROCK_CONVERSE",
@@ -177,6 +207,16 @@ class A2UiForcedToolChoiceFactoryTest {
                 .hasMessageContaining("not on the classpath")
                 .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
                 .isEqualTo(SurfaceErrorCodes.TOOL_CHOICE_UNAVAILABLE);
+    }
+
+    private static void assertNamedAnthropicTool(ChatOptions options, String toolName) {
+        assertThat(options).isInstanceOf(AnthropicChatOptions.class);
+        assertThat(((AnthropicChatOptions) options).getToolChoice())
+                .isInstanceOf(AnthropicApi.ToolChoiceTool.class);
+        AnthropicApi.ToolChoiceTool toolChoice =
+                (AnthropicApi.ToolChoiceTool) ((AnthropicChatOptions) options).getToolChoice();
+        assertThat(toolChoice.type()).isEqualTo("tool");
+        assertThat(toolChoice.name()).isEqualTo(toolName);
     }
 
     @Test

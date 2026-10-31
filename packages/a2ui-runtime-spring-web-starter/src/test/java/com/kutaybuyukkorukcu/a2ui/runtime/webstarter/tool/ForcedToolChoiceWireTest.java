@@ -13,6 +13,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.A2UiGenerationPolicyPro
 import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.A2UiGenerationPolicyService;
 import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.A2UiProviderResolver;
 import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.A2UiProviderType;
+import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.AnthropicChatOptionsCustomizer;
 import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.GenericChatOptionsCustomizer;
 import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.OpenAiChatOptionsCustomizer;
 import com.kutaybuyukkorukcu.a2ui.runtime.surface.A2UiDynamicComponentNormalizer;
@@ -34,6 +35,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.jupiter.api.Test;
+import org.springframework.ai.anthropic.AnthropicChatModel;
+import org.springframework.ai.anthropic.api.AnthropicApi;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.mistralai.MistralAiChatModel;
 import org.springframework.ai.mistralai.api.MistralAiApi;
@@ -44,9 +47,8 @@ import reactor.test.StepVerifier;
 
 /**
   * Mocked HTTP checks that forced tool choice survives the deterministic-options advisor and is
-  * present on the provider request. Providers whose Spring AI 1.1.0-M2 client has no tool-choice
-  * field fail closed before any request; those cases are covered by {@link
-  * A2UiForcedToolChoiceFactoryTest}.
+  * present on the provider request. Providers whose Spring AI 1.1.8 client has no tool-choice field
+  * fail closed before any request; those cases are covered by {@link A2UiForcedToolChoiceFactoryTest}.
   */
 class ForcedToolChoiceWireTest {
 
@@ -65,6 +67,19 @@ class ForcedToolChoiceWireTest {
                                 "message": {"role": "assistant", "content": "I will not call a tool"}
                             }],
                             "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2}
+                        }
+                        """;
+
+    private static final String ANTHROPIC_MESSAGE =
+            """
+                        {
+                            "id": "msg_test",
+                            "type": "message",
+                            "role": "assistant",
+                            "model": "claude-sonnet-4-20250514",
+                            "stop_reason": "end_turn",
+                            "content": [{"type": "text", "text": "I will not call a tool"}],
+                            "usage": {"input_tokens": 1, "output_tokens": 1}
                         }
                         """;
 
@@ -143,9 +158,99 @@ class ForcedToolChoiceWireTest {
     }
 
     @Test
+    void anthropicReplyWithoutAToolCallFailsClosed() throws Exception {
+        try (CapturingServer server = new CapturingServer(ANTHROPIC_MESSAGE)) {
+            AnthropicApi api = AnthropicApi.builder().baseUrl(server.baseUrl()).apiKey("test-key").build();
+            AnthropicChatModel model = AnthropicChatModel.builder().anthropicApi(api).build();
+            MockEnvironment environment =
+                    new MockEnvironment()
+                            .withProperty(
+                                    "spring.ai.anthropic.chat.options.model", "claude-sonnet-4-20250514");
+            A2UiProviderResolver resolver = new A2UiProviderResolver(environment);
+            DynamicA2UiPromptProvider promptProvider = new DynamicA2UiPromptProvider();
+            A2UiDynamicTools tools =
+                    new A2UiDynamicTools(
+                            ChatClient.builder(model),
+                            List.of(advisor(environment, resolver)),
+                            promptProvider,
+                            new A2UiDynamicAssemblyService(
+                                    new A2UiDynamicComponentNormalizer(), new A2UiMessageValidator()),
+                            A2UiRuntimeMetrics.noop(),
+                            A2UiCatalogRegistry.shared(),
+                            resolver);
+            SpringAiSurfaceRuntime runtime =
+                    new SpringAiSurfaceRuntime(
+                            ChatClient.builder(model),
+                            List.of(advisor(environment, resolver)),
+                            environment,
+                            new A2UiWebProperties(),
+                            new DynamicGenerationAdapter(promptProvider, tools, resolver));
+
+            StepVerifier.create(
+                            runtime.stream(
+                                    new A2UiSurfaceRequest("show a card", null, null),
+                                    "req-1",
+                                    A2UiCatalogIds.BASIC_V0_9))
+                    .expectErrorSatisfies(
+                            error -> {
+                                assertThat(error).isInstanceOf(SurfaceExecutionException.class);
+                                assertThat(((SurfaceExecutionException) error).getErrorCode())
+                                        .isEqualTo(SurfaceErrorCodes.TRANSFORM_FAILED);
+                            })
+                    .verify();
+
+            assertThat(server.bodies).hasSize(1);
+            JsonNode toolChoice = JSON.readTree(server.bodies.get(0)).path("tool_choice");
+            assertThat(toolChoice.path("type").asText()).isEqualTo("tool");
+            assertThat(toolChoice.path("name").asText()).isEqualTo("generateA2Ui");
+        }
+    }
+
+    @Test
+    void anthropicRequestCarriesNamedToolChoice() throws Exception {
+        assertAnthropicToolChoice("generateA2Ui", A2UiProviderType.ANTHROPIC, true);
+    }
+
+    @Test
+    void anthropicRenderHopCarriesNamedRenderToolChoice() throws Exception {
+        assertAnthropicToolChoice("renderA2Ui", A2UiProviderType.ANTHROPIC, false);
+    }
+
+    private void assertAnthropicToolChoice(String toolName, A2UiProviderType provider, boolean generate)
+            throws Exception {
+        try (CapturingServer server = new CapturingServer(ANTHROPIC_MESSAGE)) {
+            AnthropicApi api = AnthropicApi.builder().baseUrl(server.baseUrl()).apiKey("test-key").build();
+            AnthropicChatModel model = AnthropicChatModel.builder().anthropicApi(api).build();
+            MockEnvironment environment =
+                    new MockEnvironment()
+                            .withProperty(
+                                    "spring.ai.anthropic.chat.options.model", "claude-sonnet-4-20250514");
+            A2UiProviderResolver resolver = new A2UiProviderResolver(environment);
+            ChatClient client =
+                    ChatClient.builder(model).defaultAdvisors(advisor(environment, resolver)).build();
+
+            var prompt =
+                    client.prompt()
+                            .user("compose")
+                            .toolCallbacks(generateTool())
+                            .options(
+                                    generate
+                                            ? A2UiForcedToolChoiceFactory.forcedGenerateA2UiToolChoice(provider)
+                                            : A2UiForcedToolChoiceFactory.forcedRenderA2UiToolChoice(provider));
+            String content = prompt.call().content();
+
+            assertThat(content).contains("not call");
+            assertThat(server.bodies).hasSize(1);
+            JsonNode toolChoice = JSON.readTree(server.bodies.get(0)).path("tool_choice");
+            assertThat(toolChoice.path("type").asText()).isEqualTo("tool");
+            assertThat(toolChoice.path("name").asText()).isEqualTo(toolName);
+        }
+    }
+
+    @Test
     void mistralNativeRequestCarriesAnyToolChoice() throws Exception {
         try (CapturingServer server = new CapturingServer()) {
-            MistralAiApi api = new MistralAiApi(server.baseUrl(), "test-key");
+            MistralAiApi api = MistralAiApi.builder().baseUrl(server.baseUrl()).apiKey("test-key").build();
             MistralAiChatModel model = MistralAiChatModel.builder().mistralAiApi(api).build();
             MockEnvironment environment =
                     new MockEnvironment()
@@ -190,7 +295,10 @@ class ForcedToolChoiceWireTest {
                 new A2UiChatOptionsPolicyApplier(
                         new A2UiGenerationPolicyService(new A2UiGenerationPolicyProperties(), environment),
                         resolver,
-                        List.of(new OpenAiChatOptionsCustomizer(), new GenericChatOptionsCustomizer()));
+                        List.of(
+                                new OpenAiChatOptionsCustomizer(),
+                                new AnthropicChatOptionsCustomizer(),
+                                new GenericChatOptionsCustomizer()));
         return new DeterministicOptionsAdvisor(applier);
     }
 
@@ -198,19 +306,24 @@ class ForcedToolChoiceWireTest {
 
         private final HttpServer server;
         private final List<String> bodies = new CopyOnWriteArrayList<>();
+        private final byte[] responseBody;
 
         private CapturingServer() throws IOException {
+            this(COMPLETION_WITHOUT_TOOL_CALL);
+        }
+
+        private CapturingServer(String responseJson) throws IOException {
+            this.responseBody = responseJson.getBytes(StandardCharsets.UTF_8);
             server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
             server.createContext(
                     "/",
                     exchange -> {
                         bodies.add(
                                 new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
-                        byte[] response = COMPLETION_WITHOUT_TOOL_CALL.getBytes(StandardCharsets.UTF_8);
                         exchange.getResponseHeaders().set("Content-Type", "application/json");
-                        exchange.sendResponseHeaders(200, response.length);
+                        exchange.sendResponseHeaders(200, responseBody.length);
                         try (OutputStream output = exchange.getResponseBody()) {
-                            output.write(response);
+                            output.write(responseBody);
                         }
                         exchange.close();
                     });

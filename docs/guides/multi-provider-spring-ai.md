@@ -23,21 +23,21 @@ If the active provider cannot force the tool, the stream emits SSE
 `event: error` with `TOOL_CHOICE_UNAVAILABLE`. The runtime does not continue
 with empty `ChatOptions`. Getting started stays OpenAI.
 
-Checked against Spring AI **`1.1.0-M2`** (the BOM in the root `pom.xml`).
+Checked against Spring AI **`1.1.8`** source (tag `v1.1.8`), the BOM in the root `pom.xml`. The runtime parent stays Spring Boot **3.4.1**. Spring AI 1.1.8 is the newest 1.1 GA. Spring builds that line with Boot 3.5.x; this repo already ran 1.1.0-M2 (itself built against Boot 3.5.6) on Boot 3.4.1, and 1.1.8 stays in that arrangement. Spring AI 2.x needs Boot 4 and is not taken.
 
 ## Forced tool choice
 
 | Provider | Dynamic force | What goes on the wire |
 |----------|---------------|------------------------|
-| OpenAI | Forced | Named `tool_choice` function (`generateA2Ui` or `renderA2Ui`). Golden path. |
+| OpenAI | Forced | Named `tool_choice` function (`generateA2Ui` or `renderA2Ui`). Golden path. Spring AI 1.1.8 names the helper `ToolChoiceBuilder.function`. |
 | OpenAI-compatible servers (Groq, Kimi / Moonshot, DeepSeek, Mistral, Ollama, vLLM, Azure OpenAI through the OpenAI client) | Forced, same OpenAI path | Same `tool_choice` body. The call works only when **that server honors `tool_choice`**. Open models such as Kimi do not get a separate client. |
-| Mistral native (`spring-ai-mistral-ai`) | Forced | Spring AI 1.1.0-M2 exposes `tool_choice` as `auto` / `any` / `none`, not a function name. Each hop registers one tool, so the runtime sends `any`. |
-| Anthropic (direct) | Fail-closed | `AnthropicChatOptions` / `ChatCompletionRequest` have tools and no `tool_choice`. |
-| Vertex AI Gemini | Fail-closed | `VertexAiGeminiChatOptions` has no function-calling mode or allowed-function name. |
-| Google GenAI | Fail-closed | `GoogleGenAiChatOptions` has no function-calling mode. |
-| AWS Bedrock Converse | Fail-closed | `BedrockChatOptions` has no tool choice. The Converse `ToolConfiguration` is built from tool definitions only. |
-| Azure OpenAI native starter (`spring-ai-azure-openai`) | Fail-closed | `AzureOpenAiChatOptions` has no tool choice. Use the OpenAI-compatible client (row above) when Azure should force. |
-| Ollama native (`spring-ai-ollama`) | Fail-closed | `OllamaChatOptions` has no tool choice. Use Ollama's OpenAI-compatible endpoint on the OpenAI path when the server honors `tool_choice`. |
+| Anthropic (direct) | Forced | `AnthropicChatOptions.toolChoice` is `AnthropicApi.ToolChoiceTool`: `tool_choice` `{"type":"tool","name":"generateA2Ui"}` or `renderA2Ui`. The chat model merges that field onto the Messages request. |
+| Mistral native (`spring-ai-mistral-ai`) | Forced | Spring AI 1.1.8 exposes `tool_choice` as `auto` / `any` / `none`, not a function name. Each hop registers one tool, so the runtime sends `any`. |
+| Vertex AI Gemini | Fail-closed | `VertexAiGeminiChatOptions` in 1.1.8 has tool callbacks and no function-calling mode or allowed-function name. No Spring AI release on the Boot 3 line adds one. Spring AI 2.0.2 removes the Vertex Gemini chat module (embeddings remain) and that release requires Boot 4. |
+| Google GenAI | Fail-closed | `GoogleGenAiChatOptions` in 1.1.8 has tool callbacks and no function-calling mode. Spring AI 2.0.2 adds `ToolChoice` mode `ANY` plus `allowedFunctionNames`, mapped to `toolConfig.functionCallingConfig`. That release requires Boot 4, which this runtime does not take. Interim: Google documents an OpenAI-compatible chat completions base URL, `https://generativelanguage.googleapis.com/v1beta/openai/`, including function calling. Their sample sends `tool_choice` `auto`. Use the OpenAI client against that base URL when that server honors the named `tool_choice` this runtime sends. |
+| AWS Bedrock Converse | Fail-closed | `BedrockChatOptions` has no tool choice in 1.1.8 or in 2.0.2. `BedrockProxyChatModel` builds Converse `ToolConfiguration` from tool definitions only (`tools`, no `toolChoice`). |
+| Azure OpenAI native starter (`spring-ai-azure-openai`) | Fail-closed | `AzureOpenAiChatOptions` in 1.1.8 has no tool choice. Spring AI 2.0.2 removes the native Azure OpenAI chat module. Use the OpenAI-compatible client (row above) when Azure should force. |
+| Ollama native (`spring-ai-ollama`) | Fail-closed | `OllamaChatOptions` has no tool choice in 1.1.8 or in 2.0.2. Use Ollama's OpenAI-compatible endpoint on the OpenAI path when the server honors `tool_choice`. |
 
 Template mode and host `assemble` do not force these tools. They stay available
 when dynamic compose fail-closes.
@@ -55,20 +55,24 @@ selects the OpenAI path.
 
 ## Live smoke
 
-Mocked HTTP tests assert the OpenAI and native Mistral request bodies that
-Spring AI sends. They do not call a provider.
+Mocked HTTP tests assert the OpenAI, Anthropic, and native Mistral request
+bodies that Spring AI sends. They do not call a provider. An Anthropic reply
+with no tool call fails closed. A mocked Anthropic dynamic stream emits a
+validated surface. A configured Google GenAI model emits
+`TOOL_CHOICE_UNAVAILABLE` on the stream endpoint.
 
 One live OpenAI chat completion (model `gpt-4.1-mini`, named `tool_choice`
 function `generateA2Ui`) returned HTTP 200 with a tool call of that name.
-That call used the OpenAI HTTP API directly. It was not a dynamic compose
-stream through this runtime.
+That call was repeated after the Spring AI 1.1.8 bump and again returned HTTP
+200 with a `generateA2Ui` tool call. It used the OpenAI HTTP API directly. It
+was not a dynamic compose stream through this runtime.
 
 Live dynamic compose was not run for Anthropic, Vertex, Google GenAI, Bedrock,
 native Azure OpenAI, native Mistral, Groq, or Ollama: this environment had no
-API keys for those providers. On Spring AI 1.1.0-M2 those direct clients
-(except native Mistral) fail closed before a request, so a live call would
-surface `TOOL_CHOICE_UNAVAILABLE` rather than a rendered surface. Native
-Mistral would need a key to show `tool_choice: any` accepted by the API.
+API keys for those providers. Vertex, Google GenAI, Bedrock, native Azure
+OpenAI, and native Ollama fail closed before a request on Spring AI 1.1.8, so
+a live call would surface `TOOL_CHOICE_UNAVAILABLE`. Anthropic and native
+Mistral would need a key to show the forced body accepted by the API.
 
 ## Recipes
 
@@ -135,9 +139,9 @@ spring:
           temperature: 0.0
 ```
 
-Smoke **template** mode or host `assemble` here. Dynamic compose fail-closes
-on this Spring AI version (`TOOL_CHOICE_UNAVAILABLE`) because the Anthropic
-client cannot force `generateA2Ui` / `renderA2Ui`.
+Dynamic compose sends a named Anthropic `tool_choice` (`type` `tool`, `name`
+`generateA2Ui` or `renderA2Ui`). Template mode and host `assemble` stay
+available and do not force those tools.
 
 ### Vertex AI Gemini
 
@@ -164,10 +168,10 @@ spring:
               temperature: 0.0
 ```
 
-Same limit as Anthropic: dynamic compose fail-closes
-(`TOOL_CHOICE_UNAVAILABLE`). Vertex and Google GenAI ChatOptions in Spring AI
-1.1.0-M2 do not expose a function-calling mode. Template mode or host
-`assemble` still apply.
+Dynamic compose fail-closes (`TOOL_CHOICE_UNAVAILABLE`). Vertex and Google
+GenAI chat options in Spring AI 1.1.8 do not expose a function-calling mode.
+Google GenAI forcing exists in Spring AI 2.0.2 and needs Boot 4, which this
+runtime does not take. Template mode or host `assemble` still apply.
 
 ## Smoke checklist (alternate provider)
 
@@ -187,7 +191,7 @@ Showcase write-gate path: [Action round-trip](action-round-trip.md).
 | Topic | Reality |
 |-------|---------|
 | Golden path | OpenAI. OpenAI-compatible base URLs (Groq and the others in the matrix) stay on that path |
-| Dynamic + force tool | Named OpenAI `tool_choice`, native Mistral `any`, fail-closed `TOOL_CHOICE_UNAVAILABLE` everywhere else in the matrix. A server on the OpenAI path still has to honor `tool_choice` (Kimi and other open models included) |
+| Dynamic + force tool | Named OpenAI `tool_choice`, named Anthropic `tool_choice`, native Mistral `any`. Vertex, Google GenAI, Bedrock Converse, native Azure OpenAI, and native Ollama stay fail-closed on Spring AI 1.1.8 (`TOOL_CHOICE_UNAVAILABLE`). A server on the OpenAI path still has to honor `tool_choice` (Kimi and other open models included) |
 | Schema / JSON mode | `NONE` or `JSON_OBJECT` only. Dynamic mode resolves to `NONE`. There is no `JSON_SCHEMA` mode. |
 | Cost / latency | Varies widely — budget in [ops](ops-and-diagnostics.md) |
 

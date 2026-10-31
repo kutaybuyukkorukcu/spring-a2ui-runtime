@@ -642,7 +642,7 @@ This is the official standard catalog from the A2UI specification:
 
 ## 8. Spring AI 2.0.0 Migration Notes
 
-Current codebase uses Spring AI 1.1.0-M2. Key changes for 2.0.0:
+Current codebase uses Spring AI 1.1.8 on Spring Boot 3.4.1. Key changes for 2.0.0:
 
 - `ChatClient` API may have changed - need to verify
 - `BaseAdvisor` replaced `CallAroundAdvisor` and `StreamAroundAdvisor` (already using BaseAdvisor in current code)

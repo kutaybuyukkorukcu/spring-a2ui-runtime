@@ -35,7 +35,7 @@ class A2UiChatOptionsCustomizerTest {
     @Test
     void openAiShouldPreserveForcedToolChoiceWhenPolicyClearsResponseFormat() {
         OpenAiChatOptions incoming = OpenAiChatOptions.builder()
-                .toolChoice(OpenAiApi.ChatCompletionRequest.ToolChoiceBuilder.FUNCTION("generateA2Ui"))
+                .toolChoice(OpenAiApi.ChatCompletionRequest.ToolChoiceBuilder.function("generateA2Ui"))
                 .build();
         A2UiGenerationPolicy policy = new A2UiGenerationPolicy();
         policy.setTemperature(0.0);
