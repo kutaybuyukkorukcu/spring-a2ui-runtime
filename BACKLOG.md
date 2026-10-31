@@ -1,6 +1,6 @@
 # Backlog
 
-Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** ✅ → **Central `2.1.0` (Template + Catalog SPI)** ✅ → **Architecture revisions** ✅ → **Generate / govern / execute** ✅ → **Central `2.2.0` (v0.9.1 line)** ✅ → **MVP demo (sample apps)** ✅ → **A2UI v1.0 actions / functions** ✅ → **Parallel two-hop generation** → **Later (residual)**.
+Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** ✅ → **Central `2.1.0` (Template + Catalog SPI)** ✅ → **Architecture revisions** ✅ → **Generate / govern / execute** ✅ → **Central `2.2.0` (v0.9.1 line)** ✅ → **MVP demo (sample apps)** ✅ → **A2UI v1.0 actions / functions** ✅ → **Parallel two-hop generation** → **Later (facts hop → Spring AI 2.1 / Boot 4 → progressive rendering; residual)**.
 
 ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)` · `[docs/adr/002-in-product-surfaces.md](docs/adr/002-in-product-surfaces.md)` · `[docs/adr/003-catalog-scoped-fail-fast.md](docs/adr/003-catalog-scoped-fail-fast.md)` · `[docs/adr/004-action-and-function-identity.md](docs/adr/004-action-and-function-identity.md)`
 
@@ -82,9 +82,9 @@ Near-term **execution order stays locked** (see header). This section only expla
 | **Generate / govern / execute** ✅ | Catalog-aware planner context, action allow-list, application policy — not another agent framework |
 | **Central `2.2.0`** ✅ | Closes the v0.9.1 product line (architecture + generate/govern/execute). GitHub Release / Maven Central after this cut |
 | **MVP demo (sample apps)** ✅ | Sample slot in `apps/`: compose then assemble — [ADR 002](docs/adr/002-in-product-surfaces.md) |
-| **A2UI v1.0 actions / functions** ✅ | v1.0 wire, event vs function, idempotency, routing meters — Central **`3.0.0`** ([ADR 004](docs/adr/004-action-and-function-identity.md)) |
+| **A2UI v1.0 actions / functions** ✅ | v1.0 wire, event vs function, idempotency, routing meters — **`3.0.0`** line on `main`; Central release pending ([ADR 004](docs/adr/004-action-and-function-identity.md)) |
 | **Parallel two-hop generation** | Next: overlap planner with hop 1; live `toolProgress` on SSE |
-| **Later (residual)** | Host compose tools (facts hop) after parallel two-hop; progressive rendering (Boot 4); Spring AI 2.1 / Boot 4; **dynamic compose tool forcing beyond OpenAI merged on `2.x`, paused** for Gemini, Bedrock, native Azure OpenAI, and native Ollama; multi-surface, Spring AI hop adapter, provider prompt cache |
+| **Later (residual)** | After parallel two-hop: host compose tools (facts hop), then Spring AI 2.1 / Boot 4 (facts hop vs upgrade **TBD by Kutay**), then progressive rendering; **dynamic compose tool forcing beyond OpenAI merged on `2.x`, paused** for Gemini, Bedrock, native Azure OpenAI, and native Ollama; multi-surface, Spring AI hop adapter, provider prompt cache |
 
 ---
 
@@ -299,7 +299,7 @@ Merged `fix/dynamic-primary-tool-failfast` (forced primary `generateA2Ui`, plann
 
 Tracked here so they do not block utilization sequencing, but should not be forgotten:
 
-- ~~Rename Java type `A2UiUserAction`~~ → **A2UI v1.0 actions / functions** ✅ (Central **`3.0.0`**)
+- ~~Rename Java type `A2UiUserAction`~~ → **A2UI v1.0 actions / functions** ✅ (**`3.0.0`** line on `main`)
 - ~~Remove deprecated buffer / `A2UiClientEvent.userAction()` shims~~ → removed. Call `action()` and `isCreated()`. `getRootComponentId()` still reports id `root`.
 - ~~Tighten planner retry feedback to protocol-shaped `VALIDATION_FAILED`~~ → the one retry sends `code`, `surfaceId`, `path`, and `message`. SSE after the retry stays `A2UI_VALIDATION_FAILED`. Fail-fast and the single retry are unchanged.
 - `sendDataModel` is modeled on `createSurface` but is **not** a full bidirectional data-sync product yet — keep docs honest (default `false`)
@@ -453,7 +453,7 @@ Do **not** mix prompt quality with security in one PR.
 - In-process static-prefix cache — **overkill**; do not cache the planner static prefix.
 - Split schema vs catalog validators into separate classes — observability codes are enough until policy exists so “policy rejected” is distinct.
 - `A2UiGenerationRepairStrategy` as a generic SPI — keep one bounded validation retry; on policy reject **fail-fast** unless a later ADR says otherwise.
-- ~~A2UI v1.0 Candidate (`actionResponse`)~~ → **A2UI v1.0 actions / functions** ✅ (Central **`3.0.0`**)
+- ~~A2UI v1.0 Candidate (`actionResponse`)~~ → **A2UI v1.0 actions / functions** ✅ (**`3.0.0`** line on `main`)
 - A2A `DataPart` / Agent Card adapter, MCP Apps, extra generation backends — demand-gated bridges only; never identity.
 - Spring AI hop adapter / Boot 4 — already architecture-revisions Later.
 
@@ -471,7 +471,7 @@ Next: **Parallel two-hop generation** (below).
 
 ## Done — A2UI v1.0 actions / functions
 
-**Status:** ✅ Complete on `main`; library SemVer **`3.0.0`** on Maven Central (hard cutover, same pattern as **`2.0.0`** for v0.9.1).  
+**Status:** ✅ Merged to `main` as the **`3.0.0`** line (hard cutover, same pattern as **`2.0.0`** for v0.9.1). Maven Central **`3.0.0`** release pending.  
 **Docs:** [ADR 004](docs/adr/004-action-and-function-identity.md) · [Migrating to v1.0](docs/guides/migrating-to-v1.0.md)  
 **Protocol:** A2UI **v1.0** ([spec](https://a2ui.org/specification/v1.0-a2ui/)). Envelope `version` const is **`1.0`**, not `v1.0`. The **`2.x`** line remains v0.9.1 for builders who have not moved.  
 **Does not reopen** [ADR 001](docs/adr/001-streaming-surface-generation.md) / [ADR 002](docs/adr/002-in-product-surfaces.md) / [ADR 003](docs/adr/003-catalog-scoped-fail-fast.md): native SSE, fail-fast, in-product surfaces, catalog-scoped validation stay.
@@ -481,7 +481,7 @@ Shipped: v1.0 ingress and assemble; event vs function identity (`A2UiAction` / `
 **Honest gaps**
 
 - Browser e2e `V1WebRendererE2ETest` stays disabled until an official web renderer ships v1.0. The renderer matrix lists React, Lit, and Angular v1.0 as **Planned**.
-- Upstream `@call` JSON Schema fix ([a2ui-project/a2ui#3486](https://github.com/a2ui-project/a2ui/pull/3486)) is merged upstream but not yet in a released `@a2ui/*` package pin.
+- Upstream `@call` JSON Schema fix (issue [a2ui-project/a2ui#3486](https://github.com/a2ui-project/a2ui/issues/3486)) is merged upstream but not yet in a released `@a2ui/*` package pin.
 
 ---
 
@@ -514,9 +514,9 @@ Own plan file if starting.
 
 ## Later — residual runtime maturity
 
-Items below stay **after** parallel two-hop (or never, if they fail the extension filter). **A2UI v1.0 actions / functions** ✅ shipped on **`3.0.0`**. **Parallel two-hop generation** is Next (above).
+Items below stay **after** parallel two-hop (or never, if they fail the extension filter). **A2UI v1.0 actions / functions** ✅ merged on `main` as the **`3.0.0`** line (Central release pending). **Parallel two-hop generation** is Next (above).
 
-**Sequencing (locked):** parallel two-hop generation (Next) → host compose tools (facts hop). The facts hop adds wall-clock to `POST /a2ui/surface/stream`; do not stack it on serial hops. Progressive rendering and the Spring AI 2.1 / Boot 4 upgrade are Later; exact order TBD by Kutay after those merges.
+**Sequencing (locked):** parallel two-hop generation (Next) → host compose tools (facts hop) → Spring AI 2.1 / Boot 4 upgrade → progressive rendering. Facts hop vs the upgrade: **TBD by Kutay**. The upgrade before progressive rendering is decided (tool-argument deltas). The facts hop adds wall-clock to `POST /a2ui/surface/stream`; do not stack it on serial hops.
 
 **Independent of that pair (merged on `2.x`, paused):** [dynamic compose tool forcing beyond OpenAI](#dynamic-compose-tool-forcing-beyond-openai). OpenAI, Anthropic, and native Mistral force on Spring AI 1.1.8. Gemini, Bedrock, native Azure OpenAI, and native Ollama wait for the Boot 4 line.
 
@@ -540,9 +540,17 @@ Today the host can prefetch and put truth in `context` — that path already wor
 
 Own plan file if starting. Not the architecture-revisions Spring AI hop adapter (that hides *our* ChatClient/tools/ChatOptions).
 
+### Spring AI 2.1 / Boot 4 upgrade
+
+**Status:** Later. [ADR 003](docs/adr/003-catalog-scoped-fail-fast.md) “do not bump the BOM first” still holds until this is scheduled.
+
+**Prerequisite for progressive rendering (tool-argument deltas).**
+
+**Unlocks:** Gemini and Bedrock dynamic tool forcing (as far as Spring AI supports it); tool-argument deltas for [progressive rendering](#progressive-rendering-direction-blocked-on-tool-argument-streaming).
+
 ### Progressive rendering (direction, blocked on tool-argument streaming)
 
-**Status:** Later. **Blocker:** Spring AI tool-argument deltas need Boot 4 (see below). **Sequencing:** after the Spring AI 2.1 / Boot 4 upgrade. Exact order vs parallel two-hop and facts hop is **TBD by Kutay after merge**.
+**Status:** Later. **Blocker:** Spring AI tool-argument deltas need Boot 4 (see [Spring AI 2.1 / Boot 4 upgrade](#spring-ai-21--boot-4-upgrade)). **Sequencing:** after parallel two-hop, host compose tools (facts hop), and the Spring AI 2.1 / Boot 4 upgrade (decided order vs progressive rendering; facts hop vs upgrade **TBD by Kutay**).
 
 **Product stance (decided by Kutay):** The runtime is moving away from “nothing shows until the whole surface passes validation”. Teams that pick generative UI accept progressive rendering. The catalog stays the contract: every component is still validated against the catalog before it is emitted, and only the whole-surface-first wait goes away.
 
@@ -561,12 +569,6 @@ Own plan file if starting. Not the architecture-revisions Spring AI hop adapter 
 - How the one validation retry works mid-stream.
 - The move from `.call()` to `.stream()`.
 - Whether [dynamic generative UI](docs/guides/dynamic-generative-ui.md) “no partial surfaces” line changes.
-
-### Spring AI 2.1 / Boot 4 upgrade
-
-**Status:** Later. [ADR 003](docs/adr/003-catalog-scoped-fail-fast.md) “do not bump the BOM first” still holds until this is scheduled.
-
-**Unlocks:** Gemini and Bedrock dynamic tool forcing (as far as Spring AI supports it); tool-argument deltas for [progressive rendering](#progressive-rendering-direction-blocked-on-tool-argument-streaming). Depends on the Spring AI hop adapter track in [architecture revisions](#later-this-track--do-not-start).
 
 ### Dynamic compose tool forcing beyond OpenAI
 
@@ -599,7 +601,7 @@ Own plan file if starting. Not the architecture-revisions Spring AI hop adapter 
 ### Deferred from batteries plan
 
 - Multi-surface / session handoff **as runtime** (docs patterns only in Slice A)  
-- ~~A2UI v1.0 Candidate protocol bump~~ → **A2UI v1.0 actions / functions** ✅ (Central **`3.0.0`**)  
+- ~~A2UI v1.0 Candidate protocol bump~~ → **A2UI v1.0 actions / functions** ✅ (**`3.0.0`** line on `main`)  
 - First-party rich visualization component pack (**never** runtime identity — hosts register types via catalog SPI + their FE)  
 - Catalog authoring UX / marketplace / “create your design system” site (A2UI / FE ecosystem; not us)  
 - ~~`JSON_SCHEMA` response format mode cleanup~~ → not a mode. `ResponseFormatMode` is `NONE` and `JSON_OBJECT` only.
