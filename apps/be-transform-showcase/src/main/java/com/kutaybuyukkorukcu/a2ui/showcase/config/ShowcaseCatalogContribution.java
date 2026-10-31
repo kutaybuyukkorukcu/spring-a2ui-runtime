@@ -27,7 +27,7 @@ public final class ShowcaseCatalogContribution implements A2UiCatalogContributio
 
     @Override
     public String catalogId() {
-        return A2UiCatalogIds.BASIC_V0_9;
+        return A2UiCatalogIds.BASIC_V1;
     }
 
     @Override

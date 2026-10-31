@@ -108,7 +108,7 @@ class A2UiDynamicToolsTest {
                         "root",
                         List.of(
                                 Map.of("id", "root", "component", "Column", "children", List.of("title")),
-                                Map.of("id", "title", "component", "Text", "text", "Hello", "variant", "h2")),
+                                Map.of("id", "title", "component", "Text", "text", "Hello", "variant", "body")),
                         Map.of("heading", "Hello"),
                         renderContext);
             }
@@ -116,7 +116,7 @@ class A2UiDynamicToolsTest {
         });
 
         DynamicRenderSession session = new DynamicRenderSession(
-                "main", A2UiCatalogIds.BASIC_V0_9, "show a dashboard", null, A2UiRuntimeEventCollector.DISABLED);
+                "main", A2UiCatalogIds.BASIC_V1, "show a dashboard", null, A2UiRuntimeEventCollector.DISABLED);
         ToolContext toolContext = new ToolContext(Map.of(A2UiDynamicTools.SESSION_CONTEXT_KEY, session));
 
         String result = dynamicTools.generateA2Ui(toolContext);
@@ -184,7 +184,7 @@ class A2UiDynamicToolsTest {
         });
 
         DynamicRenderSession session = new DynamicRenderSession(
-                "main", A2UiCatalogIds.BASIC_V0_9, "show a login form", null, A2UiRuntimeEventCollector.DISABLED);
+                "main", A2UiCatalogIds.BASIC_V1, "show a login form", null, A2UiRuntimeEventCollector.DISABLED);
         ToolContext toolContext = new ToolContext(Map.of(A2UiDynamicTools.SESSION_CONTEXT_KEY, session));
 
         String result = dynamicTools.generateA2Ui(toolContext);
@@ -218,7 +218,7 @@ class A2UiDynamicToolsTest {
         });
 
         DynamicRenderSession session = new DynamicRenderSession(
-                "main", A2UiCatalogIds.BASIC_V0_9, "show a dashboard", null, A2UiRuntimeEventCollector.DISABLED);
+                "main", A2UiCatalogIds.BASIC_V1, "show a dashboard", null, A2UiRuntimeEventCollector.DISABLED);
         ToolContext toolContext = new ToolContext(Map.of(A2UiDynamicTools.SESSION_CONTEXT_KEY, session));
 
         assertThatThrownBy(() -> dynamicTools.generateA2Ui(toolContext))
@@ -232,7 +232,7 @@ class A2UiDynamicToolsTest {
 
     @Test
     void shouldEmbedGeneratedCatalogSchemaInRenderToolCallback() {
-        ToolCallback callback = dynamicTools.buildRenderA2UiToolCallback(A2UiCatalogIds.BASIC_V0_9);
+        ToolCallback callback = dynamicTools.buildRenderA2UiToolCallback(A2UiCatalogIds.BASIC_V1);
         String inputSchema = callback.getToolDefinition().inputSchema();
 
         assertThat(inputSchema).contains("CheckBox");
@@ -253,7 +253,7 @@ class A2UiDynamicToolsTest {
     @Test
     void shouldReturnDirectFromGenerateAndRenderCallbacks() {
         ToolCallback generate = dynamicTools.buildGenerateA2UiToolCallback();
-        ToolCallback render = dynamicTools.buildRenderA2UiToolCallback(A2UiCatalogIds.BASIC_V0_9);
+        ToolCallback render = dynamicTools.buildRenderA2UiToolCallback(A2UiCatalogIds.BASIC_V1);
 
         assertThat(generate.getToolMetadata().returnDirect()).isTrue();
         assertThat(render.getToolMetadata().returnDirect()).isTrue();

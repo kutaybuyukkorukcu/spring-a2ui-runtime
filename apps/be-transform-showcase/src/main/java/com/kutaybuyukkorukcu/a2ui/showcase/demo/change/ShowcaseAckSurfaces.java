@@ -21,7 +21,7 @@ public final class ShowcaseAckSurfaces {
   public static List<A2UiMessage> ack(String headline, Map<String, Object> actionResult) {
     return replaceWith(
         List.of(
-            new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+            new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1),
             new A2UiMessage.UpdateComponents(
                 "main",
                 List.of(

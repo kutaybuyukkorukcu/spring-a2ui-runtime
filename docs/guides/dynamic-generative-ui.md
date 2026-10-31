@@ -1,19 +1,19 @@
 # Dynamic Generative UI (Phase 2)
 
-spring-a2ui supports two surface generation modes so product builders can choose catalog compose vs registered-spec fill without inventing their own compose → validate → stream path. Both emit **A2UI v0.9.1 wire envelopes** over the same SSE endpoint (`POST /a2ui/surface/stream`). See also [Migrating to v0.9.1](migrating-to-v0.9.1.md). **When to use which:** [ADR 002](../adr/002-in-product-surfaces.md).
+spring-a2ui supports two surface generation modes so product builders can choose catalog compose vs registered-spec fill without inventing their own compose → validate → stream path. Both emit **A2UI v1.0 wire envelopes** (`"version":"1.0"`) over the same SSE endpoint (`POST /a2ui/surface/stream`). See [Migrating to v1.0](migrating-to-v1.0.md). The v0.9.1 cutover remains [Migrating to v0.9.1](migrating-to-v0.9.1.md) for the `2.x` line. **When to use which:** [ADR 002](../adr/002-in-product-surfaces.md).
 
 ## Template vs dynamic
 
 | Mode | Property | Behavior |
 |------|----------|----------|
 | **Template** | `a2ui.web.runtime.generation-mode=template` | LLM selects a **host-registered** template (`selectTemplate`) and fills slots (`renderTemplate`). Fixed adjacency lists — register templates via the [Template SPI](authoring-templates.md). The library ships none. |
-| **Dynamic** (library default) | `a2ui.web.runtime.generation-mode=dynamic` | LLM composes a surface from the **active** catalog via two-hop tools — no page templates. Default active catalog is the vendored **basic** v0.9 catalog; hosts can register additional catalogs via `A2UiCatalogContribution` (see [registering catalogs](registering-catalogs.md)). |
+| **Dynamic** (library default) | `a2ui.web.runtime.generation-mode=dynamic` | LLM composes a surface from the **active** catalog via two-hop tools — no page templates. Default active catalog is the vendored **basic** v1.0 catalog; hosts can register additional catalogs via `A2UiCatalogContribution` (see [registering catalogs](registering-catalogs.md)). |
 
 The showcase streams **dynamic** for the composed slot (`mig-311`). The next step (approval) and other known trees use host `assemble` (no model). Template mode remains available as a frozen capability; do not demo both modes as two prints of the same form.
 
 **Catalog note:** A2UI production apps typically define catalogs that match their design system ([a2ui.org](https://a2ui.org/guides/defining-your-own-catalog/)). spring-a2ui owns validate/generate against registered schemas; hosts author schemas + FE renderers and register them with `A2UiCatalogContribution`. See [registering catalogs](registering-catalogs.md) and [catalog ownership](../platform.md#catalog-ownership-a2ui-aligned).
 
-## A2UI v0.9.1 contract
+## A2UI v1.0 contract
 
 Dynamic mode always produces the same envelope sequence as template mode:
 

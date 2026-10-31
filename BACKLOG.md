@@ -1,8 +1,8 @@
 # Backlog
 
-Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** ✅ → **Central `2.1.0` (Template + Catalog SPI)** ✅ → **Architecture revisions** ✅ → **Generate / govern / execute** ✅ → **Central `2.2.0` (v0.9.1 line)** ✅ → **MVP demo (sample apps)** ✅ → **A2UI v1.0 actions / functions** → **Later (residual)**.
+Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** ✅ → **Central `2.1.0` (Template + Catalog SPI)** ✅ → **Architecture revisions** ✅ → **Generate / govern / execute** ✅ → **Central `2.2.0` (v0.9.1 line)** ✅ → **MVP demo (sample apps)** ✅ → **A2UI v1.0 actions / functions** ✅ → **Parallel two-hop generation** → **Later (residual)**.
 
-ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)` · `[docs/adr/002-in-product-surfaces.md](docs/adr/002-in-product-surfaces.md)` · `[docs/adr/003-catalog-scoped-fail-fast.md](docs/adr/003-catalog-scoped-fail-fast.md)`
+ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)` · `[docs/adr/002-in-product-surfaces.md](docs/adr/002-in-product-surfaces.md)` · `[docs/adr/003-catalog-scoped-fail-fast.md](docs/adr/003-catalog-scoped-fail-fast.md)` · `[docs/adr/004-action-and-function-identity.md](docs/adr/004-action-and-function-identity.md)`
 
 **Branches:** `main` (Phase X hard cutover merged) · Legacy patch line `1.1.x`.
 
@@ -60,7 +60,7 @@ Ship a Maven Central Spring Boot runtime that turns host intent plus context int
 - ~~Tool API shape~~ → **Builder + runtime `@Tool` adapters**
 - ~~Is dynamic A2UI in scope?~~ → **Yes — Phase 2 (shipped)**
 - ~~Generation product: basic catalog only~~ → **basic + host `A2UiCatalogContribution` SPI** (Central `2.1.0`)
-- ~~Provider scope~~ → **OpenAI-first for getting started**; Groq and other OpenAI-compatible servers use that path. Dynamic force is named OpenAI `tool_choice`, named Anthropic `tool_choice`, native Mistral `any`, and `TOOL_CHOICE_UNAVAILABLE` when Spring AI 1.1.8 cannot force — partially done, paused ([plan](docs/plans/dynamic-compose-tool-forcing.md), [multi-provider guide](docs/guides/multi-provider-spring-ai.md))
+- ~~Provider scope~~ → **OpenAI-first for getting started**; Groq and other OpenAI-compatible servers use that path. Dynamic force on Spring AI **1.1.8**: OpenAI named `tool_choice`, Anthropic named `tool_choice`, native Mistral `any`; `TOOL_CHOICE_UNAVAILABLE` when the active provider cannot force — **merged on `2.x`, paused** for Gemini, Bedrock, native Azure OpenAI, and native Ollama until Boot 4 ([multi-provider guide](docs/guides/multi-provider-spring-ai.md))
 - ~~Platform vs foreign protocol-as-core~~ → **Platform**; native SSE remains identity
 - ~~v0.8 / Central `1.1.0`~~ → **Published**
 - ~~Patch `1.1.1` dynamic fail-fast~~ → **Published**
@@ -82,8 +82,9 @@ Near-term **execution order stays locked** (see header). This section only expla
 | **Generate / govern / execute** ✅ | Catalog-aware planner context, action allow-list, application policy — not another agent framework |
 | **Central `2.2.0`** ✅ | Closes the v0.9.1 product line (architecture + generate/govern/execute). GitHub Release / Maven Central after this cut |
 | **MVP demo (sample apps)** ✅ | Sample slot in `apps/`: compose then assemble — [ADR 002](docs/adr/002-in-product-surfaces.md) |
-| **A2UI v1.0 actions / functions** | Next: protocol action/function cutover, identity, event vs function, idempotency, routing observability — library **`3.0.0` candidate** |
-| **Later (residual)** | Parallel two-hop generation, then host compose tools (facts hop); **dynamic compose tool forcing beyond OpenAI is partially done and paused** (Anthropic forced on Spring AI 1.1.8; Gemini, Bedrock, native Azure OpenAI, and native Ollama revisit with Boot 4); also multi-surface, Spring AI hop adapter, Boot 4, provider prompt cache |
+| **A2UI v1.0 actions / functions** ✅ | v1.0 wire, event vs function, idempotency, routing meters — Central **`3.0.0`** ([ADR 004](docs/adr/004-action-and-function-identity.md)) |
+| **Parallel two-hop generation** | Next: overlap planner with hop 1; live `toolProgress` on SSE |
+| **Later (residual)** | Host compose tools (facts hop) after parallel two-hop; progressive rendering (Boot 4); Spring AI 2.1 / Boot 4; **dynamic compose tool forcing beyond OpenAI merged on `2.x`, paused** for Gemini, Bedrock, native Azure OpenAI, and native Ollama; multi-surface, Spring AI hop adapter, provider prompt cache |
 
 ---
 
@@ -298,7 +299,7 @@ Merged `fix/dynamic-primary-tool-failfast` (forced primary `generateA2Ui`, plann
 
 Tracked here so they do not block utilization sequencing, but should not be forgotten:
 
-- ~~Rename Java type `A2UiUserAction`~~ → **A2UI v1.0 actions / functions** (absorbed)
+- ~~Rename Java type `A2UiUserAction`~~ → **A2UI v1.0 actions / functions** ✅ (Central **`3.0.0`**)
 - ~~Remove deprecated buffer / `A2UiClientEvent.userAction()` shims~~ → removed. Call `action()` and `isCreated()`. `getRootComponentId()` still reports id `root`.
 - ~~Tighten planner retry feedback to protocol-shaped `VALIDATION_FAILED`~~ → the one retry sends `code`, `surfaceId`, `path`, and `message`. SSE after the retry stays `A2UI_VALIDATION_FAILED`. Fail-fast and the single retry are unchanged.
 - `sendDataModel` is modeled on `createSurface` but is **not** a full bidirectional data-sync product yet — keep docs honest (default `false`)
@@ -452,7 +453,7 @@ Do **not** mix prompt quality with security in one PR.
 - In-process static-prefix cache — **overkill**; do not cache the planner static prefix.
 - Split schema vs catalog validators into separate classes — observability codes are enough until policy exists so “policy rejected” is distinct.
 - `A2UiGenerationRepairStrategy` as a generic SPI — keep one bounded validation retry; on policy reject **fail-fast** unless a later ADR says otherwise.
-- ~~A2UI v1.0 Candidate (`actionResponse`)~~ → **A2UI v1.0 actions / functions** (next)
+- ~~A2UI v1.0 Candidate (`actionResponse`)~~ → **A2UI v1.0 actions / functions** ✅ (Central **`3.0.0`**)
 - A2A `DataPart` / Agent Card adapter, MCP Apps, extra generation backends — demand-gated bridges only; never identity.
 - Spring AI hop adapter / Boot 4 — already architecture-revisions Later.
 
@@ -464,115 +465,60 @@ Do **not** mix prompt quality with security in one PR.
 
 Slot sample in `apps/` only (no library SemVer / wire bump): one composed record (`mig-311`) → host-assembled approval → ledger. cfg-204 is not a selectable record. The sample FE has no chat composer; chat remains an equal **placement** of the same pipe ([ADR 002](docs/adr/002-in-product-surfaces.md)).
 
-Next: **A2UI v1.0 actions / functions** (below).
+Next: **Parallel two-hop generation** (below).
 
 ---
 
-## Next — A2UI v1.0 actions / functions
+## Done — A2UI v1.0 actions / functions
 
-**Status:** step 1 decided in [ADR 004](docs/adr/004-action-and-function-identity.md). Steps 2–4 not started. Plan: [a2ui v1 actions / functions](docs/plans/a2ui-v1-actions-functions.md).  
-**Library:** **`3.0.0` candidate** — protocol bump, same pattern as `2.0.0` for v0.9.1.  
-**Prerequisite:** library **`2.2.0`** (architecture + generate/govern/execute) and the MVP demo sample in `apps/`.  
-**Protocol:** A2UI **v1.0 Candidate** ([spec](https://a2ui.org/specification/v1.0-a2ui/), [evolution](https://a2ui.org/specification/v1.0-evolution-guide/)). Envelope `version` const is **`1.0`** (schema), not `v1.0`. v0.9.1 stays Current on the `2.x` line until this phase’s acceptance is met.  
+**Status:** ✅ Complete on `main`; library SemVer **`3.0.0`** on Maven Central (hard cutover, same pattern as **`2.0.0`** for v0.9.1).  
+**Docs:** [ADR 004](docs/adr/004-action-and-function-identity.md) · [Migrating to v1.0](docs/guides/migrating-to-v1.0.md)  
+**Protocol:** A2UI **v1.0** ([spec](https://a2ui.org/specification/v1.0-a2ui/)). Envelope `version` const is **`1.0`**, not `v1.0`. The **`2.x`** line remains v0.9.1 for builders who have not moved.  
 **Does not reopen** [ADR 001](docs/adr/001-streaming-surface-generation.md) / [ADR 002](docs/adr/002-in-product-surfaces.md) / [ADR 003](docs/adr/003-catalog-scoped-fail-fast.md): native SSE, fail-fast, in-product surfaces, catalog-scoped validation stay.
 
-Today the execute path is **one** pipe: `POST /a2ui/actions` with `{ action: { name, surfaceId, … } }` → first `A2UiActionHandler.supports()` → host messages. The v0.9 catalog already allows Button `action.event` **or** `action.functionCall`; we only allow-list and route **event names**. v1.0 makes that split real: events to the agent, functions as catalog-defined executables (renderer-local and/or agent RPC).
+Shipped: v1.0 ingress and assemble; event vs function identity (`A2UiAction` / `eventNames()`, `(catalogId, @call)` for `A2UiAgentFunction`); process-local idempotency; routing meters with `kind`, `outcome`, and `name`. Decisions and test strategy live in ADR 004.
 
-**Sequencing (locked)**
+**Honest gaps**
 
-0. **Map** (this section) — baseline and scope  
-1. **Identity + event vs function** — ✅ decided in [ADR 004](docs/adr/004-action-and-function-identity.md) (event name; function `(catalogId, @call)`; rename; idempotency keys; test strategy). No wire code in that ADR.  
-2. **v1.0 action/function migration** — catalogs, envelopes, ingress (plan slices 1–2)  
-3. **Idempotency** — implement the keys ADR 004 fixed (plan slice 3)  
-4. **Routing + execution observability** — tags ADR 004 fixed (plan slice 4)
+- Browser e2e `V1WebRendererE2ETest` stays disabled until an official web renderer ships v1.0. The renderer matrix lists React, Lit, and Angular v1.0 as **Planned**.
+- Upstream `@call` JSON Schema fix ([a2ui-project/a2ui#3486](https://github.com/a2ui-project/a2ui/pull/3486)) is merged upstream but not yet in a released `@a2ui/*` package pin.
 
-**Absorbs** Phase X follow-up: rename `A2UiUserAction`. Decided in ADR 004: the inbound event type is `A2UiAction`; handlers declare `eventNames()`. Agent functions use `A2UiAgentFunction`, not that type.
+---
 
-### 1 — A2UI v1.0 action/function migration
+## Next — Parallel two-hop generation
 
-Hard cutover when Current moves, not a dual-protocol mode. Same discipline as Phase X.
+**Status:** Next. **Before** host compose tools (facts hop).  
+**Does not reopen** [ADR 001](docs/adr/001-streaming-surface-generation.md): still two hops, still forced one-shot `renderA2Ui`, still `returnDirect`.
 
-In scope when we bump:
+Today `generateA2Ui` nests `renderA2Ui` and the two LLM calls are serial. Overlap them to cut two-hop wall-clock before a facts hop stacks a third serial round trip on `POST /a2ui/surface/stream`.
 
-- Wire version const `1.0`; basic catalog + host `A2UiCatalogContribution` against v1.0 schemas (including catalog **`functions`** maps, UAX #31 names, optional per-call `catalogId`)
-- Agent→renderer envelopes: existing surface ops **plus** `callRendererFunction` / `agentFunctionResponse` (and `createSurface` optional embedded components/dataModel)
-- Renderer→agent ingress: `action` **and** `callAgentFunction` / `rendererFunctionResponse` / `error` — not only today’s `{ "action": … }`
-- Assemble + `POST` deny-unknown against the **decided** identity (slice 2), not a second allow-list invention
-- FE demo / showcase on a v1.0-capable renderer when one exists; until then, protocol tests without pretending the smoke client is Current
+**In:**
 
-Out of scope: foreign-client bridges; executing renderer-only functions on the JVM; becoming a function marketplace.
+- Start the planner hop at request time alongside the forced primary hop. `generateA2Ui` has an empty input schema and the planner prompt is built only from the request, so hop 1 output is never needed and the output stays identical.
+- Cancel the planner when hop 1 fails.
+- A bounded executor with no leaked threads.
+- Advisors and `ToolContext` stay thread-safe across the two threads.
+- Send `toolProgress` and lifecycle events live into the SSE flux instead of draining a buffered list at the end.
+- Tests: surface envelopes identical before and after; ordering (progress events precede their surface envelopes); a cancellation and failure path; stream integration tests stay green.
+- A per-hop Micrometer timer (tag `hop`) so the gain shows in metrics.
 
-**Acceptance (draft):** v1.0 envelopes assemble without semantic repair; validation uses v1.0 catalog + protocol rules; event and function paths are distinct; `2.x` remains v0.9.1.
+**Out:**
 
-### 2 — Action identity / namespace
+- A standalone benchmark harness story (dropped: research answered the design question; per-hop timers cover measurement).
+- A third generation mode and relaxing forced `renderA2Ui` on Spring AI 1.1.x.
+- Speculative partial surfaces on the wire → see [Progressive rendering](#progressive-rendering-direction-blocked-on-tool-argument-streaming) (Later).
 
-**Today**
-
-| Layer | Identity |
-|-------|----------|
-| Diagnostics `routeKey` | `surfaceId:name` (`A2UiActionService`) |
-| Allow-list / planner block | **name only** (`A2UiActionHandler.actionNames()`) |
-| Routing | first `supports()` — handlers *may* check `surfaceId` |
-
-`surfaceId:name` is **not** the allow-list key. Two surfaces can share `approve`; the union is a flat name set. Empty allow-list stays fail-open.
-
-**Decided** ([ADR 004](docs/adr/004-action-and-function-identity.md)): event key is the **name** (`A2UiEventName`). Function key is the pair **`(catalogId, @call)`** (`A2UiFunctionId`), not a colon-joined string. `surfaceId:name` and handler route aliases are not the allow-list. Planner, assemble, ingress, and meter tag `name` all use those two keys. `surfaceId` stays on the payload and in logs, not on meters. Inbound `A2UiAction` still has no `catalogId` (ADR 003). v1.0 function calls use `@call`, not the v0.9 `call` key.
-
-### 3 — Agent action vs function
-
-v1.0 component `action` is one of:
-
-| Wire | Meaning | Who runs it |
-|------|---------|-------------|
-| `action.event` | User interaction → **backend agent** | Host `A2UiActionHandler` (today’s write path) |
-| `action.functionCall` | **Executable function** | Renderer if the catalog has it; otherwise renderer may send `callAgentFunction` |
-
-Plus stream RPCs: agent calls renderer (`callRendererFunction` → `rendererFunctionResponse`); renderer calls agent (`callAgentFunction` → `agentFunctionResponse`). Catalog `allowedCallers`: `rendererOnly` (default) / `agentOnly` / `rendererOrAgent`. Correlation id: `functionCallId`.
-
-**Decided** ([ADR 004](docs/adr/004-action-and-function-identity.md)):
-
-- **Event** = product write / agent turn. Ingress stays `POST /a2ui/actions`. Host owns domain logic. We validate, allow-list, policy, route. Java type becomes `A2UiAction`. `actionNames()` becomes `eventNames()`.
-- **Function** = catalog-typed executable. This runtime runs Java only for `allowedCallers: rendererOrAgent` via `A2UiAgentFunction` (exact id, not `supports(name)`). `rendererOnly` (the basic catalog, including `openUrl`) stays on the host FE. `agentOnly` is renderer-executed `callRendererFunction`, and assemble rejects it on a component.
-- Dynamic values / `Checkable` function calls are the same catalog functions, not button events.
-- Unknown event → `UNKNOWN_ACTION`. Unknown function → `UNKNOWN_FUNCTION` on `agentFunctionResponse`. Those codes do not substitute for each other.
-
-Today: schema accepts `functionCall`; allow-list extraction ignores it; POST has no function RPC. Plan slices 1–2 close that gap.
-
-### 4 — Idempotency / duplicate action semantics
-
-**Today:** every POST is a new `handle()`. `requestId` (`X-A2UI-Request-Id`) is echoed, not a dedupe key. Double-click and client retry both re-execute. Hosts that need exactly-once do it in their DB.
-
-v1.0 `functionCallId` correlates **one invocation** across RPC messages; it is not by itself an idempotency key for `action.event`.
-
-**Decided** ([ADR 004](docs/adr/004-action-and-function-identity.md)): domain writes stay host-owned (at-least-once across restart). No outbox. Process-local ingress dedupe only. Events dedupe on `X-A2UI-Idempotency-Key` plus a confirmation bit, so `context.confirmed=true` is a new authorized call; `X-A2UI-Request-Id` is not a dedupe key. Functions dedupe on `functionCallId` for one invocation. Absent event key: every POST executes. Plan slice 3 implements the maps.
-
-### 5 — Routing + execution observability
-
-**Today:** `a2ui.action.executed`, `a2ui.action.rejected` / `a2ui.policy.rejected` (`reason`), `a2ui.runtime.action.event`. `routeKey` is on error maps, not on meters. No duration. Unknown action vs unhandled vs invalid response are codes, not metric tags. Renderer `error` events are barely counted.
-
-**Decided** ([ADR 004](docs/adr/004-action-and-function-identity.md)): tags `kind`, `outcome` (`executed` / `rejected` / `duplicate` / `unhandled`), and `name` (declared event name, function `@call`, or `unknown`). Latency uses that tag set. Logs may carry request id, `surfaceId`, and registered `catalogId`. Logs do not carry action `context`. Do not tag `surfaceId`. Distinct codes `UNKNOWN_ACTION` vs `UNKNOWN_FUNCTION`. Plan slice 4 applies the tags. Follow [ops and diagnostics](docs/guides/ops-and-diagnostics.md) redaction.
+Own plan file if starting.
 
 ---
 
 ## Later — residual runtime maturity
 
-Items below stay **after** builder batteries (or never, if they fail the extension filter). **A2UI v1.0 actions / functions** stays Next until it has shipped. The parallel two-hop pair waits for that phase, unless a later note reorders. Identity being recorded in ADR 004 leaves this pair where it is.
+Items below stay **after** parallel two-hop (or never, if they fail the extension filter). **A2UI v1.0 actions / functions** ✅ shipped on **`3.0.0`**. **Parallel two-hop generation** is Next (above).
 
-**Sequencing (locked, this pair):** parallel two-hop generation → host compose tools (facts hop). The facts hop adds wall-clock to `POST /a2ui/surface/stream`; do not stack it on serial hops.
+**Sequencing (locked):** parallel two-hop generation (Next) → host compose tools (facts hop). The facts hop adds wall-clock to `POST /a2ui/surface/stream`; do not stack it on serial hops. Progressive rendering and the Spring AI 2.1 / Boot 4 upgrade are Later; exact order TBD by Kutay after those merges.
 
-**Independent of that pair (partially done, paused, still 2.x):** [dynamic compose tool forcing beyond OpenAI](#dynamic-compose-tool-forcing-beyond-openai). OpenAI, Anthropic, and native Mistral force on Spring AI 1.1.8. Gemini, Bedrock, native Azure OpenAI, and native Ollama stay fail-closed until the Boot 4 line. Does not jump v1.0 as Next.
-
-### Parallel two-hop generation
-
-**Status:** not started. **Before** host compose tools.  
-**Does not reopen** [ADR 001](docs/adr/001-streaming-surface-generation.md): still two hops, still forced one-shot `renderA2Ui`, still `returnDirect`.
-
-Today `generateA2Ui` nests `renderA2Ui` and the two LLM calls are serial. Overlap them (or otherwise cut two-hop wall-clock) so a later facts hop is not three sequential round trips on the stream endpoint.
-
-**In:** concurrent / overlapped execution inside the existing dynamic two-hop; keep fail-fast and utilization `toolProgress`.  
-**Out:** a third generation mode; speculative surfaces on the wire; relaxing forced `renderA2Ui`.
-
-Own plan file if starting.
+**Independent of that pair (merged on `2.x`, paused):** [dynamic compose tool forcing beyond OpenAI](#dynamic-compose-tool-forcing-beyond-openai). OpenAI, Anthropic, and native Mistral force on Spring AI 1.1.8. Gemini, Bedrock, native Azure OpenAI, and native Ollama wait for the Boot 4 line.
 
 ### Host compose tools (facts hop)
 
@@ -594,9 +540,37 @@ Today the host can prefetch and put truth in `context` — that path already wor
 
 Own plan file if starting. Not the architecture-revisions Spring AI hop adapter (that hides *our* ChatClient/tools/ChatOptions).
 
+### Progressive rendering (direction, blocked on tool-argument streaming)
+
+**Status:** Later. **Blocker:** Spring AI tool-argument deltas need Boot 4 (see below). **Sequencing:** after the Spring AI 2.1 / Boot 4 upgrade. Exact order vs parallel two-hop and facts hop is **TBD by Kutay after merge**.
+
+**Product stance (decided by Kutay):** The runtime is moving away from “nothing shows until the whole surface passes validation”. Teams that pick generative UI accept progressive rendering. The catalog stays the contract: every component is still validated against the catalog before it is emitted, and only the whole-surface-first wait goes away.
+
+**Target practice (generic, no vendor names):** Render a component once it is structurally complete and validated against the catalog, then stream data-model values after the structure. Reachability-from-root gating with placeholders for missing children is a secondary option to evaluate.
+
+**Rejected as a fit:** Compact custom UI DSLs that cut output tokens for throwaway chat UI. Our positioning is product surfaces built from a team’s design-system catalog, and A2UI JSON stays the format.
+
+**Blocker detail:** Spring AI **1.1.8** merges streamed tool-call argument fragments and hands over only the complete call. Spring AI **2.0.2** has no partial tool calls either. Tool-argument deltas arrive with [spring-projects/spring-ai#7233](https://github.com/spring-projects/spring-ai/pull/7233) (approved, milestone `2.1.0-RC2`, closes [#5910](https://github.com/spring-projects/spring-ai/issues/5910)), which needs Boot 4. The runtime also uses `.call()` with `returnDirect` on both hops, so this work must move hop 2 to `.stream()` and read partial tool-call parts.
+
+**Providers that stream arguments natively:** OpenAI (`delta.tool_calls` arguments), Anthropic (`input_json_delta`, with optional eager mode), Bedrock Converse, and Vertex Gemini 3 (`streamFunctionCallArguments`, preview).
+
+**Open design questions (ADR, amends ADR 001 and ADR 003):**
+
+- Per-component validation as components arrive.
+- What fail-fast means once components are on screen (for example `deleteSurface` plus `event: error`).
+- How the one validation retry works mid-stream.
+- The move from `.call()` to `.stream()`.
+- Whether [dynamic generative UI](docs/guides/dynamic-generative-ui.md) “no partial surfaces” line changes.
+
+### Spring AI 2.1 / Boot 4 upgrade
+
+**Status:** Later. [ADR 003](docs/adr/003-catalog-scoped-fail-fast.md) “do not bump the BOM first” still holds until this is scheduled.
+
+**Unlocks:** Gemini and Bedrock dynamic tool forcing (as far as Spring AI supports it); tool-argument deltas for [progressive rendering](#progressive-rendering-direction-blocked-on-tool-argument-streaming). Depends on the Spring AI hop adapter track in [architecture revisions](#later-this-track--do-not-start).
+
 ### Dynamic compose tool forcing beyond OpenAI
 
-**Status:** partially done, paused. OpenAI named `tool_choice`, Anthropic named `tool_choice`, and native Mistral `any` ship on Spring AI **1.1.8** / Boot 3.4.1 (`cursor/spring-ai-1-1-8-tool-forcing-ae96`, stacked on `cursor/dynamic-compose-tool-forcing-ce02`). Plan: [dynamic compose tool forcing](docs/plans/dynamic-compose-tool-forcing.md). **Independent** of the parallel two-hop → facts hop pair and of A2UI v1.0 wire. Library **2.x** (not `3.0.0`). Does not jump v1.0 as Next in this file.
+**Status:** merged on **`2.x`**, paused. OpenAI named `tool_choice`, Anthropic named `tool_choice`, and native Mistral `any` ship on Spring AI **1.1.8** / Boot 3.4.1. **Independent** of the parallel two-hop → facts hop pair and of the **`3.0.0`** v1.0 line.
 
 **Follow-up (paused, revisit with the Boot 4 line):**
 - Gemini via native Google GenAI needs Spring AI 2.x / Boot 4 (`GoogleGenAiChatOptions.ToolChoice` mode `ANY` plus `allowedFunctionNames`). Vertex Gemini chat options have no force on 1.1.8, and Spring AI 2.0.2 removes that chat module.
@@ -608,7 +582,7 @@ Own plan file if starting. Not the architecture-revisions Spring AI hop adapter 
 
 `A2UiForcedToolChoiceFactory` builds a forced `ChatOptions` for the active provider and fail-closes with `TOOL_CHOICE_UNAVAILABLE` when that provider cannot force. Empty options are not returned. OpenAI (and OpenAI-compatible servers, including Groq) send a named `tool_choice`. Anthropic sends a named `tool_choice` (`type` `tool`) on Spring AI 1.1.8. Native Mistral sends `any`. Vertex Gemini, Google GenAI, Bedrock Converse, native Azure OpenAI, and native Ollama stay fail-closed: no Boot 3 Spring AI `ChatOptions` type exposes a force for them. Google GenAI forcing exists only in Spring AI 2.x (Boot 4).
 
-**In (shipped on this branch):**
+**In (shipped on `2.x`):**
 - Classpath-conditional forced tool choice for Anthropic (named `tool_choice`) and native Mistral (`any`)
 - Fail-closed when the active provider cannot force — `TOOL_CHOICE_UNAVAILABLE` on the stream, no silent skip
 - Keep one-shot `returnDirect` (do not reopen TPM tool loops)
@@ -625,7 +599,7 @@ Own plan file if starting. Not the architecture-revisions Spring AI hop adapter 
 ### Deferred from batteries plan
 
 - Multi-surface / session handoff **as runtime** (docs patterns only in Slice A)  
-- ~~A2UI v1.0 Candidate protocol bump~~ → **A2UI v1.0 actions / functions** (next)  
+- ~~A2UI v1.0 Candidate protocol bump~~ → **A2UI v1.0 actions / functions** ✅ (Central **`3.0.0`**)  
 - First-party rich visualization component pack (**never** runtime identity — hosts register types via catalog SPI + their FE)  
 - Catalog authoring UX / marketplace / “create your design system” site (A2UI / FE ecosystem; not us)  
 - ~~`JSON_SCHEMA` response format mode cleanup~~ → not a mode. `ResponseFormatMode` is `NONE` and `JSON_OBJECT` only.
@@ -647,7 +621,7 @@ Where Spring AI `ChatOptions` already supports a provider prompt cache, we can e
 
 - Structured redacted logging for invalid payloads / validation diagnostics
 - Metrics: `a2ui.dynamic.surface.generated`, `a2ui.dynamic.validation.failed`, `a2ui.dynamic.validation.retry.success` / `retry.failed`, `a2ui.generation.context.chars` (Phase 1)
-- Action **routing** meters/tags — **A2UI v1.0 actions / functions** slice 5 (do not expand here)
+- Action **routing** meters/tags — shipped in **A2UI v1.0 actions / functions** ([ADR 004](docs/adr/004-action-and-function-identity.md))
 - ~~Remove or honestly implement `JSON_SCHEMA` response format mode~~ → removed from the contract. No working use on this line. `NONE` and `JSON_OBJECT` only. Dynamic mode resolves to `NONE`.
 
 ---
@@ -664,4 +638,4 @@ Where Spring AI `ChatOptions` already supports a provider prompt cache, we can e
 | X     | v0.9 wire format, validation-failed loop, syntax healer (no semantic repair) |
 | Batteries C/C2 | Template `Builder` registration, `A2UiFixedSurfaceSpec`, `A2UiCatalogContribution` merge + validate, host-catalog negotiation, showcase `ops-approval` assembly |
 | Generation context | Planner digest + prune, generation-context builder, `examplesText()`, `a2ui.generation.context.chars` |
-| v1.0 actions / functions | Identity decided ([ADR 004](docs/adr/004-action-and-function-identity.md)); implementation not started ([plan](docs/plans/a2ui-v1-actions-functions.md)) — event vs function ingress, idempotency maps, route/kind/outcome meters |
+| v1.0 actions / functions | **`3.0.0`**: event vs function ingress, process-local idempotency, kind/outcome/name meters, guides. Browser e2e `V1WebRendererE2ETest` disabled until an official web v1.0 renderer ships. [ADR 004](docs/adr/004-action-and-function-identity.md) · [migrating to v1.0](docs/guides/migrating-to-v1.0.md) |

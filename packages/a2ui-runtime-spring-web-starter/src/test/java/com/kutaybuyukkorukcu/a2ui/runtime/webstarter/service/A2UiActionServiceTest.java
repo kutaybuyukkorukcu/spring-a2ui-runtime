@@ -19,6 +19,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class A2UiActionServiceTest {
@@ -38,29 +39,27 @@ class A2UiActionServiceTest {
 
     @Test
     void shouldHandleUserAction() {
-        A2UiUserAction userAction = new A2UiUserAction("submit", "main", "btn-1", null, Map.of());
-        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
-        List<A2UiMessage> responseMessages = List.of(new A2UiMessage.CreateSurface("main", "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"));
+        A2UiAction userAction = new A2UiAction("submit", "main", "btn-1", null, Map.of());
+        A2UiRendererToAgentMessage event = new A2UiRendererToAgentMessage(userAction, null);
+        List<A2UiMessage> responseMessages = List.of(new A2UiMessage.CreateSurface("main", "https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json"));
 
         when(handler.supports(userAction)).thenReturn(true);
         when(handler.handle(any(), anyString())).thenReturn(responseMessages);
         when(validator.validate(any(), any(A2UiValidationContext.class))).thenReturn(List.of());
 
-        A2UiActionResponse result = service.handleClientEvent(event, "req-1");
+        A2UiIngressResult result = service.handleClientEvent(event, "req-1");
 
-        assertThat(result.accepted()).isTrue();
-        assertThat(result.actionName()).isEqualTo("submit");
-        assertThat(result.surfaceId()).isEqualTo("main");
-        assertThat(result.messageCount()).isEqualTo(1);
+        assertThat(result.status()).isEqualTo(200);
+        assertThat(result.messages()).hasSize(1);
         verify(validator).validate(
                 responseMessages,
-                A2UiValidationContext.forVersionAndCatalog(A2UiProtocol.SUPPORTED_VERSION, A2UiCatalogIds.BASIC_V0_9));
+                A2UiValidationContext.forVersionAndCatalog(A2UiProtocol.SUPPORTED_VERSION, A2UiCatalogIds.BASIC_V1));
     }
 
     @Test
     void shouldValidateAcksAgainstCatalogFromCreateSurface() {
-        A2UiUserAction userAction = new A2UiUserAction("submit", "main", "btn-1", null, Map.of());
-        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        A2UiAction userAction = new A2UiAction("submit", "main", "btn-1", null, Map.of());
+        A2UiRendererToAgentMessage event = new A2UiRendererToAgentMessage(userAction, null);
         String hostCatalog = "https://example.com/catalogs/host/1.0";
         List<A2UiMessage> responseMessages = List.of(new A2UiMessage.CreateSurface("main", hostCatalog));
 
@@ -83,16 +82,17 @@ class A2UiActionServiceTest {
 
     @Test
     void shouldThrowOnMissingUserAction() {
-        A2UiClientEvent event = new A2UiClientEvent(null, new A2UiClientError("ERR", "main", null, "test error", null));
-        A2UiActionResponse result = service.handleClientEvent(event, "req-1");
-        assertThat(result.accepted()).isTrue();
-        assertThat(result.errorCode()).isEqualTo("ERR");
+        A2UiRendererToAgentMessage event = new A2UiRendererToAgentMessage(null, new A2UiClientError("ERR", "main", null, "test error", null));
+        A2UiIngressResult result = service.handleClientEvent(event, "req-1");
+        assertThat(result.status()).isEqualTo(200);
+        assertThat(result.messages()).isEmpty();
+        verify(handler, never()).handle(any(), any());
     }
 
     @Test
     void shouldThrowWhenNoHandlerFound() {
-        A2UiUserAction userAction = new A2UiUserAction("unknown", "main", "btn-1", null, Map.of());
-        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        A2UiAction userAction = new A2UiAction("unknown", "main", "btn-1", null, Map.of());
+        A2UiRendererToAgentMessage event = new A2UiRendererToAgentMessage(userAction, null);
 
         when(handler.supports(userAction)).thenReturn(false);
 
@@ -104,9 +104,9 @@ class A2UiActionServiceTest {
 
     @Test
     void shouldRejectUnknownActionBeforeSupportsWhenAllowListNonEmpty() {
-        A2UiUserAction userAction = new A2UiUserAction("unknown", "main", "btn-1", null, Map.of());
-        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
-        when(handler.actionNames()).thenReturn(Set.of("submit"));
+        A2UiAction userAction = new A2UiAction("unknown", "main", "btn-1", null, Map.of());
+        A2UiRendererToAgentMessage event = new A2UiRendererToAgentMessage(userAction, null);
+        when(handler.eventNames()).thenReturn(Set.of(new A2UiEventName("submit")));
         when(handler.supports(userAction)).thenReturn(true);
         A2UiActionService restricted = new A2UiActionService(
                 List.of(handler),
@@ -124,11 +124,11 @@ class A2UiActionServiceTest {
 
     @Test
     void shouldHandleDeclaredActionWhenAllowListContainsName() {
-        A2UiUserAction userAction = new A2UiUserAction("submit", "main", "btn-1", null, Map.of());
-        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        A2UiAction userAction = new A2UiAction("submit", "main", "btn-1", null, Map.of());
+        A2UiRendererToAgentMessage event = new A2UiRendererToAgentMessage(userAction, null);
         List<A2UiMessage> responseMessages = List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9));
-        when(handler.actionNames()).thenReturn(Set.of("submit"));
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1));
+        when(handler.eventNames()).thenReturn(Set.of(new A2UiEventName("submit")));
         when(handler.supports(userAction)).thenReturn(true);
         when(handler.handle(any(), anyString())).thenReturn(responseMessages);
         when(validator.validate(any(), any(A2UiValidationContext.class))).thenReturn(List.of());
@@ -138,20 +138,20 @@ class A2UiActionServiceTest {
                 validator,
                 A2UiActionAllowList.fromHandlers(List.of(handler)));
 
-        A2UiActionResponse result = restricted.handleClientEvent(event, "req-1");
+        A2UiIngressResult result = restricted.handleClientEvent(event, "req-1");
 
-        assertThat(result.accepted()).isTrue();
-        assertThat(result.actionName()).isEqualTo("submit");
+        assertThat(result.status()).isEqualTo(200);
+        assertThat(result.messages()).hasSize(1);
     }
 
     @Test
     void shouldRejectUndeclaredNameEvenWhenAnotherHandlerWouldSupportIt() {
-        A2UiUserAction userAction = new A2UiUserAction("legacy", "main", "btn-1", null, Map.of());
-        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        A2UiAction userAction = new A2UiAction("legacy", "main", "btn-1", null, Map.of());
+        A2UiRendererToAgentMessage event = new A2UiRendererToAgentMessage(userAction, null);
         A2UiActionHandler named = mock(A2UiActionHandler.class);
         A2UiActionHandler legacy = mock(A2UiActionHandler.class);
-        when(named.actionNames()).thenReturn(Set.of("submit"));
-        when(legacy.actionNames()).thenReturn(Set.of());
+        when(named.eventNames()).thenReturn(Set.of(new A2UiEventName("submit")));
+        when(legacy.eventNames()).thenReturn(Set.of());
         when(legacy.supports(userAction)).thenReturn(true);
         A2UiActionService restricted = new A2UiActionService(
                 List.of(named, legacy),
@@ -169,9 +169,9 @@ class A2UiActionServiceTest {
 
     @Test
     void shouldThrowWhenHandlerReturnsInvalidMessages() {
-        A2UiUserAction userAction = new A2UiUserAction("click", "main", "btn-1", null, Map.of());
-        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
-        List<A2UiMessage> messages = List.of(new A2UiMessage.CreateSurface("main", "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"));
+        A2UiAction userAction = new A2UiAction("click", "main", "btn-1", null, Map.of());
+        A2UiRendererToAgentMessage event = new A2UiRendererToAgentMessage(userAction, null);
+        List<A2UiMessage> messages = List.of(new A2UiMessage.CreateSurface("main", "https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json"));
 
         when(handler.supports(userAction)).thenReturn(true);
         when(handler.handle(any(), anyString())).thenReturn(messages);
@@ -186,10 +186,10 @@ class A2UiActionServiceTest {
         String hostCatalog = "https://example.com/catalogs/host/1.0";
         A2UiMessageValidator realValidator = new A2UiMessageValidator(registryWithStatusBadge(hostCatalog));
         A2UiActionService realService = new A2UiActionService(List.of(handler), metrics, realValidator);
-        A2UiUserAction userAction = new A2UiUserAction("submit", "main", "btn-1", null, Map.of());
-        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        A2UiAction userAction = new A2UiAction("submit", "main", "btn-1", null, Map.of());
+        A2UiRendererToAgentMessage event = new A2UiRendererToAgentMessage(userAction, null);
         List<A2UiMessage> messages = List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1),
                 new A2UiMessage.UpdateComponents("main", List.of(
                         new A2UiMessage.ComponentDefinition(
                                 "root", "StatusBadge", Map.of("text", "Approved")))));
@@ -208,8 +208,8 @@ class A2UiActionServiceTest {
         String hostCatalog = "https://example.com/catalogs/host/1.0";
         A2UiMessageValidator realValidator = new A2UiMessageValidator(registryWithStatusBadge(hostCatalog));
         A2UiActionService realService = new A2UiActionService(List.of(handler), metrics, realValidator);
-        A2UiUserAction userAction = new A2UiUserAction("submit", "main", "btn-1", null, Map.of());
-        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        A2UiAction userAction = new A2UiAction("submit", "main", "btn-1", null, Map.of());
+        A2UiRendererToAgentMessage event = new A2UiRendererToAgentMessage(userAction, null);
         List<A2UiMessage> messages = List.of(
                 new A2UiMessage.CreateSurface("main", hostCatalog),
                 new A2UiMessage.UpdateComponents("main", List.of(
@@ -219,15 +219,15 @@ class A2UiActionServiceTest {
         when(handler.supports(userAction)).thenReturn(true);
         when(handler.handle(any(), anyString())).thenReturn(messages);
 
-        A2UiActionResponse result = realService.handleClientEvent(event, "req-1");
-        assertThat(result.accepted()).isTrue();
-        assertThat(result.messageCount()).isEqualTo(2);
+        A2UiIngressResult result = realService.handleClientEvent(event, "req-1");
+        assertThat(result.status()).isEqualTo(200);
+        assertThat(result.messages()).hasSize(2);
     }
 
     @Test
     void shouldRejectUnconfirmedActionBeforeSupports() {
-        A2UiUserAction userAction = new A2UiUserAction("approve", "main", "btn-1", null, Map.of());
-        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        A2UiAction userAction = new A2UiAction("approve", "main", "btn-1", null, Map.of());
+        A2UiRendererToAgentMessage event = new A2UiRendererToAgentMessage(userAction, null);
         A2UiActionPolicy confirmApprove = name -> "approve".equals(name);
         A2UiActionService restricted = new A2UiActionService(
                 List.of(handler), metrics, validator, A2UiActionAllowList.empty(), confirmApprove);
@@ -238,16 +238,16 @@ class A2UiActionServiceTest {
                 .isEqualTo(A2UiActionErrorCodes.CONFIRMATION_REQUIRED);
         verify(handler, never()).supports(any());
         verify(handler, never()).handle(any(), any());
-        verify(metrics).recordActionRejected("confirmation");
+        verify(metrics).recordRouting(eq("event"), eq("rejected"), eq("unknown"), eq("confirmation"), any());
     }
 
     @Test
     void shouldHandleConfirmedActionWhenPolicyRequiresConfirmation() {
-        A2UiUserAction userAction = new A2UiUserAction(
+        A2UiAction userAction = new A2UiAction(
                 "approve", "main", "btn-1", null, Map.of("confirmed", true));
-        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        A2UiRendererToAgentMessage event = new A2UiRendererToAgentMessage(userAction, null);
         List<A2UiMessage> responseMessages = List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9));
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1));
         when(handler.supports(userAction)).thenReturn(true);
         when(handler.handle(any(), anyString())).thenReturn(responseMessages);
         when(validator.validate(any(), any(A2UiValidationContext.class))).thenReturn(List.of());
@@ -255,36 +255,36 @@ class A2UiActionServiceTest {
         A2UiActionService restricted = new A2UiActionService(
                 List.of(handler), metrics, validator, A2UiActionAllowList.empty(), confirmApprove);
 
-        A2UiActionResponse result = restricted.handleClientEvent(event, "req-1");
+        A2UiIngressResult result = restricted.handleClientEvent(event, "req-1");
 
-        assertThat(result.accepted()).isTrue();
-        assertThat(result.actionName()).isEqualTo("approve");
+        assertThat(result.status()).isEqualTo(200);
+        assertThat(result.messages()).hasSize(1);
         verify(handler).supports(userAction);
         verify(handler).handle(userAction, "req-1");
     }
 
     @Test
     void nonePolicySucceedsWithoutConfirmedFlag() {
-        A2UiUserAction userAction = new A2UiUserAction("submit", "main", "btn-1", null, Map.of());
-        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        A2UiAction userAction = new A2UiAction("submit", "main", "btn-1", null, Map.of());
+        A2UiRendererToAgentMessage event = new A2UiRendererToAgentMessage(userAction, null);
         List<A2UiMessage> responseMessages = List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9));
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1));
         when(handler.supports(userAction)).thenReturn(true);
         when(handler.handle(any(), anyString())).thenReturn(responseMessages);
         when(validator.validate(any(), any(A2UiValidationContext.class))).thenReturn(List.of());
         A2UiActionService restricted = new A2UiActionService(
                 List.of(handler), metrics, validator, A2UiActionAllowList.empty(), A2UiActionPolicy.none());
 
-        A2UiActionResponse result = restricted.handleClientEvent(event, "req-1");
+        A2UiIngressResult result = restricted.handleClientEvent(event, "req-1");
 
-        assertThat(result.accepted()).isTrue();
+        assertThat(result.status()).isEqualTo(200);
         verify(handler).supports(userAction);
     }
 
     @Test
     void shouldRejectHandlerMessagesWithHiddenComponentTypeAfterValidate() {
-        A2UiUserAction userAction = new A2UiUserAction("submit", "main", "btn-1", null, Map.of());
-        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        A2UiAction userAction = new A2UiAction("submit", "main", "btn-1", null, Map.of());
+        A2UiRendererToAgentMessage event = new A2UiRendererToAgentMessage(userAction, null);
         List<A2UiMessage> messages = List.of(
                 new A2UiMessage.UpdateComponents("main", List.of(
                         new A2UiMessage.ComponentDefinition("root", "Button", Map.of("child", "label")))));
@@ -304,17 +304,17 @@ class A2UiActionServiceTest {
                 .isInstanceOf(A2UiActionException.class)
                 .extracting(ex -> ((A2UiActionException) ex).getErrorCode())
                 .isEqualTo(A2UiActionErrorCodes.COMPONENT_NOT_ALLOWED);
-        verify(metrics).recordActionRejected("component");
+        verify(metrics).recordRouting(eq("event"), eq("rejected"), eq("unknown"), eq("component"), any());
         verify(validator).validate(any(), any(A2UiValidationContext.class));
     }
 
     @Test
     void shouldHandleConfirmedActionWhenConfirmedFlagIsStringTrue() {
-        A2UiUserAction userAction = new A2UiUserAction(
+        A2UiAction userAction = new A2UiAction(
                 "approve", "main", "btn-1", null, Map.of("confirmed", "true"));
-        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        A2UiRendererToAgentMessage event = new A2UiRendererToAgentMessage(userAction, null);
         List<A2UiMessage> responseMessages = List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9));
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1));
         when(handler.supports(userAction)).thenReturn(true);
         when(handler.handle(any(), anyString())).thenReturn(responseMessages);
         when(validator.validate(any(), any(A2UiValidationContext.class))).thenReturn(List.of());
@@ -322,9 +322,9 @@ class A2UiActionServiceTest {
         A2UiActionService restricted = new A2UiActionService(
                 List.of(handler), metrics, validator, A2UiActionAllowList.empty(), confirmApprove);
 
-        A2UiActionResponse result = restricted.handleClientEvent(event, "req-1");
+        A2UiIngressResult result = restricted.handleClientEvent(event, "req-1");
 
-        assertThat(result.accepted()).isTrue();
+        assertThat(result.status()).isEqualTo(200);
         verify(handler).handle(userAction, "req-1");
     }
 

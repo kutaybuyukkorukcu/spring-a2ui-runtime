@@ -32,7 +32,7 @@ class A2UiTemplateToolsTest {
                 new A2UiSurfaceAssemblyService(registry, new A2UiMessageValidator());
         templateTools = new A2UiTemplateTools(registry, assemblyService, A2UiRuntimeMetrics.noop());
         TemplateRenderSession session = new TemplateRenderSession(
-                "main", A2UiCatalogIds.BASIC_V0_9, A2UiRuntimeEventCollector.DISABLED);
+                "main", A2UiCatalogIds.BASIC_V1, A2UiRuntimeEventCollector.DISABLED);
         toolContext = new ToolContext(Map.of(A2UiTemplateTools.SESSION_CONTEXT_KEY, session));
     }
 

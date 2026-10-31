@@ -29,11 +29,11 @@ class A2UiMessageTest {
 
     @Test
     void shouldSerializeCreateSurface() throws Exception {
-        A2UiMessage.CreateSurface cs = new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9);
+        A2UiMessage.CreateSurface cs = new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1);
         String json = mapper.writeValueAsString((A2UiMessage) cs);
         assertThat(json).contains("\"createSurface\"");
-        assertThat(json).contains("\"version\":\"v0.9.1\"");
-        assertThat(json).contains(A2UiCatalogIds.BASIC_V0_9);
+        assertThat(json).contains("\"version\":\"1.0\"");
+        assertThat(json).contains(A2UiCatalogIds.BASIC_V1);
     }
 
     @Test
@@ -62,7 +62,7 @@ class A2UiMessageTest {
         ComponentDefinition text = new ComponentDefinition("root", "Text", Map.of("text", Map.of("path", "/title")));
         A2UiMessage.UpdateComponents uc = new A2UiMessage.UpdateComponents("main", List.of(text));
         A2UiMessage.UpdateDataModel udm = new A2UiMessage.UpdateDataModel("main", null, Map.of("title", "Hello"));
-        A2UiMessage.CreateSurface cs = new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9);
+        A2UiMessage.CreateSurface cs = new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1);
 
         String updateJson = mapper.writeValueAsString((A2UiMessage) uc);
         String dataJson = mapper.writeValueAsString((A2UiMessage) udm);
@@ -82,19 +82,19 @@ class A2UiMessageTest {
 
     @Test
     void shouldDeserializeCreateSurface() throws Exception {
-        String json = "{\"version\":\"v0.9.1\",\"createSurface\":{\"surfaceId\":\"s1\",\"catalogId\":\""
-                + A2UiCatalogIds.BASIC_V0_9 + "\"}}";
+        String json = "{\"version\":\"1.0\",\"createSurface\":{\"surfaceId\":\"s1\",\"catalogId\":\""
+                + A2UiCatalogIds.BASIC_V1 + "\"}}";
         A2UiMessage msg = mapper.readValue(json, A2UiMessage.class);
         assertThat(msg).isInstanceOf(A2UiMessage.CreateSurface.class);
         A2UiMessage.CreateSurface cs = (A2UiMessage.CreateSurface) msg;
         assertThat(cs.surfaceId()).isEqualTo("s1");
-        assertThat(cs.catalogId()).isEqualTo(A2UiCatalogIds.BASIC_V0_9);
+        assertThat(cs.catalogId()).isEqualTo(A2UiCatalogIds.BASIC_V1);
     }
 
     @Test
     void shouldDeserializeUpdateComponents() throws Exception {
         String json = """
-                {"version":"v0.9.1","updateComponents":{"surfaceId":"s1","components":[
+                {"version":"1.0","updateComponents":{"surfaceId":"s1","components":[
                   {"id":"root","component":"Text","text":"Hi"}
                 ]}}
                 """;
@@ -109,7 +109,7 @@ class A2UiMessageTest {
 
     @Test
     void shouldDeserializeUpdateDataModel() throws Exception {
-        String json = "{\"version\":\"v0.9.1\",\"updateDataModel\":{\"surfaceId\":\"s1\",\"path\":\"/\",\"value\":{\"name\":\"Bob\"}}}";
+        String json = "{\"version\":\"1.0\",\"updateDataModel\":{\"surfaceId\":\"s1\",\"path\":\"/\",\"value\":{\"name\":\"Bob\"}}}";
         A2UiMessage msg = mapper.readValue(json, A2UiMessage.class);
         assertThat(msg).isInstanceOf(A2UiMessage.UpdateDataModel.class);
         A2UiMessage.UpdateDataModel udm = (A2UiMessage.UpdateDataModel) msg;
@@ -120,7 +120,7 @@ class A2UiMessageTest {
 
     @Test
     void shouldDeserializeDeleteSurface() throws Exception {
-        String json = "{\"version\":\"v0.9.1\",\"deleteSurface\":{\"surfaceId\":\"s1\"}}";
+        String json = "{\"version\":\"1.0\",\"deleteSurface\":{\"surfaceId\":\"s1\"}}";
         A2UiMessage msg = mapper.readValue(json, A2UiMessage.class);
         assertThat(msg).isInstanceOf(A2UiMessage.DeleteSurface.class);
     }
@@ -150,9 +150,9 @@ class A2UiMessageTest {
 
     @Test
     void serializedCreateSurfaceShouldBeValidJsonObject() throws Exception {
-        A2UiMessage.CreateSurface cs = new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9);
+        A2UiMessage.CreateSurface cs = new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1);
         JsonNode node = mapper.readTree(mapper.writeValueAsString((A2UiMessage) cs));
-        assertThat(node.get("version").asText()).isEqualTo("v0.9.1");
+        assertThat(node.get("version").asText()).isEqualTo("1.0");
         assertThat(node.has("createSurface")).isTrue();
     }
 }

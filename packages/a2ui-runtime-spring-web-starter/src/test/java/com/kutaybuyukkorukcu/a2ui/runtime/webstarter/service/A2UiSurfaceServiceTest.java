@@ -33,7 +33,7 @@ class A2UiSurfaceServiceTest {
     void shouldThrowOnNullContent() {
         A2UiSurfaceRequest request = new A2UiSurfaceRequest(null, null, null);
 
-        StepVerifier.create(service.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
+        StepVerifier.create(service.stream(request, "req-1", A2UiCatalogIds.BASIC_V1))
                 .expectErrorSatisfies(error -> {
                     assertThat(error).isInstanceOf(SurfaceExecutionException.class);
                     assertThat(((SurfaceExecutionException) error).getErrorCode())
@@ -46,7 +46,7 @@ class A2UiSurfaceServiceTest {
     void shouldThrowOnBlankContent() {
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("  ", null, null);
 
-        StepVerifier.create(service.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
+        StepVerifier.create(service.stream(request, "req-1", A2UiCatalogIds.BASIC_V1))
                 .expectErrorSatisfies(error -> {
                     assertThat(error).isInstanceOf(SurfaceExecutionException.class);
                     assertThat(((SurfaceExecutionException) error).getErrorCode())
@@ -58,11 +58,11 @@ class A2UiSurfaceServiceTest {
     @Test
     void shouldStreamMessages() {
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show a button", null, null);
-        A2UiMessage msg = new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9);
+        A2UiMessage msg = new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1);
         when(runtime.stream(any(), anyString(), anyString()))
                 .thenReturn(Flux.just(new A2UiRuntimeEvent.Surface(msg)));
 
-        StepVerifier.create(service.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
+        StepVerifier.create(service.stream(request, "req-1", A2UiCatalogIds.BASIC_V1))
                 .assertNext(event -> {
                     assertThat(event).isInstanceOf(A2UiRuntimeEvent.Surface.class);
                     assertThat(((A2UiRuntimeEvent.Surface) event).message()).isEqualTo(msg);

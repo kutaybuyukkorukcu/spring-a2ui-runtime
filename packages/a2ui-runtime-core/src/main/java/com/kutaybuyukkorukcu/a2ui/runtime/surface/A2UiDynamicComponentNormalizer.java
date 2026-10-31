@@ -366,8 +366,8 @@ public class A2UiDynamicComponentNormalizer {
             return coercePathShorthand(value);
         }
         // Already a path object — leave alone
-        if (value instanceof Map<?, ?> map && map.containsKey("path") && map.size() == 1) {
-            return copyMap(map);
+        if (value instanceof Map<?, ?> map && (map.containsKey("@path") || map.containsKey("path")) && map.size() == 1) {
+            return bindingMap(map);
         }
         // Strip legacy BoundValue wrappers if planner still emits them
         if (value instanceof Map<?, ?> map) {
@@ -391,13 +391,20 @@ public class A2UiDynamicComponentNormalizer {
      * Coerce path shorthand only: leading {@code /} or {@code {data.X}} → {@code {path}}.
      * Plain strings stay as native DynamicString literals.
      */
+    private static Map<String, Object> bindingMap(Map<?, ?> map) {
+        if (map.containsKey("@path")) {
+            return Map.of("@path", map.get("@path"));
+        }
+        return Map.of("@path", map.get("path"));
+    }
+
     private Object coercePathShorthand(Object value) {
         if (value == null) {
             return null;
         }
         if (value instanceof Map<?, ?> map) {
-            if (map.containsKey("path")) {
-                return copyMap(map);
+            if (map.containsKey("@path") || map.containsKey("path")) {
+                return bindingMap(map);
             }
             if (map.containsKey("literalString")) {
                 return map.get("literalString");
@@ -414,11 +421,11 @@ public class A2UiDynamicComponentNormalizer {
         }
         if (value instanceof String stringValue) {
             if (stringValue.startsWith("/")) {
-                return Map.of("path", stringValue);
+                return Map.of("@path", stringValue);
             }
             var dataBinding = DATA_BINDING_PATTERN.matcher(stringValue);
             if (dataBinding.matches()) {
-                return Map.of("path", dataPathFromBinding(dataBinding.group(1)));
+                return Map.of("@path", dataPathFromBinding(dataBinding.group(1)));
             }
             return stringValue;
         }

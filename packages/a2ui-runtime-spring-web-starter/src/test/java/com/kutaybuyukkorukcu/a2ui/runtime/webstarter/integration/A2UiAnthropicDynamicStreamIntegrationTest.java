@@ -129,7 +129,7 @@ class A2UiAnthropicDynamicStreamIntegrationTest {
                     "toolu_render",
                     "renderA2Ui",
                     """
-                    {"surfaceId":"planner-surface","root":"root","components":[{"id":"root","component":"Column","children":["title"],"justify":"start"},{"id":"title","component":"Text","text":"KPI","variant":"h2"}],"data":{"metric":"42"}}
+                    {"surfaceId":"planner-surface","root":"root","components":[{"id":"root","component":"Column","children":["title"],"justify":"start"},{"id":"title","component":"Text","text":"KPI","variant":"body"}],"data":{"metric":"42"}}
                     """);
         }
         return anthropicToolUse("toolu_generate", "generateA2Ui", "{}");

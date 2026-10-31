@@ -26,14 +26,19 @@ Implement `A2UiActionHandler` and register it as a Spring bean:
 public A2UiActionHandler confirmHandler(MyProductService productService) {
     return new A2UiActionHandler() {
         @Override
-        public boolean supports(A2UiUserAction userAction) {
-            return "main".equals(userAction.surfaceId())
-                    && "confirm".equals(userAction.name());
+        public Set<A2UiEventName> eventNames() {
+            return Set.of(new A2UiEventName("confirm"));
         }
 
         @Override
-        public List<A2UiMessage> handle(A2UiUserAction userAction, String requestId) {
-            productService.saveFromAction(userAction);  // your DB / service
+        public boolean supports(A2UiAction action) {
+            return "main".equals(action.surfaceId())
+                    && "confirm".equals(action.name());
+        }
+
+        @Override
+        public List<A2UiMessage> handle(A2UiAction action, String requestId) {
+            productService.saveFromAction(action);  // your DB / service
             return List.of(
                     new A2UiMessage.UpdateDataModel(
                             "main",
@@ -44,25 +49,24 @@ public A2UiActionHandler confirmHandler(MyProductService productService) {
 }
 ```
 
-Multiple handlers are supported; the first `supports()` match wins.
+Multiple handlers are supported; the first `supports()` match wins. `A2UiUserAction` and `actionNames()` are gone on this line. See [Migrating to v1.0](migrating-to-v1.0.md).
 
-### Declared action names
+### Declared event names
 
-Override `actionNames()` so the runtime can build an allow-list from every handler:
+Override `eventNames()` so the runtime can build an allow-list from every handler. The default is an empty set. **Empty allow-list is fail-open** for events: routing stays `supports()`-only, and assemble does not deny event names. **If any handler declares names**, the union is deny-unknown:
 
-```java
-@Override
-public Set<String> actionNames() {
-    return Set.of("confirm");
-}
-```
-
-The default is an empty set. **Empty allow-list is fail-open:** routing stays `supports()`-only, and assemble does not deny names. **If any handler declares names**, the union is deny-unknown:
-
-- **Assemble** (dynamic `renderA2Ui` and templates): `Button.action.event.name` not in the list fails fast with `UNKNOWN_ACTION`.
+- **Assemble** (dynamic `renderA2Ui` and templates): `action.event.name` not in the list fails fast with `UNKNOWN_ACTION`.
 - **`POST /a2ui/actions`:** the same check runs **before** `supports()` / `handle`.
 
-Declare every name your buttons emit, including handlers that currently only implement `supports()`. If **any** handler declares names, undeclared names are denied even when another handler would `supports()` them. Hosts that have not opted in keep today's behavior.
+A `functionCall` on a button is not an event name. It is checked against the catalog, not this list. Declare every event name your buttons emit. If **any** handler declares names, undeclared event names are denied even when another handler would `supports()` them.
+
+### Agent functions
+
+Events and functions are different types. A host function the runtime executes is an `A2UiAgentFunction` bean whose catalog entry says `allowedCallers: rendererOrAgent`. Identity is `(catalogId, @call)`. Basic-catalog functions such as `openUrl` stay on the frontend. A bean that is not `rendererOrAgent`, is missing from the catalog, or duplicates an id fails startup.
+
+The frontend sends `callAgentFunction`. The HTTP 200 body is one `agentFunctionResponse` with the same `functionCallId`. Unknown functions use `UNKNOWN_FUNCTION`. `rendererOnly` targets use `INVALID_FUNCTION_CALL`. Neither code is `UNKNOWN_ACTION`.
+
+Return `A2UiMessage.CallRendererFunction` when the frontend should run an `agentOnly` or `rendererOrAgent` function. A later POST `rendererFunctionResponse` with that `functionCallId` calls `A2UiRendererFunctionResponseHandler`. The runtime does not block the first response waiting for the second POST.
 
 ### Confirmation
 
@@ -74,10 +78,11 @@ Hidden component types (`A2UiSurfacePolicy.hiddenComponentTypes()`) are denied a
 
 ## Request shape
 
-Clients POST:
+Clients POST one renderer→agent envelope. Version is `1.0`, and exactly one of `action`, `callAgentFunction`, `rendererFunctionResponse`, or `error` is present:
 
 ```json
 {
+  "version": "1.0",
   "action": {
     "name": "confirm",
     "surfaceId": "main",
@@ -88,12 +93,13 @@ Clients POST:
 }
 ```
 
-See [REST API](../rest-api.md) for renderer error payloads and response fields.
+`X-A2UI-Request-Id` is a correlation echo. `X-A2UI-Idempotency-Key` opts an **event** into process-local replay. The same key plus the same confirmation state returns the stored HTTP result and does not call `handle` again. A confirmed retry (`context.confirmed` true when the policy requires confirmation) is a new call. Omit the header and every event POST runs. Function calls dedupe on `functionCallId` instead. Both maps live in the process (cap 1024, 10 minutes). Two instances do not share them.
+
+See [REST API](../rest-api.md) for error codes and the success array.
 
 ## Response shape
 
-Handlers return `List<A2UiMessage>`. The runtime validates each envelope before
-the client sees them.
+Handlers return `List<A2UiMessage>`. HTTP 200 success is a JSON array of v1.0 agent→renderer envelopes. `A2UiActionResponse` is gone. The runtime validates each envelope before the client sees them.
 
 Common patterns:
 
@@ -135,7 +141,7 @@ public class ChangeApprovalService {
         this.repository = repository;
     }
 
-    public void applyDecision(A2UiUserAction action) {
+    public void applyDecision(A2UiAction action) {
         // Read structured fields from action.context() or your data model
         repository.save(new ChangeDecision(action.name(), action.timestamp(), action.context()));
     }

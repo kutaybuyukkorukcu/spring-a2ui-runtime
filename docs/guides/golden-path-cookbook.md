@@ -23,7 +23,7 @@ Maven Central, with A2UI-native SSE and fail-fast catalog validation.
 <dependency>
   <groupId>com.kutaybuyukkorukcu.a2ui.runtime</groupId>
   <artifactId>a2ui-runtime-spring-web-starter</artifactId>
-  <version>2.2.0</version>
+  <version>3.0.0-SNAPSHOT</version>
 </dependency>
 ```
 

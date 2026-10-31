@@ -13,9 +13,7 @@ import org.springframework.core.io.ClassPathResource;
 
 public class A2UiCatalogService {
 
-    private static final Set<String> PUBLISHED_CATALOG_IDS = Set.of(
-            A2UiCatalogIds.BASIC_V0_9,
-            A2UiCatalogIds.BASIC_V0_9_1);
+    private static final Set<String> PUBLISHED_CATALOG_IDS = Set.of(A2UiCatalogIds.BASIC_V1);
 
     private final ObjectMapper objectMapper;
 
@@ -23,7 +21,7 @@ public class A2UiCatalogService {
         this.objectMapper = objectMapper;
     }
 
-    /** Loads the vendored basic catalog (v0.9 / v0.9.1). */
+    /** Loads the vendored basic catalog (v1.0). */
     public Map<String, Object> getBasicCatalog() {
         ClassPathResource resource = new ClassPathResource(A2UiCatalogRegistry.BASIC_CATALOG_RESOURCE);
         try (InputStream inputStream = resource.getInputStream()) {

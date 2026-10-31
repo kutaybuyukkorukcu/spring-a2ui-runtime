@@ -35,7 +35,7 @@ class A2UiStreamEndpointIntegrationTest {
 
     @Test
     void shouldStreamProgressiveSseEventsBeforeDone() {
-        A2UiMessage createSurface = new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9);
+        A2UiMessage createSurface = new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1);
         A2UiMessage updateComponents = new A2UiMessage.UpdateComponents("main", List.of());
 
         when(surfaceRuntime.stream(any(), anyString(), anyString()))
