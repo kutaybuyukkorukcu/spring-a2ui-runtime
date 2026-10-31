@@ -60,7 +60,7 @@ Ship a Maven Central Spring Boot runtime that turns host intent plus context int
 - ~~Tool API shape~~ → **Builder + runtime `@Tool` adapters**
 - ~~Is dynamic A2UI in scope?~~ → **Yes — Phase 2 (shipped)**
 - ~~Generation product: basic catalog only~~ → **basic + host `A2UiCatalogContribution` SPI** (Central `2.1.0`)
-- ~~Provider scope~~ → **OpenAI-first for getting started**; Groq and other OpenAI-compatible servers use that path. Dynamic force is named OpenAI `tool_choice`, native Mistral `any`, and `TOOL_CHOICE_UNAVAILABLE` when Spring AI 1.1.0-M2 cannot force — in flight ([plan](docs/plans/dynamic-compose-tool-forcing.md), [multi-provider guide](docs/guides/multi-provider-spring-ai.md))
+- ~~Provider scope~~ → **OpenAI-first for getting started**; Groq and other OpenAI-compatible servers use that path. Dynamic force is named OpenAI `tool_choice`, named Anthropic `tool_choice`, native Mistral `any`, and `TOOL_CHOICE_UNAVAILABLE` when Spring AI 1.1.8 cannot force — in flight ([plan](docs/plans/dynamic-compose-tool-forcing.md), [multi-provider guide](docs/guides/multi-provider-spring-ai.md))
 - ~~Platform vs foreign protocol-as-core~~ → **Platform**; native SSE remains identity
 - ~~v0.8 / Central `1.1.0`~~ → **Published**
 - ~~Patch `1.1.1` dynamic fail-fast~~ → **Published**
@@ -383,7 +383,7 @@ Detail (review synthesis, suggested order, extra deepening): [`docs/architectura
 
 - Spring AI adapter (ChatClient / tools / forced tool-choice / ChatOptions behind one hop)
 - Split catalog wiring from the AI starter so host `assemble` does not pull Spring AI
-- Spring AI **2.0.0 GA** / Boot 4 — blocked on the adapter; do not bump `1.1.0-M2` first
+- Spring AI **2.0.x** / Boot 4 — blocked on the adapter. The runtime BOM is Spring AI **1.1.8** on Boot 3.4.1. Do not jump to 2.x for Google GenAI tool choice
 
 ---
 
@@ -621,11 +621,11 @@ Own plan file if starting. Not the architecture-revisions Spring AI hop adapter 
 
 ### Dynamic compose tool forcing beyond OpenAI
 
-**Status:** in flight on `cursor/dynamic-compose-tool-forcing-ce02`. Plan: [dynamic compose tool forcing](docs/plans/dynamic-compose-tool-forcing.md). **Independent** of the parallel two-hop → facts hop pair and of A2UI v1.0 wire. Library **2.x** (not `3.0.0`). Does not jump v1.0 as Next in this file.
+**Status:** in flight. Fail-closed forcing is on `cursor/dynamic-compose-tool-forcing-ce02`. The Spring AI **1.1.8** bump and Anthropic named `tool_choice` stack on that branch. Plan: [dynamic compose tool forcing](docs/plans/dynamic-compose-tool-forcing.md). **Independent** of the parallel two-hop → facts hop pair and of A2UI v1.0 wire. Library **2.x** (not `3.0.0`). Does not jump v1.0 as Next in this file.
 
-**Does not reopen** [ADR 001](docs/adr/001-streaming-surface-generation.md): still two hops, still forced one-shot `generateA2Ui` / `renderA2Ui`, still `returnDirect`. Golden path stays OpenAI.
+**Does not reopen** [ADR 001](docs/adr/001-streaming-surface-generation.md): still two hops, still forced one-shot `generateA2Ui` / `renderA2Ui`, still `returnDirect`. Golden path stays OpenAI. Spring AI 2.x / Boot 4 stays Later ([ADR 003](docs/adr/003-catalog-scoped-fail-fast.md)).
 
-Today `A2UiForcedToolChoiceFactory` builds OpenAI `tool_choice` only. If OpenAI `ChatOptions` types are on the classpath, construction failure is fail-closed (`TOOL_CHOICE_UNAVAILABLE`). If those types are absent, it returns empty `ChatOptions` and Anthropic/Vertex continue **without** forcing — dynamic compose can skip the tool. Groq via an OpenAI-compatible base URL already uses the OpenAI path. Batteries Slice E shipped **recipes** (template-first); that is not forced dynamic compose.
+`A2UiForcedToolChoiceFactory` builds a forced `ChatOptions` for the active provider and fail-closes with `TOOL_CHOICE_UNAVAILABLE` when that provider cannot force. Empty options are not returned. OpenAI (and OpenAI-compatible servers, including Groq) send a named `tool_choice`. Anthropic sends a named `tool_choice` (`type` `tool`) on Spring AI 1.1.8. Native Mistral sends `any`. Vertex Gemini, Google GenAI, Bedrock Converse, native Azure OpenAI, and native Ollama stay fail-closed: no Boot 3 Spring AI `ChatOptions` type exposes a force for them. Google GenAI forcing exists only in Spring AI 2.x (Boot 4).
 
 **In:**
 - Classpath-conditional forced tool choice for Anthropic and Vertex AI Gemini (same hop names)
