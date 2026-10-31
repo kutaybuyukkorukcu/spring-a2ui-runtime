@@ -2,12 +2,14 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
+import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.A2UiProviderResolver;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.A2UiSurfaceRequest;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.DynamicA2UiPromptProvider;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.properties.A2UiWebProperties;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiDynamicAssemblyService;
 import com.kutaybuyukkorukcu.a2ui.runtime.surface.A2UiDynamicComponentNormalizer;
@@ -21,6 +23,7 @@ import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.core.env.StandardEnvironment;
+import org.springframework.mock.env.MockEnvironment;
 import reactor.test.StepVerifier;
 
 import java.util.List;
@@ -36,6 +39,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DynamicGenerationAdapterTest {
+
+    private static A2UiProviderResolver openAiResolver() {
+        return new A2UiProviderResolver(new MockEnvironment()
+                .withProperty("spring.ai.openai.chat.options.model", "gpt-4.1"));
+    }
 
     private ChatClient.Builder builder;
     private ChatClient chatClient;
@@ -54,18 +62,22 @@ class DynamicGenerationAdapterTest {
         A2UiDynamicAssemblyService assemblyService = new A2UiDynamicAssemblyService(
                 new A2UiDynamicComponentNormalizer(),
                 new A2UiMessageValidator());
+        A2UiProviderResolver resolver = openAiResolver();
+        DynamicA2UiPromptProvider promptProvider = new DynamicA2UiPromptProvider();
         dynamicTools = new A2UiDynamicTools(
                 builder,
                 List.of(),
-                new DynamicA2UiPromptProvider(),
+                promptProvider,
                 assemblyService,
-                A2UiCatalogRegistry.shared());
+                A2UiRuntimeMetrics.noop(),
+                A2UiCatalogRegistry.shared(),
+                resolver);
         runtime = new SpringAiSurfaceRuntime(
                 builder,
                 List.of(),
                 new StandardEnvironment(),
                 new A2UiWebProperties(),
-                new DynamicGenerationAdapter(new DynamicA2UiPromptProvider(), dynamicTools));
+                new DynamicGenerationAdapter(promptProvider, dynamicTools, resolver));
 
         when(builder.clone()).thenReturn(builder);
         when(builder.defaultAdvisors(any(org.springframework.ai.chat.client.advisor.api.Advisor.class)))

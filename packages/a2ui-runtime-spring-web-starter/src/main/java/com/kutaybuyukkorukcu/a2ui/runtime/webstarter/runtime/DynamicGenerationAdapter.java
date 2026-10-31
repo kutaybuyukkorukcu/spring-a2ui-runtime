@@ -1,6 +1,8 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
+import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.A2UiProviderResolver;
+import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.A2UiProviderType;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiPromptContext;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.DynamicA2UiPromptProvider;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool.A2UiDynamicTools;
@@ -24,12 +26,21 @@ public final class DynamicGenerationAdapter implements GenerationModeAdapter {
 
     private final DynamicA2UiPromptProvider promptProvider;
     private final A2UiDynamicTools dynamicTools;
+    private final A2UiProviderResolver providerResolver;
 
     public DynamicGenerationAdapter(
             DynamicA2UiPromptProvider promptProvider,
             A2UiDynamicTools dynamicTools) {
+        this(promptProvider, dynamicTools, null);
+    }
+
+    public DynamicGenerationAdapter(
+            DynamicA2UiPromptProvider promptProvider,
+            A2UiDynamicTools dynamicTools,
+            A2UiProviderResolver providerResolver) {
         this.promptProvider = promptProvider;
         this.dynamicTools = dynamicTools;
+        this.providerResolver = providerResolver;
     }
 
     @Override
@@ -49,7 +60,7 @@ public final class DynamicGenerationAdapter implements GenerationModeAdapter {
                 .user(promptProvider.createPrimaryUserPrompt(promptContext))
                 .toolCallbacks(generateToolCallback)
                 .toolContext(Map.of(A2UiDynamicTools.SESSION_CONTEXT_KEY, session))
-                .options(A2UiForcedToolChoiceFactory.forcedGenerateA2UiToolChoice())
+                .options(A2UiForcedToolChoiceFactory.forcedGenerateA2UiToolChoice(activeProvider()))
                 .call()
                 .content();
         collector.assistantText(assistantContent);
@@ -59,5 +70,12 @@ public final class DynamicGenerationAdapter implements GenerationModeAdapter {
     @Override
     public String missingSurfaceMessage() {
         return "Dynamic orchestration did not produce a rendered surface";
+    }
+
+    private A2UiProviderType activeProvider() {
+        if (providerResolver == null) {
+            return A2UiProviderType.UNKNOWN;
+        }
+        return providerResolver.resolve(null);
     }
 }

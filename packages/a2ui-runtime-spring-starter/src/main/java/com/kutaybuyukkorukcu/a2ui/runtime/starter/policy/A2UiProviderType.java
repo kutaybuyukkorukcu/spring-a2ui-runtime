@@ -9,6 +9,7 @@ public enum A2UiProviderType {
     AZURE_OPENAI,
     ANTHROPIC,
     VERTEX_AI_GEMINI,
+    GOOGLE_GENAI,
     OLLAMA,
     MISTRAL,
     BEDROCK_CONVERSE,
@@ -23,6 +24,7 @@ public enum A2UiProviderType {
         if (className.startsWith("org.springframework.ai.azure.openai.")) return AZURE_OPENAI;
         if (className.startsWith("org.springframework.ai.anthropic.")) return ANTHROPIC;
         if (className.startsWith("org.springframework.ai.vertexai.gemini.")) return VERTEX_AI_GEMINI;
+        if (className.startsWith("org.springframework.ai.google.genai.")) return GOOGLE_GENAI;
         if (className.startsWith("org.springframework.ai.ollama.")) return OLLAMA;
         if (className.startsWith("org.springframework.ai.mistralai.")) return MISTRAL;
         if (className.startsWith("org.springframework.ai.bedrock.converse.")) return BEDROCK_CONVERSE;

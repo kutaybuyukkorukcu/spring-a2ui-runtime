@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
+import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.A2UiProviderResolver;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.ToolCallback;
+import org.springframework.mock.env.MockEnvironment;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -59,7 +61,9 @@ class A2UiDynamicToolsTest {
                 new DynamicA2UiPromptProvider(),
                 assemblyService,
                 runtimeMetrics,
-                A2UiCatalogRegistry.shared());
+                A2UiCatalogRegistry.shared(),
+                new A2UiProviderResolver(new MockEnvironment()
+                        .withProperty("spring.ai.openai.chat.options.model", "gpt-4.1")));
 
         when(builder.clone()).thenReturn(builder);
         when(builder.defaultAdvisors(any(org.springframework.ai.chat.client.advisor.api.Advisor.class)))
