@@ -1,6 +1,6 @@
 # Dynamic compose tool forcing beyond OpenAI
 
-**Status:** in flight (not on `main`)
+**Status:** partially done, paused (not on `main`)
 **Branch:** `cursor/spring-ai-1-1-8-tool-forcing-ae96` (stacked on `cursor/dynamic-compose-tool-forcing-ce02`)
 **Backlog:** [Dynamic compose tool forcing beyond OpenAI](../../BACKLOG.md#dynamic-compose-tool-forcing-beyond-openai)
 
@@ -37,3 +37,4 @@
 - [x] Compose hops pass the resolved provider
 - [x] Matrix, changelog, and this plan name 1.1.8 and the providers that stay fail-closed
 - [x] `mvn verify` green on the branch
+- [x] Anthropic reply with no tool call fails closed; a mocked Anthropic dynamic stream emits a surface; configured Google GenAI emits `TOOL_CHOICE_UNAVAILABLE` on the stream endpoint

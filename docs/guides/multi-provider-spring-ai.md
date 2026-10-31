@@ -34,7 +34,7 @@ Checked against Spring AI **`1.1.8`** source (tag `v1.1.8`), the BOM in the root
 | Anthropic (direct) | Forced | `AnthropicChatOptions.toolChoice` is `AnthropicApi.ToolChoiceTool`: `tool_choice` `{"type":"tool","name":"generateA2Ui"}` or `renderA2Ui`. The chat model merges that field onto the Messages request. |
 | Mistral native (`spring-ai-mistral-ai`) | Forced | Spring AI 1.1.8 exposes `tool_choice` as `auto` / `any` / `none`, not a function name. Each hop registers one tool, so the runtime sends `any`. |
 | Vertex AI Gemini | Fail-closed | `VertexAiGeminiChatOptions` in 1.1.8 has tool callbacks and no function-calling mode or allowed-function name. No Spring AI release on the Boot 3 line adds one. Spring AI 2.0.2 removes the Vertex Gemini chat module (embeddings remain) and that release requires Boot 4. |
-| Google GenAI | Fail-closed | `GoogleGenAiChatOptions` in 1.1.8 has tool callbacks and no function-calling mode. Spring AI 2.0.2 adds `ToolChoice` mode `ANY` plus `allowedFunctionNames`, mapped to `toolConfig.functionCallingConfig`. That release requires Boot 4, which this runtime does not take. |
+| Google GenAI | Fail-closed | `GoogleGenAiChatOptions` in 1.1.8 has tool callbacks and no function-calling mode. Spring AI 2.0.2 adds `ToolChoice` mode `ANY` plus `allowedFunctionNames`, mapped to `toolConfig.functionCallingConfig`. That release requires Boot 4, which this runtime does not take. Interim: Google documents an OpenAI-compatible chat completions base URL, `https://generativelanguage.googleapis.com/v1beta/openai/`, including function calling. Their sample sends `tool_choice` `auto`. Use the OpenAI client against that base URL when that server honors the named `tool_choice` this runtime sends. |
 | AWS Bedrock Converse | Fail-closed | `BedrockChatOptions` has no tool choice in 1.1.8 or in 2.0.2. `BedrockProxyChatModel` builds Converse `ToolConfiguration` from tool definitions only (`tools`, no `toolChoice`). |
 | Azure OpenAI native starter (`spring-ai-azure-openai`) | Fail-closed | `AzureOpenAiChatOptions` in 1.1.8 has no tool choice. Spring AI 2.0.2 removes the native Azure OpenAI chat module. Use the OpenAI-compatible client (row above) when Azure should force. |
 | Ollama native (`spring-ai-ollama`) | Fail-closed | `OllamaChatOptions` has no tool choice in 1.1.8 or in 2.0.2. Use Ollama's OpenAI-compatible endpoint on the OpenAI path when the server honors `tool_choice`. |
@@ -55,8 +55,11 @@ selects the OpenAI path.
 
 ## Live smoke
 
-Mocked HTTP tests assert the OpenAI and native Mistral request bodies that
-Spring AI sends. They do not call a provider.
+Mocked HTTP tests assert the OpenAI, Anthropic, and native Mistral request
+bodies that Spring AI sends. They do not call a provider. An Anthropic reply
+with no tool call fails closed. A mocked Anthropic dynamic stream emits a
+validated surface. A configured Google GenAI model emits
+`TOOL_CHOICE_UNAVAILABLE` on the stream endpoint.
 
 One live OpenAI chat completion (model `gpt-4.1-mini`, named `tool_choice`
 function `generateA2Ui`) returned HTTP 200 with a tool call of that name.

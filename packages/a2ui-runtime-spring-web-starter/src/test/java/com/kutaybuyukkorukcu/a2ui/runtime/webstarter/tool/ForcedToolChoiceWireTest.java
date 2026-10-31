@@ -158,6 +158,55 @@ class ForcedToolChoiceWireTest {
     }
 
     @Test
+    void anthropicReplyWithoutAToolCallFailsClosed() throws Exception {
+        try (CapturingServer server = new CapturingServer(ANTHROPIC_MESSAGE)) {
+            AnthropicApi api = AnthropicApi.builder().baseUrl(server.baseUrl()).apiKey("test-key").build();
+            AnthropicChatModel model = AnthropicChatModel.builder().anthropicApi(api).build();
+            MockEnvironment environment =
+                    new MockEnvironment()
+                            .withProperty(
+                                    "spring.ai.anthropic.chat.options.model", "claude-sonnet-4-20250514");
+            A2UiProviderResolver resolver = new A2UiProviderResolver(environment);
+            DynamicA2UiPromptProvider promptProvider = new DynamicA2UiPromptProvider();
+            A2UiDynamicTools tools =
+                    new A2UiDynamicTools(
+                            ChatClient.builder(model),
+                            List.of(advisor(environment, resolver)),
+                            promptProvider,
+                            new A2UiDynamicAssemblyService(
+                                    new A2UiDynamicComponentNormalizer(), new A2UiMessageValidator()),
+                            A2UiRuntimeMetrics.noop(),
+                            A2UiCatalogRegistry.shared(),
+                            resolver);
+            SpringAiSurfaceRuntime runtime =
+                    new SpringAiSurfaceRuntime(
+                            ChatClient.builder(model),
+                            List.of(advisor(environment, resolver)),
+                            environment,
+                            new A2UiWebProperties(),
+                            new DynamicGenerationAdapter(promptProvider, tools, resolver));
+
+            StepVerifier.create(
+                            runtime.stream(
+                                    new A2UiSurfaceRequest("show a card", null, null),
+                                    "req-1",
+                                    A2UiCatalogIds.BASIC_V0_9))
+                    .expectErrorSatisfies(
+                            error -> {
+                                assertThat(error).isInstanceOf(SurfaceExecutionException.class);
+                                assertThat(((SurfaceExecutionException) error).getErrorCode())
+                                        .isEqualTo(SurfaceErrorCodes.TRANSFORM_FAILED);
+                            })
+                    .verify();
+
+            assertThat(server.bodies).hasSize(1);
+            JsonNode toolChoice = JSON.readTree(server.bodies.get(0)).path("tool_choice");
+            assertThat(toolChoice.path("type").asText()).isEqualTo("tool");
+            assertThat(toolChoice.path("name").asText()).isEqualTo("generateA2Ui");
+        }
+    }
+
+    @Test
     void anthropicRequestCarriesNamedToolChoice() throws Exception {
         assertAnthropicToolChoice("generateA2Ui", A2UiProviderType.ANTHROPIC, true);
     }
