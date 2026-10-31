@@ -1,7 +1,7 @@
 # A2UI v1.0 actions / functions
 
-**Status:** identity decided ([ADR 004](../adr/004-action-and-function-identity.md)). No wire code yet.
-**Branch:** decision recorded on `cursor/a2ui-v1-action-identity-ab47` (stacked on `cursor/spring-ai-1-1-8-tool-forcing-ae96`). Implementation is a later branch cut from the line that contains ADR 004. It does not continue the tool-forcing branch and does not retarget the `2.x` line.
+**Status:** implemented on `cursor/a2ui-v1-actions-functions-6e50` (stacked on `cursor/a2ui-v1-action-identity-ab47`). Not on `main`. The `2.x` line is not retargeted.
+**Branch:** `cursor/a2ui-v1-actions-functions-6e50`.
 **Backlog:** [A2UI v1.0 actions / functions](../../BACKLOG.md#next--a2ui-v10-actions--functions)
 **Library:** `3.0.0` candidate. Hard cutover. Envelope `"version": "1.0"`.
 
@@ -91,8 +91,8 @@ Follow-up PR. Release gate for `3.0.0`.
 ## Done
 
 - [x] Identity, execution split, rename, idempotency keys, and the test strategy — ADR 004
-- [ ] Slice 1 schemas and types
-- [ ] Slice 2 ingress and agent functions
-- [ ] Slice 3 idempotency
-- [ ] Slice 4 meters
-- [ ] Slice 5 guides and browser-or-skip
+- [x] Slice 1 schemas and types — on `cursor/a2ui-v1-actions-functions-6e50`
+- [x] Slice 2 ingress and agent functions — same branch (idempotency and meters landed with ingress)
+- [x] Slice 3 idempotency — same branch
+- [x] Slice 4 meters — same branch
+- [x] Slice 5 guides and browser skip — same branch; the Vite e2e stays skipped until a web v1.0 renderer can POST a valid action

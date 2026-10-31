@@ -57,13 +57,13 @@ event: toolProgress
 data: {"runId":"req-abc","toolName":"generateA2Ui","phase":"start"}
 
 event: createSurface
-data: {"version":"v0.9.1","createSurface":{...}}
+data: {"version":"1.0","createSurface":{...}}
 
 event: toolProgress
 data: {"runId":"req-abc","toolName":"renderA2Ui","phase":"end"}
 
 event: updateComponents
-data: {"version":"v0.9.1","updateComponents":{...}}
+data: {"version":"1.0","updateComponents":{...}}
 
 event: runFinished
 data: {"runId":"req-abc"}

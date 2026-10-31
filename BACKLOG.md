@@ -470,7 +470,7 @@ Next: **A2UI v1.0 actions / functions** (below).
 
 ## Next — A2UI v1.0 actions / functions
 
-**Status:** step 1 decided in [ADR 004](docs/adr/004-action-and-function-identity.md). Steps 2–4 not started. Plan: [a2ui v1 actions / functions](docs/plans/a2ui-v1-actions-functions.md).  
+**Status:** Next until this phase is on `main`. Steps 2–4 (and the guides) are implemented on candidate branch `cursor/a2ui-v1-actions-functions-6e50` as library `3.0.0-SNAPSHOT`. Not shipped. Plan: [a2ui v1 actions / functions](docs/plans/a2ui-v1-actions-functions.md).  
 **Library:** **`3.0.0` candidate** — protocol bump, same pattern as `2.0.0` for v0.9.1.  
 **Prerequisite:** library **`2.2.0`** (architecture + generate/govern/execute) and the MVP demo sample in `apps/`.  
 **Protocol:** A2UI **v1.0 Candidate** ([spec](https://a2ui.org/specification/v1.0-a2ui/), [evolution](https://a2ui.org/specification/v1.0-evolution-guide/)). Envelope `version` const is **`1.0`** (schema), not `v1.0`. v0.9.1 stays Current on the `2.x` line until this phase’s acceptance is met.  
@@ -482,9 +482,9 @@ Today the execute path is **one** pipe: `POST /a2ui/actions` with `{ action: { n
 
 0. **Map** (this section) — baseline and scope  
 1. **Identity + event vs function** — ✅ decided in [ADR 004](docs/adr/004-action-and-function-identity.md) (event name; function `(catalogId, @call)`; rename; idempotency keys; test strategy). No wire code in that ADR.  
-2. **v1.0 action/function migration** — catalogs, envelopes, ingress (plan slices 1–2)  
-3. **Idempotency** — implement the keys ADR 004 fixed (plan slice 3)  
-4. **Routing + execution observability** — tags ADR 004 fixed (plan slice 4)
+2. **v1.0 action/function migration** — implemented on `cursor/a2ui-v1-actions-functions-6e50` (plan slices 1–2). Not on `main`.  
+3. **Idempotency** — implemented on that candidate (plan slice 3). Process-local only.  
+4. **Routing + execution observability** — implemented on that candidate (plan slice 4).
 
 **Absorbs** Phase X follow-up: rename `A2UiUserAction`. Decided in ADR 004: the inbound event type is `A2UiAction`; handlers declare `eventNames()`. Agent functions use `A2UiAgentFunction`, not that type.
 
@@ -664,4 +664,4 @@ Where Spring AI `ChatOptions` already supports a provider prompt cache, we can e
 | X     | v0.9 wire format, validation-failed loop, syntax healer (no semantic repair) |
 | Batteries C/C2 | Template `Builder` registration, `A2UiFixedSurfaceSpec`, `A2UiCatalogContribution` merge + validate, host-catalog negotiation, showcase `ops-approval` assembly |
 | Generation context | Planner digest + prune, generation-context builder, `examplesText()`, `a2ui.generation.context.chars` |
-| v1.0 actions / functions | Identity decided ([ADR 004](docs/adr/004-action-and-function-identity.md)); implementation not started ([plan](docs/plans/a2ui-v1-actions-functions.md)) — event vs function ingress, idempotency maps, route/kind/outcome meters |
+| v1.0 actions / functions | Candidate `cursor/a2ui-v1-actions-functions-6e50` (`3.0.0-SNAPSHOT`): event vs function ingress, process-local idempotency, kind/outcome/name meters, guides. Browser e2e skipped until a web v1.0 renderer exists. Not on `main`. [ADR 004](docs/adr/004-action-and-function-identity.md) · [plan](docs/plans/a2ui-v1-actions-functions.md) |

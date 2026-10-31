@@ -14,9 +14,9 @@ If you are building generative UI on Spring, you should not have to hand-roll pr
 
 ## Status
 
-Library version **`2.2.0`** speaks **A2UI v0.9.1 Current** (hard cutover from `1.1.x`). Maven Central **`1.1.x`** remains the A2UI **v0.8 Legacy** patch line for older clients.
+This branch is library **`3.0.0-SNAPSHOT`**, a hard cutover to **A2UI v1.0** actions and functions. It is not published. Maven Central **`2.2.0`** remains the A2UI **v0.9.1** line. **`1.1.x`** remains the v0.8 Legacy patch line.
 
-**Core MVP + builder batteries are shipped** (compose → validate → stream → fail-fast → actions, utilization, basic catalog, Template SPI, host A2UI catalog SPI, in-product surface docs/showcase, ops). **`2.2.0`** adds architecture revisions and generate / govern / execute on the same v0.9.1 wire. Next: A2UI v1.0 actions / functions in [`BACKLOG.md`](BACKLOG.md).
+**Core MVP + builder batteries are shipped** on `2.x` (compose → validate → stream → fail-fast → actions, utilization, basic catalog, Template SPI, host A2UI catalog SPI, in-product surface docs/showcase, ops). This candidate moves events and functions to v1.0. See [Migrating to v1.0](docs/guides/migrating-to-v1.0.md) and [`BACKLOG.md`](BACKLOG.md). The phase stays Next until it is on `main`.
 
 Both generation modes ship. **When to use them** is [ADR 002](docs/adr/002-in-product-surfaces.md):
 
@@ -25,7 +25,7 @@ Both generation modes ship. **When to use them** is [ADR 002](docs/adr/002-in-pr
 | Dynamic | `a2ui.web.runtime.generation-mode=dynamic` | **Unknown structure** — this case’s tree from the **active** catalog (vendored basic + host-registered catalogs). Engineering gravity. |
 | Template | `a2ui.web.runtime.generation-mode=template` | Frozen capability: LLM selects a registered spec and fills slots. Prefer host `assemble` when the tree is already known (no model call). |
 
-Surfaces are streamed as **A2UI v0.9.1 envelopes over SSE** (`createSurface` / `updateComponents` / `updateDataModel`). See [Migrating to v0.9.1](docs/guides/migrating-to-v0.9.1.md). Catalog schemas + FE renderers stay with you; we validate/generate ([catalog ownership](docs/platform.md#catalog-ownership-a2ui-aligned)).
+Surfaces are streamed as **A2UI v1.0 envelopes over SSE** (`"version":"1.0"`, `createSurface` / `updateComponents` / `updateDataModel`). See [Migrating to v1.0](docs/guides/migrating-to-v1.0.md). Catalog schemas + FE renderers stay with you; we validate/generate ([catalog ownership](docs/platform.md#catalog-ownership-a2ui-aligned)).
 
 ## Getting started
 
@@ -35,7 +35,7 @@ You do not need to build this repository to use the runtime. Add the web starter
 <dependency>
   <groupId>com.kutaybuyukkorukcu.a2ui.runtime</groupId>
   <artifactId>a2ui-runtime-spring-web-starter</artifactId>
-  <version>2.2.0</version>
+  <version>3.0.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -84,7 +84,7 @@ Sample apps under `apps/` (`be-transform-showcase`, `fe-a2ui-demo`) are for loca
 
 ## What the runtime does
 
-* Streams A2UI v0.9.1 envelopes (`createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface`) over SSE
+* Streams A2UI v1.0 envelopes (`createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface`, `callRendererFunction`, `agentFunctionResponse`) over SSE
 * Negotiates catalogs from client capabilities and pins `catalogId` on `createSurface`
 * Validates messages against the **active** catalog (vendored basic v0.9 today, plus host-registered catalogs via [`A2UiCatalogContribution`](docs/guides/registering-catalogs.md))
 * Fails fast with SSE `event: error` — no silent fallback surfaces
