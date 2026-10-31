@@ -1,0 +1,31 @@
+{
+  "id" : "basic-card",
+  "prompt" : "Show a simple welcome card with a short heading.",
+  "catalogId" : "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
+  "model" : "gpt-4.1",
+  "render" : {
+    "surfaceId" : "welcome-card",
+    "root" : "root",
+    "components" : [ {
+      "id" : "root",
+      "component" : "Column",
+      "children" : [ "welcomeCard" ]
+    }, {
+      "id" : "welcomeCard",
+      "component" : "Card",
+      "child" : "welcomeHeadingColumn"
+    }, {
+      "id" : "welcomeHeadingColumn",
+      "component" : "Column",
+      "children" : [ "welcomeHeading" ]
+    }, {
+      "id" : "welcomeHeading",
+      "component" : "Text",
+      "text" : "Welcome!",
+      "variant" : "h3"
+    } ],
+    "data" : null
+  },
+  "renders" : null,
+  "expect" : "accepted"
+}

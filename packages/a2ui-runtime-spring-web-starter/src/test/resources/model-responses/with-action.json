@@ -1,0 +1,32 @@
+{
+  "id" : "with-action",
+  "prompt" : "Show a primary submit button labeled Submit that fires a submit action when clicked.",
+  "catalogId" : "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
+  "model" : "gpt-4.1",
+  "render" : {
+    "surfaceId" : "submit-button-surface",
+    "root" : "root",
+    "components" : [ {
+      "id" : "root",
+      "component" : "Column",
+      "children" : [ "submitBtn" ]
+    }, {
+      "id" : "submitBtn",
+      "component" : "Button",
+      "child" : "submitBtnText",
+      "variant" : "primary",
+      "action" : {
+        "event" : {
+          "name" : "submit"
+        }
+      }
+    }, {
+      "id" : "submitBtnText",
+      "component" : "Text",
+      "text" : "Submit"
+    } ],
+    "data" : null
+  },
+  "renders" : null,
+  "expect" : "accepted"
+}

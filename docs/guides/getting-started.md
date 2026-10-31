@@ -11,6 +11,46 @@ For the v0.8 → v0.9.1 cutover, see [Migrating to v0.9.1](migrating-to-v0.9.1.m
 For endpoint shapes and error codes, see [REST API](../rest-api.md).
 For dynamic-mode internals, see [Dynamic generative UI](dynamic-generative-ui.md).
 
+## What we prove
+
+We do not claim the model writes good UI. We claim the runtime **validates** what
+the model returns, **streams** catalog-checked surfaces, **fails fast** with
+actionable errors, **assembles** known trees without a model call, and **routes**
+clicks to your handlers. OpenAI is the only compose path we stand behind in
+these proofs; CI does not call a model.
+
+| Builder worry | Where it is covered |
+| ------------- | ------------------- |
+| A known screen does not call a model | Host `assemble` tests (including showcase `mig-311`) |
+| A bad catalog tree is rejected | `A2UiMessageValidatorTest`, dynamic tool retry, SSE error events |
+| A click hits their handler; an unknown click does not | `A2UiActionServiceTest`, action endpoint, showcase actions |
+| They can see a failure and a meter | Ops guide, `A2UiRuntimeMetricsTest`, showcase actuator |
+| OpenAI is the supported dynamic compose path | Multi-provider guide; stored OpenAI `renderA2Ui` replay below |
+
+**Stored model responses** — ten real OpenAI `renderA2Ui` argument sets live under
+`packages/a2ui-runtime-spring-web-starter/src/test/resources/model-responses/`.
+`StoredModelResponseReplayTest` replays each file through real `renderA2Ui` /
+assemble (no live model). `StoredModelResponseStreamIntegrationTest` runs
+`stream-basic-card` through `SpringAiSurfaceRuntime` with the existing
+`ChatClient` stub and asserts the SSE body (`[DONE]`, `createSurface`, no legacy
+`beginRendering`). Cases:
+
+| id | What it exercises |
+| -- | ----------------- |
+| `basic-card` | Ordinary valid basic-catalog tree |
+| `with-data` | Components plus a data model |
+| `with-action` | Button `action.event` on the surface |
+| `flat-adjacency` | Nested layout in flat planner form |
+| `host-type-on-basic` | Host-only component name against basic catalog → `A2UI_VALIDATION_FAILED` |
+| `missing-prop` | Required prop omitted → `A2UI_VALIDATION_FAILED` |
+| `unknown-component` | Name not in catalog → `A2UI_VALIDATION_FAILED` |
+| `empty-components` | Empty components → fail-fast, no surface |
+| `retry-then-valid` | Invalid then valid payload (bounded retry) |
+| `stream-basic-card` | Same render as `basic-card` through SSE |
+
+Re-record locally with `ModelResponseRecorder` (requires `OPENAI_API_KEY`; not
+used in CI).
+
 ## Prerequisites
 
 * Java **21**

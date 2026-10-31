@@ -1,0 +1,14 @@
+{
+  "id" : "empty-components",
+  "prompt" : "Call renderA2Ui with root \"root\" and an empty components array.",
+  "catalogId" : "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
+  "model" : "gpt-4.1",
+  "render" : {
+    "surfaceId" : "surface-1",
+    "root" : "root",
+    "components" : [ ],
+    "data" : null
+  },
+  "renders" : null,
+  "expect" : "fail-fast"
+}

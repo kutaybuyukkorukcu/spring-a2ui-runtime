@@ -1,0 +1,17 @@
+{
+  "id" : "unknown-component",
+  "prompt" : "Set component to QuxWidget on the root node only.",
+  "catalogId" : "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
+  "model" : "gpt-4.1",
+  "render" : {
+    "surfaceId" : "quxwidget-root",
+    "root" : "root",
+    "components" : [ {
+      "id" : "root",
+      "component" : "QuxWidget"
+    } ],
+    "data" : null
+  },
+  "renders" : null,
+  "expect" : "A2UI_VALIDATION_FAILED"
+}
