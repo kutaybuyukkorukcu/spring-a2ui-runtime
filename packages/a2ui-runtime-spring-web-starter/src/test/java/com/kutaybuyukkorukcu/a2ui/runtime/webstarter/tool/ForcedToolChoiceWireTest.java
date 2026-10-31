@@ -114,7 +114,7 @@ class ForcedToolChoiceWireTest {
                             runtime.stream(
                                     new A2UiSurfaceRequest("show a card", null, null),
                                     "req-1",
-                                    A2UiCatalogIds.BASIC_V0_9))
+                                    A2UiCatalogIds.BASIC_V1))
                     .expectErrorSatisfies(
                             error -> {
                                 assertThat(error).isInstanceOf(SurfaceExecutionException.class);
@@ -190,7 +190,7 @@ class ForcedToolChoiceWireTest {
                             runtime.stream(
                                     new A2UiSurfaceRequest("show a card", null, null),
                                     "req-1",
-                                    A2UiCatalogIds.BASIC_V0_9))
+                                    A2UiCatalogIds.BASIC_V1))
                     .expectErrorSatisfies(
                             error -> {
                                 assertThat(error).isInstanceOf(SurfaceExecutionException.class);

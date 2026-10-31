@@ -22,10 +22,12 @@ public final class A2UiCatalogRegistry {
     public static final String STANDARD_CATALOG_RESOURCE = BASIC_CATALOG_RESOURCE;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final LoadedCatalogs VENDORED = loadCatalogDefinitions();
     private static final A2UiCatalogRegistry SHARED =
-            new A2UiCatalogRegistry(loadCatalogDefinitions(), loadRulesText(), "");
+            new A2UiCatalogRegistry(VENDORED.components(), VENDORED.functions(), loadRulesText(), "");
 
     private final Map<String, Map<String, Map<String, Object>>> componentSchemasByCatalogId;
+    private final Map<String, Map<String, A2UiCatalogFunction>> functionsByCatalogId;
     private final Map<String, Set<String>> componentTypesByCatalogId;
     private final Set<String> supportedCatalogIds;
     private final Set<String> supportedComponentTypes;
@@ -34,9 +36,11 @@ public final class A2UiCatalogRegistry {
 
     private A2UiCatalogRegistry(
             Map<String, Map<String, Map<String, Object>>> componentSchemasByCatalogId,
+            Map<String, Map<String, A2UiCatalogFunction>> functionsByCatalogId,
             String catalogRulesText,
             String catalogExamplesText) {
         this.componentSchemasByCatalogId = Collections.unmodifiableMap(deepCopy(componentSchemasByCatalogId));
+        this.functionsByCatalogId = copyFunctions(functionsByCatalogId);
         Map<String, Set<String>> typesByCatalog = new LinkedHashMap<>();
         Set<String> allTypes = new LinkedHashSet<>();
         for (Map.Entry<String, Map<String, Map<String, Object>>> entry : this.componentSchemasByCatalogId.entrySet()) {
@@ -61,7 +65,7 @@ public final class A2UiCatalogRegistry {
      * rather than extending {@link #shared()}.
      */
     public static A2UiCatalogRegistry of(Map<String, Map<String, Map<String, Object>>> componentSchemasByCatalogId) {
-        return new A2UiCatalogRegistry(componentSchemasByCatalogId, "", "");
+        return new A2UiCatalogRegistry(componentSchemasByCatalogId, Map.of(), "", "");
     }
 
     /**
@@ -75,6 +79,7 @@ public final class A2UiCatalogRegistry {
     public static A2UiCatalogRegistry withContributions(
             A2UiCatalogRegistry base, List<A2UiCatalogContribution> contributions) {
         Map<String, Map<String, Map<String, Object>>> merged = mutableDeepCopy(base.componentSchemasByCatalogId);
+        Map<String, Map<String, A2UiCatalogFunction>> functions = mutableFunctions(base.functionsByCatalogId);
         StringBuilder rulesText = new StringBuilder(base.catalogRulesText);
         StringBuilder examplesText = new StringBuilder(base.catalogExamplesText);
 
@@ -91,6 +96,7 @@ public final class A2UiCatalogRegistry {
                 if (componentSchemas != null && !componentSchemas.isEmpty()) {
                     merged.computeIfAbsent(catalogId, key -> new LinkedHashMap<>()).putAll(componentSchemas);
                 }
+                mergeFunctions(functions, catalogId, contribution.functions());
                 String rules = contribution.rulesText();
                 if (rules != null && !rules.isBlank()) {
                     if (rulesText.length() > 0) {
@@ -108,7 +114,23 @@ public final class A2UiCatalogRegistry {
             }
         }
 
-        return new A2UiCatalogRegistry(merged, rulesText.toString(), examplesText.toString());
+        return new A2UiCatalogRegistry(merged, functions, rulesText.toString(), examplesText.toString());
+    }
+
+    public A2UiCatalogFunction function(String catalogId, String call) {
+        if (catalogId == null || call == null) {
+            return null;
+        }
+        Map<String, A2UiCatalogFunction> functions = functionsByCatalogId.get(catalogId);
+        if (functions == null) {
+            return null;
+        }
+        return functions.get(call);
+    }
+
+    public Map<String, A2UiCatalogFunction> functionsForCatalog(String catalogId) {
+        Map<String, A2UiCatalogFunction> functions = functionsByCatalogId.get(catalogId);
+        return functions == null ? Map.of() : functions;
     }
 
     public boolean isSupportedCatalogId(String catalogId) {
@@ -271,18 +293,11 @@ public final class A2UiCatalogRegistry {
         return A2UiMaps.deepUnmodifiable(propSchemaMap);
     }
 
-    private static Map<String, Map<String, Map<String, Object>>> loadCatalogDefinitions() {
-        Map<String, Map<String, Map<String, Object>>> loaded = loadFromClasspath(BASIC_CATALOG_RESOURCE);
-        // Alias catalogId spellings used in upstream docs / examples.
-        Map<String, Map<String, Map<String, Object>>> catalogs = new LinkedHashMap<>(loaded);
-        Map<String, Map<String, Object>> basic = catalogs.get(A2UiCatalogIds.BASIC_V0_9);
-        if (basic != null) {
-            catalogs.putIfAbsent(A2UiCatalogIds.BASIC_V0_9_1, basic);
-        }
-        return catalogs;
+    private static LoadedCatalogs loadCatalogDefinitions() {
+        return loadFromClasspath(BASIC_CATALOG_RESOURCE);
     }
 
-    static Map<String, Map<String, Map<String, Object>>> loadFromClasspath(String resourcePath) {
+    static LoadedCatalogs loadFromClasspath(String resourcePath) {
         try (InputStream inputStream = A2UiCatalogRegistry.class.getResourceAsStream("/" + resourcePath)) {
             if (inputStream == null) {
                 throw new IllegalStateException("A2UI catalog resource not found: " + resourcePath);
@@ -295,11 +310,16 @@ public final class A2UiCatalogRegistry {
             }
 
             Map<String, Map<String, Object>> components = extractComponentSchemas(catalog.get("components"));
-            Map<String, Map<String, Map<String, Object>>> result = new LinkedHashMap<>();
-            result.put(catalogIdValue, components);
-            return result;
+            Map<String, A2UiCatalogFunction> functions = extractFunctions(catalog.get("functions"));
+            Map<String, Map<String, Map<String, Object>>> componentCatalogs = new LinkedHashMap<>();
+            componentCatalogs.put(catalogIdValue, components);
+            Map<String, Map<String, A2UiCatalogFunction>> functionCatalogs = new LinkedHashMap<>();
+            functionCatalogs.put(catalogIdValue, functions);
+            return new LoadedCatalogs(componentCatalogs, functionCatalogs);
         } catch (IOException ex) {
             throw new UncheckedIOException("Failed to load A2UI catalog: " + resourcePath, ex);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalStateException("A2UI catalog functions are invalid: " + resourcePath, ex);
         }
     }
 
@@ -347,15 +367,97 @@ public final class A2UiCatalogRegistry {
         mergeSchemaNode(schema, properties, required);
 
         flattened.put("type", "object");
+        properties.putIfAbsent("catalogId", Map.of("type", "string"));
+        if (referencesCheckable(schema)) {
+            properties.putIfAbsent("checks", Map.of(
+                    "type", "array",
+                    "items", Map.of("type", "object", "additionalProperties", true)));
+        }
         flattened.put("properties", properties);
         flattened.put("required", List.copyOf(required));
         flattened.remove("allOf");
         flattened.remove("$defs");
-        if (!flattened.containsKey("additionalProperties")
-                && schema.get("unevaluatedProperties") instanceof Boolean unevaluated) {
-            flattened.put("additionalProperties", unevaluated);
+        if (!flattened.containsKey("additionalProperties")) {
+            Object unevaluated = schema.get("unevaluatedProperties");
+            flattened.put("additionalProperties", unevaluated instanceof Boolean allow ? allow : Boolean.FALSE);
         }
         return flattened;
+    }
+
+    private static boolean referencesCheckable(Map<String, Object> schema) {
+        Object allOf = schema.get("allOf");
+        if (!(allOf instanceof List<?> items)) {
+            return false;
+        }
+        for (Object item : items) {
+            if (item instanceof Map<?, ?> map && String.valueOf(map.get("$ref")).contains("Checkable")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Map<String, A2UiCatalogFunction> extractFunctions(Object functionsNode) {
+        if (functionsNode == null) {
+            return Map.of();
+        }
+        if (!(functionsNode instanceof Map<?, ?> functions)) {
+            throw new IllegalArgumentException("catalog functions must be an object");
+        }
+        Map<String, A2UiCatalogFunction> result = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : functions.entrySet()) {
+            String name = String.valueOf(entry.getKey());
+            if (!(entry.getValue() instanceof Map<?, ?> definition)) {
+                throw new IllegalArgumentException("function definition must be an object");
+            }
+            result.put(name, A2UiCatalogFunction.fromDefinition(name, A2UiMaps.copyOf(definition)));
+        }
+        return result;
+    }
+
+    private static void mergeFunctions(
+            Map<String, Map<String, A2UiCatalogFunction>> functions,
+            String catalogId,
+            Map<String, Map<String, Object>> contributed) {
+        if (contributed == null || contributed.isEmpty()) {
+            return;
+        }
+        Map<String, A2UiCatalogFunction> target = functions.computeIfAbsent(catalogId, key -> new LinkedHashMap<>());
+        for (Map.Entry<String, Map<String, Object>> entry : contributed.entrySet()) {
+            if (target.containsKey(entry.getKey())) {
+                throw new IllegalArgumentException("duplicate catalog function: " + entry.getKey());
+            }
+            target.put(entry.getKey(), A2UiCatalogFunction.fromDefinition(entry.getKey(), entry.getValue()));
+        }
+    }
+
+    private static Map<String, Map<String, A2UiCatalogFunction>> copyFunctions(
+            Map<String, Map<String, A2UiCatalogFunction>> source) {
+        if (source == null || source.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Map<String, A2UiCatalogFunction>> copy = new LinkedHashMap<>();
+        for (Map.Entry<String, Map<String, A2UiCatalogFunction>> entry : source.entrySet()) {
+            copy.put(entry.getKey(), Map.copyOf(entry.getValue()));
+        }
+        return Map.copyOf(copy);
+    }
+
+    private static Map<String, Map<String, A2UiCatalogFunction>> mutableFunctions(
+            Map<String, Map<String, A2UiCatalogFunction>> source) {
+        Map<String, Map<String, A2UiCatalogFunction>> copy = new LinkedHashMap<>();
+        if (source == null) {
+            return copy;
+        }
+        for (Map.Entry<String, Map<String, A2UiCatalogFunction>> entry : source.entrySet()) {
+            copy.put(entry.getKey(), new LinkedHashMap<>(entry.getValue()));
+        }
+        return copy;
+    }
+
+    private record LoadedCatalogs(
+            Map<String, Map<String, Map<String, Object>>> components,
+            Map<String, Map<String, A2UiCatalogFunction>> functions) {
     }
 
     private static void mergeSchemaNode(

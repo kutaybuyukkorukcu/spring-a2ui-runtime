@@ -28,7 +28,8 @@ public final class A2UiCatalogRefSchemas {
             case "ComponentId" -> Map.of("type", "string");
             case "ChildList" -> childListSchema();
             case "Action" -> actionSchema();
-            case "Checkable", "CheckRule", "FunctionCall" ->
+            case "FunctionCall" -> functionCallSchema();
+            case "Checkable", "CheckRule" ->
                     Map.of("type", "object", "additionalProperties", true);
             default -> null;
         };
@@ -37,9 +38,9 @@ public final class A2UiCatalogRefSchemas {
     public static Map<String, Object> dataBindingSchema() {
         Map<String, Object> schema = new LinkedHashMap<>();
         schema.put("type", "object");
-        schema.put("required", List.of("path"));
+        schema.put("required", List.of("@path"));
         schema.put("additionalProperties", false);
-        schema.put("properties", Map.of("path", Map.of("type", "string")));
+        schema.put("properties", Map.of("@path", Map.of("type", "string")));
         return schema;
     }
 
@@ -47,7 +48,8 @@ public final class A2UiCatalogRefSchemas {
         Map<String, Object> schema = new LinkedHashMap<>();
         schema.put("oneOf", List.of(
                 Map.of("type", "string"),
-                dataBindingSchema()));
+                dataBindingSchema(),
+                functionCallSchema()));
         return schema;
     }
 
@@ -55,7 +57,8 @@ public final class A2UiCatalogRefSchemas {
         Map<String, Object> schema = new LinkedHashMap<>();
         schema.put("oneOf", List.of(
                 Map.of("type", "number"),
-                dataBindingSchema()));
+                dataBindingSchema(),
+                functionCallSchema()));
         return schema;
     }
 
@@ -63,7 +66,20 @@ public final class A2UiCatalogRefSchemas {
         Map<String, Object> schema = new LinkedHashMap<>();
         schema.put("oneOf", List.of(
                 Map.of("type", "boolean"),
-                dataBindingSchema()));
+                dataBindingSchema(),
+                functionCallSchema()));
+        return schema;
+    }
+
+    public static Map<String, Object> functionCallSchema() {
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "object");
+        schema.put("required", List.of("@call"));
+        schema.put("additionalProperties", true);
+        schema.put("properties", Map.of(
+                "@call", Map.of("type", "string"),
+                "catalogId", Map.of("type", "string"),
+                "args", Map.of("type", "object")));
         return schema;
     }
 
@@ -84,7 +100,8 @@ public final class A2UiCatalogRefSchemas {
                 Map.of("type", "boolean"),
                 Map.of("type", "array"),
                 Map.of("type", "object"),
-                dataBindingSchema()));
+                dataBindingSchema(),
+                functionCallSchema()));
         return schema;
     }
 

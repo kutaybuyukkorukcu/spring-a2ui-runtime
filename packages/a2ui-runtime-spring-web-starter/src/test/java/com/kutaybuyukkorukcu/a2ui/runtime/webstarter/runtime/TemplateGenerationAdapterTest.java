@@ -91,7 +91,7 @@ class TemplateGenerationAdapterTest {
         });
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show a news card", null, null);
 
-        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
+        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V1))
                 .assertNext(event -> assertThat(event).isInstanceOf(A2UiRuntimeEvent.Surface.class)
                         .extracting(e -> ((A2UiRuntimeEvent.Surface) e).message())
                         .isInstanceOf(A2UiMessage.CreateSurface.class))
@@ -110,7 +110,7 @@ class TemplateGenerationAdapterTest {
 
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("ambiguous request", null, null);
 
-        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
+        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V1))
                 .expectErrorSatisfies(error -> {
                     assertThat(error).isInstanceOf(SurfaceExecutionException.class);
                     assertThat(((SurfaceExecutionException) error).getErrorCode())

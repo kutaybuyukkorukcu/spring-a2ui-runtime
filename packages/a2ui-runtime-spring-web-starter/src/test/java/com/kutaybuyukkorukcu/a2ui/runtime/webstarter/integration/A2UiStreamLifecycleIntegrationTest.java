@@ -37,7 +37,7 @@ class A2UiStreamLifecycleIntegrationTest {
 
     @Test
     void shouldEmitLifecycleEventsWhenEnabled() {
-        A2UiMessage createSurface = new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9);
+        A2UiMessage createSurface = new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1);
         when(surfaceRuntime.stream(any(), anyString(), anyString()))
                 .thenReturn(Flux.just(
                         new A2UiRuntimeEvent.ToolProgress("req-1", "generateA2Ui", A2UiRuntimeEvent.ToolProgress.PHASE_START),
@@ -74,7 +74,7 @@ class A2UiStreamLifecycleIntegrationTest {
         List<A2UiRuntimeEvent> events = service.stream(
                         new A2UiSurfaceRequest("test", null, null),
                         "req-1",
-                        A2UiCatalogIds.BASIC_V0_9)
+                        A2UiCatalogIds.BASIC_V1)
                 .collectList()
                 .block();
 

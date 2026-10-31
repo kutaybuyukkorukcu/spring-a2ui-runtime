@@ -17,10 +17,18 @@ public sealed interface A2UiMessage {
             @JsonInclude(JsonInclude.Include.NON_NULL)
             @JsonProperty("theme") Map<String, Object> theme,
             @JsonInclude(JsonInclude.Include.NON_NULL)
-            @JsonProperty("sendDataModel") Boolean sendDataModel
+            @JsonProperty("sendDataModel") Boolean sendDataModel,
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @JsonProperty("components") List<ComponentDefinition> components,
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @JsonProperty("dataModel") Object dataModel
     ) implements A2UiMessage {
         public CreateSurface(String surfaceId, String catalogId) {
-            this(surfaceId, catalogId, null, null);
+            this(surfaceId, catalogId, null, null, null, null);
+        }
+
+        public CreateSurface {
+            components = components == null ? null : List.copyOf(components);
         }
     }
 
@@ -45,6 +53,61 @@ public sealed interface A2UiMessage {
     record DeleteSurface(
             @JsonProperty("surfaceId") String surfaceId
     ) implements A2UiMessage {
+    }
+
+    /**
+     * Agent asks the host frontend to run a catalog function.
+     * {@code catalogId} is required on this envelope.
+     */
+    record CallRendererFunction(
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @JsonProperty("surfaceId") String surfaceId,
+            @JsonProperty("functionCallId") String functionCallId,
+            @JsonProperty("catalogId") String catalogId,
+            @JsonProperty("call") String call,
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @JsonProperty("args") Map<String, Object> args
+    ) implements A2UiMessage {
+        public CallRendererFunction {
+            args = args == null || args.isEmpty() ? null : Map.copyOf(args);
+        }
+    }
+
+    /**
+     * Result of a renderer {@code callAgentFunction}. No surface id on the wire.
+     */
+    record AgentFunctionResponse(
+            @JsonProperty("functionCallId") String functionCallId,
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            Object value,
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            String errorCode,
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            String errorMessage
+    ) implements A2UiMessage {
+        public AgentFunctionResponse {
+            boolean hasError = errorCode != null;
+            if (hasError && (errorCode.isBlank() || errorMessage == null || errorMessage.isBlank())) {
+                throw new IllegalArgumentException("function error requires code and message");
+            }
+        }
+
+        @Override
+        public String surfaceId() {
+            return null;
+        }
+
+        public boolean failed() {
+            return errorCode != null;
+        }
+
+        public static AgentFunctionResponse ok(String functionCallId, Object value) {
+            return new AgentFunctionResponse(functionCallId, value, null, null);
+        }
+
+        public static AgentFunctionResponse error(String functionCallId, String code, String message) {
+            return new AgentFunctionResponse(functionCallId, null, code, message);
+        }
     }
 
     /**

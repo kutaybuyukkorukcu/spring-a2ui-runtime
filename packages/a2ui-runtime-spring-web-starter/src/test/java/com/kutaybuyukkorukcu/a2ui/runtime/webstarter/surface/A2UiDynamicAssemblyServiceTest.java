@@ -13,7 +13,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionExcep
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionAllowList;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionHandler;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiSurfacePolicy;
-import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiUserAction;
+import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiAction;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -36,10 +36,10 @@ class A2UiDynamicAssemblyServiceTest {
                 "root",
                 List.of(
                         Map.of("id", "root", "component", "Column", "children", List.of("title"), "justify", "start"),
-                        Map.of("id", "title", "component", "Text", "text", "Hello", "variant", "h2")),
+                        Map.of("id", "title", "component", "Text", "text", "Hello", "variant", "body")),
                 Map.of("heading", "Hello"));
 
-        List<A2UiMessage> messages = assemblyService.assemble(args, A2UiCatalogIds.BASIC_V0_9, "main");
+        List<A2UiMessage> messages = assemblyService.assemble(args, A2UiCatalogIds.BASIC_V1, "main");
 
         assertThat(messages).hasSize(3);
         assertThat(messages.get(0)).isInstanceOf(A2UiMessage.CreateSurface.class);
@@ -47,7 +47,7 @@ class A2UiDynamicAssemblyServiceTest {
         assertThat(messages.get(2)).isInstanceOf(A2UiMessage.UpdateDataModel.class);
 
         A2UiMessage.CreateSurface create = (A2UiMessage.CreateSurface) messages.get(0);
-        assertThat(create.catalogId()).isEqualTo(A2UiCatalogIds.BASIC_V0_9);
+        assertThat(create.catalogId()).isEqualTo(A2UiCatalogIds.BASIC_V1);
 
         A2UiMessage.UpdateComponents update = (A2UiMessage.UpdateComponents) messages.get(1);
         assertThat(update.components().get(1).componentProperties().get("text")).isEqualTo("Hello");
@@ -67,7 +67,7 @@ class A2UiDynamicAssemblyServiceTest {
                         Map.of("id", "title", "component", "Text", "text", "Hello")),
                 Map.of());
 
-        List<A2UiMessage> messages = assemblyService.assemble(args, A2UiCatalogIds.BASIC_V0_9, "main");
+        List<A2UiMessage> messages = assemblyService.assemble(args, A2UiCatalogIds.BASIC_V1, "main");
         assertThat(messages).hasSize(2);
         assertThat(messages.get(0)).isInstanceOf(A2UiMessage.CreateSurface.class);
         assertThat(messages.get(1)).isInstanceOf(A2UiMessage.UpdateComponents.class);
@@ -81,7 +81,7 @@ class A2UiDynamicAssemblyServiceTest {
                 List.of(Map.of("id", "title", "component", "Text", "text", "Hello")),
                 null);
 
-        assertThatThrownBy(() -> assemblyService.assemble(args, A2UiCatalogIds.BASIC_V0_9, "main"))
+        assertThatThrownBy(() -> assemblyService.assemble(args, A2UiCatalogIds.BASIC_V1, "main"))
                 .isInstanceOf(SurfaceExecutionException.class)
                 .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
                 .isEqualTo(SurfaceErrorCodes.TRANSFORM_FAILED);
@@ -99,7 +99,7 @@ class A2UiDynamicAssemblyServiceTest {
                         "action", "submit")),
                 null);
 
-        assertThatThrownBy(() -> assemblyService.assemble(args, A2UiCatalogIds.BASIC_V0_9, "main"))
+        assertThatThrownBy(() -> assemblyService.assemble(args, A2UiCatalogIds.BASIC_V1, "main"))
                 .isInstanceOf(SurfaceExecutionException.class)
                 .satisfies(ex -> {
                     SurfaceExecutionException failure = (SurfaceExecutionException) ex;
@@ -123,24 +123,22 @@ class A2UiDynamicAssemblyServiceTest {
                 List.of(Map.of("id", "root", "component", "CheckBox", "label", "Notify me")),
                 null);
 
-        assertThatThrownBy(() -> assemblyService.assemble(args, A2UiCatalogIds.BASIC_V0_9, "main"))
+        assertThatThrownBy(() -> assemblyService.assemble(args, A2UiCatalogIds.BASIC_V1, "main"))
                 .isInstanceOf(SurfaceExecutionException.class)
                 .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
                 .isEqualTo(SurfaceErrorCodes.A2UI_VALIDATION_FAILED);
     }
 
     @Test
-    void shouldRejectTextFieldMissingValue() {
+    void shouldAcceptTextFieldWithLabelOnly() {
         RenderA2UiArgs args = new RenderA2UiArgs(
                 "planner-surface",
                 "root",
                 List.of(Map.of("id", "root", "component", "TextField", "label", "Notes")),
                 null);
 
-        assertThatThrownBy(() -> assemblyService.assemble(args, A2UiCatalogIds.BASIC_V0_9, "main"))
-                .isInstanceOf(SurfaceExecutionException.class)
-                .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
-                .isEqualTo(SurfaceErrorCodes.A2UI_VALIDATION_FAILED);
+        List<A2UiMessage> messages = assemblyService.assemble(args, A2UiCatalogIds.BASIC_V1, "main");
+        assertThat(messages).isNotEmpty();
     }
 
     @Test
@@ -158,7 +156,7 @@ class A2UiDynamicAssemblyServiceTest {
                         Map.of("id", "label", "component", "Text", "text", "Go")),
                 null);
 
-        List<A2UiMessage> messages = assemblyService.assemble(args, A2UiCatalogIds.BASIC_V0_9, "main");
+        List<A2UiMessage> messages = assemblyService.assemble(args, A2UiCatalogIds.BASIC_V1, "main");
         A2UiMessage.UpdateComponents update = (A2UiMessage.UpdateComponents) messages.get(1);
         ComponentDefinition button = update.components().get(0);
         assertThat(button.componentProperties().get("action"))
@@ -172,7 +170,7 @@ class A2UiDynamicAssemblyServiceTest {
                 new A2UiDynamicComponentNormalizer(), validator, new com.fasterxml.jackson.databind.ObjectMapper(), allowList);
         RenderA2UiArgs args = submitButtonArgs();
 
-        assertThatThrownBy(() -> restricted.assemble(args, A2UiCatalogIds.BASIC_V0_9, "main"))
+        assertThatThrownBy(() -> restricted.assemble(args, A2UiCatalogIds.BASIC_V1, "main"))
                 .isInstanceOf(SurfaceExecutionException.class)
                 .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
                 .isEqualTo(SurfaceErrorCodes.UNKNOWN_ACTION);
@@ -184,7 +182,7 @@ class A2UiDynamicAssemblyServiceTest {
         A2UiDynamicAssemblyService restricted = new A2UiDynamicAssemblyService(
                 new A2UiDynamicComponentNormalizer(), validator, new com.fasterxml.jackson.databind.ObjectMapper(), allowList);
 
-        List<A2UiMessage> messages = restricted.assemble(submitButtonArgs(), A2UiCatalogIds.BASIC_V0_9, "main");
+        List<A2UiMessage> messages = restricted.assemble(submitButtonArgs(), A2UiCatalogIds.BASIC_V1, "main");
 
         assertThat(messages).hasSize(2);
         A2UiMessage.UpdateComponents update = (A2UiMessage.UpdateComponents) messages.get(1);
@@ -202,7 +200,7 @@ class A2UiDynamicAssemblyServiceTest {
                 A2UiActionAllowList.empty(),
                 hideButton);
 
-        assertThatThrownBy(() -> restricted.assemble(submitButtonArgs(), A2UiCatalogIds.BASIC_V0_9, "main"))
+        assertThatThrownBy(() -> restricted.assemble(submitButtonArgs(), A2UiCatalogIds.BASIC_V1, "main"))
                 .isInstanceOf(SurfaceExecutionException.class)
                 .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
                 .isEqualTo(SurfaceErrorCodes.COMPONENT_NOT_ALLOWED);
@@ -217,7 +215,7 @@ class A2UiDynamicAssemblyServiceTest {
                 A2UiActionAllowList.empty(),
                 A2UiSurfacePolicy.none());
 
-        List<A2UiMessage> messages = restricted.assemble(submitButtonArgs(), A2UiCatalogIds.BASIC_V0_9, "main");
+        List<A2UiMessage> messages = restricted.assemble(submitButtonArgs(), A2UiCatalogIds.BASIC_V1, "main");
 
         assertThat(messages).hasSize(2);
     }
@@ -232,7 +230,7 @@ class A2UiDynamicAssemblyServiceTest {
                         Map.of("id", "  ", "component", "Text", "text", "Hello")),
                 null);
 
-        assertThatThrownBy(() -> assemblyService.assemble(args, A2UiCatalogIds.BASIC_V0_9, "main"))
+        assertThatThrownBy(() -> assemblyService.assemble(args, A2UiCatalogIds.BASIC_V1, "main"))
                 .isInstanceOf(SurfaceExecutionException.class)
                 .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
                 .isEqualTo(SurfaceErrorCodes.TRANSFORM_FAILED);
@@ -245,7 +243,7 @@ class A2UiDynamicAssemblyServiceTest {
         components.add(null);
         RenderA2UiArgs args = new RenderA2UiArgs("planner-surface", "root", components, null);
 
-        assertThatThrownBy(() -> assemblyService.assemble(args, A2UiCatalogIds.BASIC_V0_9, "main"))
+        assertThatThrownBy(() -> assemblyService.assemble(args, A2UiCatalogIds.BASIC_V1, "main"))
                 .isInstanceOf(SurfaceExecutionException.class)
                 .hasMessageContaining("must not be null");
     }
@@ -279,7 +277,7 @@ class A2UiDynamicAssemblyServiceTest {
                 List.of(Map.of("id", "root", "component", "StatusBadge", "text", "Approved")),
                 null);
 
-        assertThatThrownBy(() -> hostAwareAssembly.assemble(args, A2UiCatalogIds.BASIC_V0_9, "main"))
+        assertThatThrownBy(() -> hostAwareAssembly.assemble(args, A2UiCatalogIds.BASIC_V1, "main"))
                 .isInstanceOf(SurfaceExecutionException.class)
                 .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
                 .isEqualTo(SurfaceErrorCodes.A2UI_VALIDATION_FAILED);
@@ -308,17 +306,17 @@ class A2UiDynamicAssemblyServiceTest {
         }
 
         @Override
-        public Set<String> actionNames() {
-            return names;
+        public Set<com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiEventName> eventNames() {
+            return names.stream().map(com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiEventName::new).collect(java.util.stream.Collectors.toUnmodifiableSet());
         }
 
         @Override
-        public boolean supports(A2UiUserAction userAction) {
+        public boolean supports(A2UiAction userAction) {
             return false;
         }
 
         @Override
-        public List<A2UiMessage> handle(A2UiUserAction userAction, String requestId) {
+        public List<A2UiMessage> handle(A2UiAction userAction, String requestId) {
             return List.of();
         }
     }

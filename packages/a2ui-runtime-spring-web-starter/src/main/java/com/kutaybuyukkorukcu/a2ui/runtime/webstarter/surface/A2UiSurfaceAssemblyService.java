@@ -1,5 +1,6 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface;
 
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiValidationContext;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
@@ -8,6 +9,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionAllowList;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiAssembleGate;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiComponentVisibility;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiSurfacePolicy;
@@ -28,6 +30,7 @@ public class A2UiSurfaceAssemblyService {
     private final Supplier<A2UiActionAllowList> actionAllowList;
     private final A2UiSurfacePolicy surfacePolicy;
     private final A2UiRuntimeMetrics runtimeMetrics;
+    private final A2UiCatalogRegistry catalogRegistry;
 
     public A2UiSurfaceAssemblyService(A2UiTemplateRegistry templateRegistry, A2UiMessageValidator messageValidator) {
         this(templateRegistry, messageValidator, A2UiActionAllowList.empty());
@@ -69,11 +72,22 @@ public class A2UiSurfaceAssemblyService {
             Supplier<A2UiActionAllowList> actionAllowList,
             A2UiSurfacePolicy surfacePolicy,
             A2UiRuntimeMetrics runtimeMetrics) {
+        this(templateRegistry, messageValidator, actionAllowList, surfacePolicy, runtimeMetrics, A2UiCatalogRegistry.shared());
+    }
+
+    public A2UiSurfaceAssemblyService(
+            A2UiTemplateRegistry templateRegistry,
+            A2UiMessageValidator messageValidator,
+            Supplier<A2UiActionAllowList> actionAllowList,
+            A2UiSurfacePolicy surfacePolicy,
+            A2UiRuntimeMetrics runtimeMetrics,
+            A2UiCatalogRegistry catalogRegistry) {
         this.templateRegistry = templateRegistry;
         this.messageValidator = messageValidator;
         this.actionAllowList = actionAllowList == null ? A2UiActionAllowList::empty : actionAllowList;
         this.surfacePolicy = surfacePolicy == null ? A2UiSurfacePolicy.none() : surfacePolicy;
         this.runtimeMetrics = runtimeMetrics == null ? A2UiRuntimeMetrics.noop() : runtimeMetrics;
+        this.catalogRegistry = catalogRegistry == null ? A2UiCatalogRegistry.shared() : catalogRegistry;
     }
 
     public List<A2UiMessage> assemble(
@@ -85,7 +99,7 @@ public class A2UiSurfaceAssemblyService {
         List<A2UiMessage> messages = new ArrayList<>();
         messages.add(new A2UiMessage.CreateSurface(surfaceId, catalogId));
         messages.addAll(spec.buildMessages(surfaceId, slots));
-        rejectUnknownActions(messages);
+        rejectUnknownActions(messages, catalogId);
 
         A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
         for (A2UiMessage message : messages) {
@@ -111,13 +125,8 @@ public class A2UiSurfaceAssemblyService {
         return List.copyOf(messages);
     }
 
-    private void rejectUnknownActions(List<A2UiMessage> messages) {
-        resolveAllowList(actionAllowList).firstUnknownName(messages).ifPresent(actionName -> {
-            throw new SurfaceExecutionException(
-                    "Unknown action: " + actionName,
-                    SurfaceErrorCodes.UNKNOWN_ACTION,
-                    Map.of("actionName", actionName));
-        });
+    private void rejectUnknownActions(List<A2UiMessage> messages, String catalogId) {
+        A2UiAssembleGate.check(messages, resolveAllowList(actionAllowList), catalogRegistry, catalogId);
     }
 
     private void rejectHiddenComponents(List<A2UiMessage> messages) {

@@ -56,7 +56,7 @@ class ShowcaseCatalogContributionExampleTest {
 
         assertThatCode(() -> assembly.assemble(
                         new RenderA2UiArgs("main", "root", components, Map.of("notes", "")),
-                        A2UiCatalogIds.BASIC_V0_9,
+                        A2UiCatalogIds.BASIC_V1,
                         "main"))
                 .doesNotThrowAnyException();
     }

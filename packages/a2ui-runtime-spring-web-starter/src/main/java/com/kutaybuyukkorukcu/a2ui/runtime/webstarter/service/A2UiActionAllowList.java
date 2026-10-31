@@ -1,5 +1,6 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service;
 
+import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiEventName;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage.ComponentDefinition;
 
@@ -35,13 +36,13 @@ public final class A2UiActionAllowList {
             if (handler == null) {
                 continue;
             }
-            Set<String> declared = handler.actionNames();
+            Set<A2UiEventName> declared = handler.eventNames();
             if (declared == null || declared.isEmpty()) {
                 continue;
             }
-            for (String name : declared) {
-                if (name != null && !name.isBlank()) {
-                    union.add(name);
+            for (A2UiEventName name : declared) {
+                if (name != null && name.value() != null && !name.value().isBlank()) {
+                    union.add(name.value());
                 }
             }
         }

@@ -45,9 +45,24 @@ class A2UiRuntimeMetricsTest {
         metrics.recordActionRejected("confirmation");
         metrics.recordPolicyRejected("component");
 
-        assertThat(registry.counter("a2ui.action.rejected", "reason", "confirmation").count()).isEqualTo(1.0);
-        assertThat(registry.counter("a2ui.policy.rejected", "reason", "confirmation").count()).isEqualTo(1.0);
-        assertThat(registry.counter("a2ui.policy.rejected", "reason", "component").count()).isEqualTo(1.0);
+        assertThat(registry.counter(
+                "a2ui.action.rejected",
+                "kind", "event",
+                "outcome", "rejected",
+                "name", "unknown",
+                "reason", "confirmation").count()).isEqualTo(1.0);
+        assertThat(registry.counter(
+                "a2ui.policy.rejected",
+                "kind", "event",
+                "outcome", "rejected",
+                "name", "unknown",
+                "reason", "confirmation").count()).isEqualTo(1.0);
+        assertThat(registry.counter(
+                "a2ui.policy.rejected",
+                "kind", "event",
+                "outcome", "rejected",
+                "name", "unknown",
+                "reason", "component").count()).isEqualTo(1.0);
     }
 
     @Test

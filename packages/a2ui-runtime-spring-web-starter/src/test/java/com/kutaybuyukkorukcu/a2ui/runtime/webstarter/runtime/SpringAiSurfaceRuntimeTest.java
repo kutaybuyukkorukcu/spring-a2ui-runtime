@@ -37,13 +37,13 @@ class SpringAiSurfaceRuntimeTest {
     void shouldDelegateToDynamicAdapterByDefault() {
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show dashboard", null, null);
         A2UiMessage.CreateSurface createSurface =
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9);
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1);
         when(dynamicAdapter.generate(any(), any(), any())).thenReturn(List.of(createSurface));
         when(dynamicAdapter.missingSurfaceMessage()).thenReturn("missing");
 
         SpringAiSurfaceRuntime runtime = createRuntime(new A2UiWebProperties(), dynamicAdapter);
 
-        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
+        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V1))
                 .assertNext(event -> {
                     assertThat(event).isInstanceOf(A2UiRuntimeEvent.Surface.class);
                     assertThat(((A2UiRuntimeEvent.Surface) event).message())
@@ -59,11 +59,11 @@ class SpringAiSurfaceRuntimeTest {
 
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show card", null, null);
         when(templateAdapter.generate(any(), any(), any())).thenReturn(List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9)));
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1)));
 
         SpringAiSurfaceRuntime runtime = createRuntime(properties, templateAdapter);
 
-        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
+        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V1))
                 .expectNextCount(1)
                 .verifyComplete();
     }

@@ -17,7 +17,7 @@ public class A2UiCatalogController {
         this.catalogService = catalogService;
     }
 
-    @GetMapping(value = "/a2ui/catalogs/basic-v0.9", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/a2ui/catalogs/basic", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, Object>> getBasicCatalog() {
         return ResponseEntity.ok(catalogService.getBasicCatalog());
     }
