@@ -470,23 +470,23 @@ Next: **A2UI v1.0 actions / functions** (below).
 
 ## Next — A2UI v1.0 actions / functions
 
-**Status:** map locked here. No code until identity + event-vs-function are decided (ADR).  
+**Status:** step 1 decided in [ADR 004](docs/adr/004-action-and-function-identity.md). Steps 2–4 not started. Plan: [a2ui v1 actions / functions](docs/plans/a2ui-v1-actions-functions.md).  
 **Library:** **`3.0.0` candidate** — protocol bump, same pattern as `2.0.0` for v0.9.1.  
 **Prerequisite:** library **`2.2.0`** (architecture + generate/govern/execute) and the MVP demo sample in `apps/`.  
-**Protocol:** A2UI **v1.0 Candidate** ([spec](https://a2ui.org/specification/v1.0-a2ui/), [evolution](https://a2ui.org/specification/v1.0-evolution-guide/)). v0.9.1 stays Current on the `2.x` line until this phase’s acceptance is met.  
+**Protocol:** A2UI **v1.0 Candidate** ([spec](https://a2ui.org/specification/v1.0-a2ui/), [evolution](https://a2ui.org/specification/v1.0-evolution-guide/)). Envelope `version` const is **`1.0`** (schema), not `v1.0`. v0.9.1 stays Current on the `2.x` line until this phase’s acceptance is met.  
 **Does not reopen** [ADR 001](docs/adr/001-streaming-surface-generation.md) / [ADR 002](docs/adr/002-in-product-surfaces.md) / [ADR 003](docs/adr/003-catalog-scoped-fail-fast.md): native SSE, fail-fast, in-product surfaces, catalog-scoped validation stay.
 
 Today the execute path is **one** pipe: `POST /a2ui/actions` with `{ action: { name, surfaceId, … } }` → first `A2UiActionHandler.supports()` → host messages. The v0.9 catalog already allows Button `action.event` **or** `action.functionCall`; we only allow-list and route **event names**. v1.0 makes that split real: events to the agent, functions as catalog-defined executables (renderer-local and/or agent RPC).
 
 **Sequencing (locked)**
 
-0. **Map** (this section) — open questions captured, not decided  
-1. **Identity + event vs function** — decide before wire code (slices 2–3)  
-2. **v1.0 action/function migration** — catalogs, envelopes, ingress (slice 1)  
-3. **Idempotency** — duplicate / retry semantics against that identity (slice 4)  
-4. **Routing + execution observability** — tags and traces after identity; counters can start earlier (slice 5)
+0. **Map** (this section) — baseline and scope  
+1. **Identity + event vs function** — ✅ decided in [ADR 004](docs/adr/004-action-and-function-identity.md) (event name; function `(catalogId, @call)`; rename; idempotency keys; test strategy). No wire code in that ADR.  
+2. **v1.0 action/function migration** — catalogs, envelopes, ingress (plan slices 1–2)  
+3. **Idempotency** — implement the keys ADR 004 fixed (plan slice 3)  
+4. **Routing + execution observability** — tags ADR 004 fixed (plan slice 4)
 
-**Absorbs** Phase X follow-up: rename `A2UiUserAction` to match the JSON property `action` (and whatever v1.0 event vs function types need).
+**Absorbs** Phase X follow-up: rename `A2UiUserAction`. Decided in ADR 004: the inbound event type is `A2UiAction`; handlers declare `eventNames()`. Agent functions use `A2UiAgentFunction`, not that type.
 
 ### 1 — A2UI v1.0 action/function migration
 
@@ -494,7 +494,7 @@ Hard cutover when Current moves, not a dual-protocol mode. Same discipline as Ph
 
 In scope when we bump:
 
-- Wire version `v1.0`; basic catalog + host `A2UiCatalogContribution` against v1.0 schemas (including catalog **`functions`** maps, UAX #31 names, optional per-call `catalogId`)
+- Wire version const `1.0`; basic catalog + host `A2UiCatalogContribution` against v1.0 schemas (including catalog **`functions`** maps, UAX #31 names, optional per-call `catalogId`)
 - Agent→renderer envelopes: existing surface ops **plus** `callRendererFunction` / `agentFunctionResponse` (and `createSurface` optional embedded components/dataModel)
 - Renderer→agent ingress: `action` **and** `callAgentFunction` / `rendererFunctionResponse` / `error` — not only today’s `{ "action": … }`
 - Assemble + `POST` deny-unknown against the **decided** identity (slice 2), not a second allow-list invention
@@ -516,18 +516,7 @@ Out of scope: foreign-client bridges; executing renderer-only functions on the J
 
 `surfaceId:name` is **not** the allow-list key. Two surfaces can share `approve`; the union is a flat name set. Empty allow-list stays fail-open.
 
-**Open (decide in ADR, then code)**
-
-- Is `surfaceId:name` enough for **events**? Enough for deny-unknown, planner context, metrics, and handler routing — or do we need catalog, component id, or a host-declared alias?
-- How do we **position names** next to v1.0 catalog **functions**? Protocol `FunctionCall` is `{ call, args, catalogId? }` resolved against the catalog `functions` map (then surface default `catalogId`). Events stay `event.name` (+ `context`). One identity model should cover:
-  - planner “only emit these”
-  - assemble fail-fast
-  - ingress routing
-  - metrics tags  
-  without collapsing `approve` (event) and `openUrl` (function) into one string bag.
-- Candidates to compare, not pick here: `surfaceId:name`; name-only (today’s allow-list); `catalogId:call` for functions; explicit handler-declared route keys.
-
-Do **not** put `catalogId` on the inbound event DTO unless the ADR says so (ADR 003: infer catalog from `CreateSurface`, else basic).
+**Decided** ([ADR 004](docs/adr/004-action-and-function-identity.md)): event key is the **name** (`A2UiEventName`). Function key is the pair **`(catalogId, @call)`** (`A2UiFunctionId`), not a colon-joined string. `surfaceId:name` and handler route aliases are not the allow-list. Planner, assemble, ingress, and meter tag `name` all use those two keys. `surfaceId` stays on the payload and in logs, not on meters. Inbound `A2UiAction` still has no `catalogId` (ADR 003). v1.0 function calls use `@call`, not the v0.9 `call` key.
 
 ### 3 — Agent action vs function
 
@@ -540,15 +529,14 @@ v1.0 component `action` is one of:
 
 Plus stream RPCs: agent calls renderer (`callRendererFunction` → `rendererFunctionResponse`); renderer calls agent (`callAgentFunction` → `agentFunctionResponse`). Catalog `allowedCallers`: `rendererOnly` (default) / `agentOnly` / `rendererOrAgent`. Correlation id: `functionCallId`.
 
-**Position for this runtime**
+**Decided** ([ADR 004](docs/adr/004-action-and-function-identity.md)):
 
-- **Event** = product write / agent turn. Ingress stays our native pipe (`POST /a2ui/actions` or its v1.0 successor). Host owns domain logic. We validate, allow-list, policy, route.
-- **Function** = catalog-typed executable. `rendererOnly` stays on the host FE (we do not run it). Agent-callable functions that the host registers are a **new** execute seam — not `supports(name)` pretending to be `openUrl`.
-- Dynamic values / `Checkable` `FunctionCall`s are the same catalog functions, not Button events.
+- **Event** = product write / agent turn. Ingress stays `POST /a2ui/actions`. Host owns domain logic. We validate, allow-list, policy, route. Java type becomes `A2UiAction`. `actionNames()` becomes `eventNames()`.
+- **Function** = catalog-typed executable. This runtime runs Java only for `allowedCallers: rendererOrAgent` via `A2UiAgentFunction` (exact id, not `supports(name)`). `rendererOnly` (the basic catalog, including `openUrl`) stays on the host FE. `agentOnly` is renderer-executed `callRendererFunction`, and assemble rejects it on a component.
+- Dynamic values / `Checkable` function calls are the same catalog functions, not button events.
+- Unknown event → `UNKNOWN_ACTION`. Unknown function → `UNKNOWN_FUNCTION` on `agentFunctionResponse`. Those codes do not substitute for each other.
 
-Today: schema accepts `functionCall`; allow-list extraction **ignores** it; POST has no function RPC. That is the gap this slice closes.
-
-Do **not** mix event names and function `call` names in one SPI without an ADR. Do **not** treat `functionCall` as a second way to hit the same handler.
+Today: schema accepts `functionCall`; allow-list extraction ignores it; POST has no function RPC. Plan slices 1–2 close that gap.
 
 ### 4 — Idempotency / duplicate action semantics
 
@@ -556,32 +544,19 @@ Do **not** mix event names and function `call` names in one SPI without an ADR. 
 
 v1.0 `functionCallId` correlates **one invocation** across RPC messages; it is not by itself an idempotency key for `action.event`.
 
-**Open**
-
-- Duplicate **event** clicks: reject, replay last ack, or always execute? Runtime vs host?
-- Retries with the same `requestId` / `functionCallId`: at-most-once at the edge, or document “at-least-once; host must be idempotent”?
-- Confirmation retry (`context.confirmed=true`) must remain a **new** authorized call, not a duplicate of the 409.
-
-Prefer: runtime may dedupe **ingress** (same key → same ack); **domain writes stay host-owned**. Do not invent a platform outbox.
+**Decided** ([ADR 004](docs/adr/004-action-and-function-identity.md)): domain writes stay host-owned (at-least-once across restart). No outbox. Process-local ingress dedupe only. Events dedupe on `X-A2UI-Idempotency-Key` plus a confirmation bit, so `context.confirmed=true` is a new authorized call; `X-A2UI-Request-Id` is not a dedupe key. Functions dedupe on `functionCallId` for one invocation. Absent event key: every POST executes. Plan slice 3 implements the maps.
 
 ### 5 — Routing + execution observability
 
 **Today:** `a2ui.action.executed`, `a2ui.action.rejected` / `a2ui.policy.rejected` (`reason`), `a2ui.runtime.action.event`. `routeKey` is on error maps, not on meters. No duration. Unknown action vs unhandled vs invalid response are codes, not metric tags. Renderer `error` events are barely counted.
 
-**Wanted (after identity)**
-
-- Route identity + **kind** (`event` vs `function`) + outcome (`executed` / `rejected` / `duplicate` / `unhandled`) on counters
-- Execution latency for POST (and later function RPC)
-- Structured logs: request id, route, kind, error code — **not** action `context` PII
-- Distinct codes for unknown **function** vs unknown **event**
-
-Do not high-cardinality-tag `surfaceId` if hosts mint unique ids per slot. Follow [ops and diagnostics](docs/guides/ops-and-diagnostics.md) redaction.
+**Decided** ([ADR 004](docs/adr/004-action-and-function-identity.md)): tags `kind`, `outcome` (`executed` / `rejected` / `duplicate` / `unhandled`), and `name` (declared event name, function `@call`, or `unknown`). Latency uses that tag set. Logs may carry request id, `surfaceId`, and registered `catalogId`. Logs do not carry action `context`. Do not tag `surfaceId`. Distinct codes `UNKNOWN_ACTION` vs `UNKNOWN_FUNCTION`. Plan slice 4 applies the tags. Follow [ops and diagnostics](docs/guides/ops-and-diagnostics.md) redaction.
 
 ---
 
 ## Later — residual runtime maturity
 
-Items below stay **after** builder batteries (or never, if they fail the extension filter). **A2UI v1.0 actions / functions** stays Next. Do not start the sequenced pair below until that map is done, unless a later note reorders.
+Items below stay **after** builder batteries (or never, if they fail the extension filter). **A2UI v1.0 actions / functions** stays Next until it has shipped. The parallel two-hop pair waits for that phase, unless a later note reorders. Identity being recorded in ADR 004 leaves this pair where it is.
 
 **Sequencing (locked, this pair):** parallel two-hop generation → host compose tools (facts hop). The facts hop adds wall-clock to `POST /a2ui/surface/stream`; do not stack it on serial hops.
 
@@ -689,4 +664,4 @@ Where Spring AI `ChatOptions` already supports a provider prompt cache, we can e
 | X     | v0.9 wire format, validation-failed loop, syntax healer (no semantic repair) |
 | Batteries C/C2 | Template `Builder` registration, `A2UiFixedSurfaceSpec`, `A2UiCatalogContribution` merge + validate, host-catalog negotiation, showcase `ops-approval` assembly |
 | Generation context | Planner digest + prune, generation-context builder, `examplesText()`, `a2ui.generation.context.chars` |
-| v1.0 actions / functions | Not started — event vs function ingress, identity, idempotency, route/kind/outcome meters |
+| v1.0 actions / functions | Identity decided ([ADR 004](docs/adr/004-action-and-function-identity.md)); implementation not started ([plan](docs/plans/a2ui-v1-actions-functions.md)) — event vs function ingress, idempotency maps, route/kind/outcome meters |
