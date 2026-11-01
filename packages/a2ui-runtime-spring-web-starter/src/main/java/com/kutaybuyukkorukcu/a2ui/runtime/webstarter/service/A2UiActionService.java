@@ -22,11 +22,16 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class A2UiActionService {
+
+    static final Duration DEFAULT_JOIN_TIMEOUT = Duration.ofSeconds(30);
+    static final String FUNCTION_FAILED = "FUNCTION_FAILED";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(A2UiActionService.class);
 
@@ -41,6 +46,7 @@ public class A2UiActionService {
     private final List<A2UiRendererFunctionResponseHandler> responseHandlers;
     private final A2UiIngressDeduper deduper;
     private final A2UiRendererCallGuard rendererCalls;
+    private final Duration joinTimeout;
 
     public A2UiActionService(List<A2UiActionHandler> actionHandlers, A2UiRuntimeMetrics runtimeMetrics, A2UiMessageValidator messageValidator) {
         this(actionHandlers, runtimeMetrics, messageValidator, A2UiActionAllowList.empty());
@@ -96,6 +102,34 @@ public class A2UiActionService {
             List<A2UiRendererFunctionResponseHandler> responseHandlers,
             A2UiIngressDeduper deduper,
             A2UiPendingRendererCalls pendingRendererCalls) {
+        this(
+                actionHandlers,
+                runtimeMetrics,
+                messageValidator,
+                actionAllowList,
+                actionPolicy,
+                surfacePolicy,
+                catalogRegistry,
+                agentFunctions,
+                responseHandlers,
+                deduper,
+                pendingRendererCalls,
+                DEFAULT_JOIN_TIMEOUT);
+    }
+
+    A2UiActionService(
+            List<A2UiActionHandler> actionHandlers,
+            A2UiRuntimeMetrics runtimeMetrics,
+            A2UiMessageValidator messageValidator,
+            A2UiActionAllowList actionAllowList,
+            A2UiActionPolicy actionPolicy,
+            A2UiSurfacePolicy surfacePolicy,
+            A2UiCatalogRegistry catalogRegistry,
+            A2UiAgentFunctionRegistry agentFunctions,
+            List<A2UiRendererFunctionResponseHandler> responseHandlers,
+            A2UiIngressDeduper deduper,
+            A2UiPendingRendererCalls pendingRendererCalls,
+            Duration joinTimeout) {
         this.actionHandlers = actionHandlers == null ? List.of() : List.copyOf(actionHandlers);
         this.runtimeMetrics = runtimeMetrics == null ? A2UiRuntimeMetrics.noop() : runtimeMetrics;
         this.messageValidator = Objects.requireNonNull(messageValidator, "messageValidator");
@@ -111,6 +145,9 @@ public class A2UiActionService {
         this.rendererCalls = new A2UiRendererCallGuard(
                 this.catalogRegistry,
                 pendingRendererCalls == null ? new A2UiPendingRendererCalls() : pendingRendererCalls);
+        this.joinTimeout = joinTimeout == null || joinTimeout.isZero() || joinTimeout.isNegative()
+                ? DEFAULT_JOIN_TIMEOUT
+                : joinTimeout;
     }
 
     public A2UiIngressResult handleClientEvent(A2UiRendererToAgentMessage event, String requestId) {
@@ -140,14 +177,22 @@ public class A2UiActionService {
     private A2UiIngressResult handleEvent(A2UiAction action, String requestId, String idempotencyKey, long started) {
         boolean confirmationSatisfied = confirmationSatisfied(action);
         String meterName = meterEventName(action.name());
-        A2UiIngressDeduper.Admission admission = deduper.beginEvent(idempotencyKey, confirmationSatisfied);
+        String eventFingerprint = eventFingerprint(action);
+        A2UiIngressDeduper.Admission admission =
+                deduper.beginEvent(idempotencyKey, confirmationSatisfied, eventFingerprint);
         return switch (admission) {
             case A2UiIngressDeduper.Admission.Replay replay -> {
                 record(started, "event", "duplicate", meterName, null);
                 yield replay.stored().materialize();
             }
             case A2UiIngressDeduper.Admission.InFlight inFlight -> joinInFlight(inFlight, started, "event", meterName);
-            case A2UiIngressDeduper.Admission.Mismatch ignored -> throw new IllegalStateException("event keys do not mismatch");
+            case A2UiIngressDeduper.Admission.Mismatch ignored -> {
+                record(started, "event", "rejected", meterName, "idempotency_mismatch");
+                throw new A2UiActionException(
+                        "Idempotency key was already used for a different event",
+                        A2UiActionErrorCodes.INVALID_CLIENT_EVENT,
+                        Map.of("surfaceId", action.surfaceId(), "actionName", action.name()));
+            }
             case A2UiIngressDeduper.Admission.Proceed proceed -> {
                 try {
                     A2UiIngressResult result = executeEvent(action, requestId, started, meterName);
@@ -218,7 +263,8 @@ public class A2UiActionService {
                 call.catalogId(),
                 call.call(),
                 requestId);
-        A2UiIngressDeduper.Admission admission = deduper.beginFunction(call.functionCallId(), fingerprint);
+        A2UiIngressDeduper.Admission admission =
+                deduper.beginFunction(call.surfaceId(), call.functionCallId(), fingerprint);
         return switch (admission) {
             case A2UiIngressDeduper.Admission.Replay replay -> {
                 record(started, "function", "duplicate", meterName, null);
@@ -230,11 +276,27 @@ public class A2UiActionService {
                 yield functionError(call.functionCallId(), A2UiErrorCode.INVALID_FUNCTION_CALL.code(), "functionCallId was already used");
             }
             case A2UiIngressDeduper.Admission.Proceed proceed -> {
-                A2UiIngressResult result = executeFunction(call, resolved, requestId, started, meterName);
-                if (proceed.store()) {
-                    deduper.completeFunction(call.functionCallId(), result, null);
+                try {
+                    A2UiIngressResult result = executeFunction(call, resolved, requestId, started, meterName);
+                    if (proceed.store()) {
+                        deduper.completeFunction(call.surfaceId(), call.functionCallId(), result, null);
+                    }
+                    yield result;
+                } catch (RuntimeException ex) {
+                    LOGGER.warn(
+                            "a2ui function failed surfaceId={} functionCallId={} requestId={}",
+                            call.surfaceId(),
+                            call.functionCallId(),
+                            requestId,
+                            ex);
+                    A2UiIngressResult failed = functionError(
+                            call.functionCallId(), FUNCTION_FAILED, "Function execution failed");
+                    if (proceed.store()) {
+                        deduper.completeFunction(call.surfaceId(), call.functionCallId(), failed, null);
+                    }
+                    record(started, "function", "rejected", meterName, "failed");
+                    yield failed;
                 }
-                yield result;
             }
         };
     }
@@ -266,7 +328,7 @@ public class A2UiActionService {
                 return functionError(
                         call.functionCallId(),
                         A2UiErrorCode.INVALID_FUNCTION_CALL.code(),
-                        "catalogId is required when more than one agent function uses this call");
+                        "catalogId is required to resolve this call");
             }
             case A2UiAgentFunctionRegistry.Resolved.Invalid ignored -> {
                 record(started, "function", "rejected", "unknown", "invalid_function_call");
@@ -384,14 +446,20 @@ public class A2UiActionService {
     private A2UiIngressResult joinInFlight(
             A2UiIngressDeduper.Admission.InFlight inFlight, long started, String kind, String meterName) {
         try {
-            A2UiIngressDeduper.Stored stored = inFlight.future().join();
+            A2UiIngressDeduper.Stored stored = inFlight.future().get(joinTimeout.toMillis(), TimeUnit.MILLISECONDS);
             record(started, kind, "duplicate", meterName, null);
             return stored.materialize();
-        } catch (CompletionException ex) {
+        } catch (TimeoutException ex) {
+            throw new IllegalStateException("timed out waiting for in-flight call");
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("interrupted waiting for in-flight call", ex);
+        } catch (ExecutionException ex) {
             if (ex.getCause() instanceof RuntimeException runtime) {
                 throw runtime;
             }
-            throw ex;
+            Throwable cause = ex.getCause() == null ? ex : ex.getCause();
+            throw new IllegalStateException(cause);
         }
     }
 
@@ -413,6 +481,11 @@ public class A2UiActionService {
             case A2UiAgentFunctionRegistry.Resolved.Ambiguous ambiguous -> ambiguous.call();
             default -> "unknown";
         };
+    }
+
+    private static String eventFingerprint(A2UiAction action) {
+        String source = action.sourceComponentId() == null ? "" : action.sourceComponentId();
+        return action.name() + "\n" + action.surfaceId() + "\n" + source + "\n" + A2UiCanonicalJson.args(action.context());
     }
 
     private static String fingerprint(A2UiAgentFunctionRegistry.Resolved resolved, Map<String, Object> args) {

@@ -93,7 +93,36 @@ class A2UiAgentFunctionRegistryTest {
         assertThat(registry.classify(A2UiCatalogIds.BASIC_V1, "openUrl", catalogs))
                 .isInstanceOf(A2UiAgentFunctionRegistry.Resolved.Forbidden.class);
         assertThat(registry.classify(null, "openUrl", catalogs))
-                .isInstanceOf(A2UiAgentFunctionRegistry.Resolved.Unknown.class);
+                .isInstanceOf(A2UiAgentFunctionRegistry.Resolved.Forbidden.class);
+        assertThat(registry.classify(null, "formatDate", catalogs))
+                .isInstanceOf(A2UiAgentFunctionRegistry.Resolved.Forbidden.class);
+    }
+
+    @Test
+    void omittedCatalogIdIsAmbiguousWhenAnotherCatalogAlsoDefinesTheCall() {
+        String other = "https://example.com/catalogs/other/1.0";
+        A2UiCatalogRegistry both = A2UiCatalogRegistry.withContributions(catalogs, List.of(new A2UiCatalogContribution() {
+            @Override
+            public String catalogId() {
+                return other;
+            }
+
+            @Override
+            public Map<String, Map<String, Object>> componentSchemas() {
+                return Map.of("Note", Map.of("type", "object"));
+            }
+
+            @Override
+            public Map<String, Map<String, Object>> functions() {
+                return Map.of("quote", Map.of("allowedCallers", "rendererOnly"));
+            }
+        }));
+        A2UiAgentFunctionRegistry registry = new A2UiAgentFunctionRegistry(List.of(function(HOST, "quote")), both);
+
+        assertThat(registry.classify(null, "quote", both))
+                .isInstanceOf(A2UiAgentFunctionRegistry.Resolved.Ambiguous.class);
+        assertThat(registry.classify(HOST, "quote", both))
+                .isInstanceOf(A2UiAgentFunctionRegistry.Resolved.Ready.class);
     }
 
     private static A2UiAgentFunction function(String catalogId, String call) {

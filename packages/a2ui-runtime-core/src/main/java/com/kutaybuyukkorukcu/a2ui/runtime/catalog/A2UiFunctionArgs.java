@@ -8,6 +8,7 @@ import com.networknt.schema.SchemaValidatorsConfig;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,7 +25,7 @@ public final class A2UiFunctionArgs {
         if (argsSchema.isEmpty()) {
             return List.of();
         }
-        JsonNode schemaNode = MAPPER.valueToTree(argsSchema);
+        JsonNode schemaNode = MAPPER.valueToTree(resolveSchema(argsSchema));
         JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);
         SchemaValidatorsConfig config = SchemaValidatorsConfig.builder().build();
         JsonSchema schema = factory.getSchema(schemaNode, config);
@@ -53,5 +54,43 @@ public final class A2UiFunctionArgs {
             return Map.of();
         }
         return (Map<String, Object>) argsMap;
+    }
+
+    /**
+     * Inlines catalog {@code $ref}s the same way component prop validation does, so a relative
+     * {@code common_types.json#/$defs/...} reference is not loaded as a URI.
+     */
+    private static Map<String, Object> resolveSchema(Map<String, Object> schema) {
+        Object ref = schema.get("$ref");
+        if (ref instanceof String refString) {
+            Map<String, Object> inlined = A2UiCatalogRefSchemas.inline(refString);
+            if (inlined != null) {
+                Map<String, Object> resolved = new LinkedHashMap<>(inlined);
+                Object description = schema.get("description");
+                if (description != null) {
+                    resolved.put("description", description);
+                }
+                return resolveSchema(resolved);
+            }
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : schema.entrySet()) {
+            out.put(entry.getKey(), resolveNode(entry.getValue()));
+        }
+        return out;
+    }
+
+    private static Object resolveNode(Object node) {
+        if (node instanceof Map<?, ?> map) {
+            return resolveSchema(A2UiMaps.copyOf(map));
+        }
+        if (node instanceof List<?> list) {
+            List<Object> copy = new ArrayList<>(list.size());
+            for (Object item : list) {
+                copy.add(resolveNode(item));
+            }
+            return copy;
+        }
+        return node;
     }
 }

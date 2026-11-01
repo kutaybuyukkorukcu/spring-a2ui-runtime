@@ -70,6 +70,25 @@ class A2UiV1ConformanceTest {
     }
 
     @Test
+    void emittedFunctionEnvelopesValidateAgainstAgentToRenderer() throws Exception {
+        ObjectMapper mapper = new ObjectMapper().registerModule(new A2UiJacksonModule());
+        JsonSchema schema = basicFactory().getSchema(schemaNode("agent_to_renderer.json"), CONFIG);
+        List<A2UiMessage> emitted = List.of(
+                new A2UiMessage.CallRendererFunction(
+                        "main",
+                        "call-1",
+                        A2UiCatalogIds.BASIC_V1,
+                        "formatDate",
+                        Map.of("value", "2026-01-01T00:00:00Z", "format", "yyyy")),
+                A2UiMessage.AgentFunctionResponse.ok("call-1", "ok"),
+                A2UiMessage.AgentFunctionResponse.error("call-2", "UNKNOWN_FUNCTION", "Unknown function"));
+        for (A2UiMessage message : emitted) {
+            JsonNode node = mapper.readTree(mapper.writeValueAsString(message));
+            assertThat(schema.validate(node)).as(node.toString()).isEmpty();
+        }
+    }
+
+    @Test
     void assembledSurfaceValidatesAgainstAgentToRenderer() throws Exception {
         ObjectMapper mapper = new ObjectMapper().registerModule(new A2UiJacksonModule());
         JsonSchema schema = basicFactory().getSchema(schemaNode("agent_to_renderer.json"), CONFIG);

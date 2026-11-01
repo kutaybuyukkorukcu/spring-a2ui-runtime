@@ -89,7 +89,7 @@ public final class A2UiAgentFunctionRegistry {
             return new Resolved.Invalid(call);
         }
         if (catalogId == null || catalogId.isBlank()) {
-            return resolve(null, call);
+            return resolveWithoutCatalog(call, catalogs);
         }
         if (catalogs == null || !catalogs.isSupportedCatalogId(catalogId)) {
             return new Resolved.UnsupportedCatalog(catalogId, call);
@@ -107,6 +107,61 @@ public final class A2UiAgentFunctionRegistry {
         }
         return new Resolved.Ready(function.id(), function);
     }
+
+    /**
+     * No surface table, so an omitted {@code catalogId} cannot use the surface default.
+     * A {@code rendererOnly} or {@code agentOnly} definition is {@link Resolved.Forbidden}
+     * even when the client omits {@code catalogId}. A name that is defined in more than
+     * one supported catalog, or that is both a registered agent function and a definition
+     * in another catalog, is {@link Resolved.Ambiguous}. The client must send {@code catalogId}.
+     */
+    private Resolved resolveWithoutCatalog(String call, A2UiCatalogRegistry catalogs) {
+        List<A2UiAgentFunction> matches = byCall.getOrDefault(call, List.of());
+        List<CatalogHit> definitions = catalogDefinitions(call, catalogs);
+        if (matches.size() > 1) {
+            return new Resolved.Ambiguous(call);
+        }
+        if (matches.size() == 1) {
+            A2UiAgentFunction only = matches.get(0);
+            boolean otherCatalog = definitions.stream()
+                    .anyMatch(hit -> !hit.catalogId().equals(only.id().catalogId()));
+            if (otherCatalog) {
+                return new Resolved.Ambiguous(call);
+            }
+            return new Resolved.Ready(only.id(), only);
+        }
+        if (definitions.isEmpty()) {
+            return new Resolved.Unknown(null, call);
+        }
+        boolean anyExecutable = definitions.stream()
+                .anyMatch(hit -> A2UiIdentifiers.RENDERER_OR_AGENT.equals(hit.allowedCallers()));
+        boolean anyForbidden = definitions.stream()
+                .anyMatch(hit -> !A2UiIdentifiers.RENDERER_OR_AGENT.equals(hit.allowedCallers()));
+        if (anyForbidden && !anyExecutable) {
+            CatalogHit hit = definitions.get(0);
+            return new Resolved.Forbidden(new A2UiFunctionId(hit.catalogId(), call));
+        }
+        if (definitions.size() == 1 && anyExecutable) {
+            return new Resolved.Unknown(definitions.get(0).catalogId(), call);
+        }
+        return new Resolved.Ambiguous(call);
+    }
+
+    private static List<CatalogHit> catalogDefinitions(String call, A2UiCatalogRegistry catalogs) {
+        if (catalogs == null) {
+            return List.of();
+        }
+        List<CatalogHit> hits = new ArrayList<>();
+        for (String catalogId : catalogs.supportedCatalogIds()) {
+            A2UiCatalogFunction definition = catalogs.function(catalogId, call);
+            if (definition != null) {
+                hits.add(new CatalogHit(catalogId, definition.allowedCallers()));
+            }
+        }
+        return hits;
+    }
+
+    private record CatalogHit(String catalogId, String allowedCallers) {}
 
     public String formatPlannerBlock() {
         if (byId.isEmpty()) {

@@ -111,6 +111,17 @@ class A2UiFunctionIngressIntegrationTest {
     }
 
     @Test
+    void rendererOnlyFunctionWithoutCatalogIdIsInvalidFunctionCall() {
+        ResponseEntity<String> response = post("""
+                {"version":"1.0","callAgentFunction":{"surfaceId":"main","functionCallId":"c-open-bare","callFunction":{"@call":"openUrl","args":{"url":"https://example.com"}}}}
+                """);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).contains("INVALID_FUNCTION_CALL");
+        assertThat(response.getBody()).doesNotContain("UNKNOWN_FUNCTION");
+    }
+
+    @Test
     void rendererOnlyFunctionIsInvalidFunctionCall() {
         ResponseEntity<String> response = post("""
                 {"version":"1.0","callAgentFunction":{"surfaceId":"main","functionCallId":"c-open","callFunction":{"@call":"openUrl","catalogId":"%s","args":{"url":"https://example.com"}}}}

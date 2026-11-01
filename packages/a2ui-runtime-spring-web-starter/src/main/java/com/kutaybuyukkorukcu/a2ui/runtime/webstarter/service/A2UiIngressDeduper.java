@@ -23,7 +23,7 @@ public final class A2UiIngressDeduper {
     private final int cap;
     private final Duration ttl;
     private final ConcurrentHashMap<EventKey, Slot> events = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, FunctionSlot> functions = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<FunctionKey, FunctionSlot> functions = new ConcurrentHashMap<>();
 
     public A2UiIngressDeduper() {
         this(Clock.systemUTC(), DEFAULT_CAP, DEFAULT_TTL);
@@ -35,13 +35,13 @@ public final class A2UiIngressDeduper {
         this.ttl = ttl == null ? DEFAULT_TTL : ttl;
     }
 
-    public Admission beginEvent(String idempotencyKey, boolean confirmationSatisfied) {
+    public Admission beginEvent(String idempotencyKey, boolean confirmationSatisfied, String fingerprint) {
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
             return new Admission.Proceed(false);
         }
         evict(events);
         EventKey key = new EventKey(idempotencyKey, confirmationSatisfied);
-        Slot fresh = new Slot();
+        Slot fresh = new Slot(fingerprint);
         Slot existing = events.putIfAbsent(key, fresh);
         if (existing == null) {
             if (events.size() > cap) {
@@ -51,7 +51,7 @@ public final class A2UiIngressDeduper {
             }
             return new Admission.Proceed(true);
         }
-        return existing.admission();
+        return existing.admission(fingerprint);
     }
 
     public void completeEvent(
@@ -75,29 +75,33 @@ public final class A2UiIngressDeduper {
         }
     }
 
-    public Admission beginFunction(String functionCallId, String fingerprint) {
+    public Admission beginFunction(String surfaceId, String functionCallId, String fingerprint) {
         if (functionCallId == null || functionCallId.isBlank()) {
             return new Admission.Proceed(false);
         }
         evictFunctions();
+        FunctionKey key = functionKey(surfaceId, functionCallId);
         FunctionSlot fresh = new FunctionSlot(fingerprint);
-        FunctionSlot existing = functions.putIfAbsent(functionCallId, fresh);
+        FunctionSlot existing = functions.putIfAbsent(key, fresh);
         if (existing == null) {
             if (functions.size() > cap) {
-                functions.remove(functionCallId, fresh);
-                LOGGER.warn("function idempotency map is full; executing without storing functionCallId={}", functionCallId);
+                functions.remove(key, fresh);
+                LOGGER.warn(
+                        "function idempotency map is full; executing without storing functionCallId={}",
+                        functionCallId);
                 return new Admission.Proceed(false);
             }
             return new Admission.Proceed(true);
         }
-        if (!existing.fingerprint.equals(fingerprint)) {
+        if (!existing.fingerprint.equals(fingerprint == null ? "" : fingerprint)) {
             return new Admission.Mismatch();
         }
         return existing.admission();
     }
 
-    public void completeFunction(String functionCallId, A2UiIngressResult result, A2UiActionException failure) {
-        FunctionSlot slot = functions.get(functionCallId);
+    public void completeFunction(
+            String surfaceId, String functionCallId, A2UiIngressResult result, A2UiActionException failure) {
+        FunctionSlot slot = functions.get(functionKey(surfaceId, functionCallId));
         if (slot == null) {
             return;
         }
@@ -105,11 +109,15 @@ public final class A2UiIngressDeduper {
         slot.future.complete(new Stored(result, copy(failure)));
     }
 
-    public void abandonFunction(String functionCallId, Throwable failure) {
-        FunctionSlot slot = functions.remove(functionCallId);
+    public void abandonFunction(String surfaceId, String functionCallId, Throwable failure) {
+        FunctionSlot slot = functions.remove(functionKey(surfaceId, functionCallId));
         if (slot != null) {
             slot.future.completeExceptionally(failure);
         }
+    }
+
+    private static FunctionKey functionKey(String surfaceId, String functionCallId) {
+        return new FunctionKey(surfaceId == null ? "" : surfaceId, functionCallId);
     }
 
     private void evict(ConcurrentHashMap<EventKey, Slot> map) {
@@ -135,6 +143,8 @@ public final class A2UiIngressDeduper {
 
     public record EventKey(String idempotencyKey, boolean confirmationSatisfied) {}
 
+    public record FunctionKey(String surfaceId, String functionCallId) {}
+
     public record Stored(A2UiIngressResult result, A2UiActionException failure) {
         public A2UiIngressResult materialize() {
             if (failure != null) {
@@ -155,15 +165,20 @@ public final class A2UiIngressDeduper {
     }
 
     private static final class Slot {
+        private final String fingerprint;
         private final CompletableFuture<Stored> future = new CompletableFuture<>();
         private volatile Instant completedAt;
 
-        private Admission admission() {
+        private Slot(String fingerprint) {
+            this.fingerprint = fingerprint == null ? "" : fingerprint;
+        }
+
+        private Admission admission(String fingerprint) {
+            if (!this.fingerprint.equals(fingerprint == null ? "" : fingerprint)) {
+                return new Admission.Mismatch();
+            }
             if (future.isDone() && !future.isCompletedExceptionally()) {
                 return new Admission.Replay(future.join());
-            }
-            if (future.isCompletedExceptionally()) {
-                return new Admission.InFlight(future);
             }
             return new Admission.InFlight(future);
         }
