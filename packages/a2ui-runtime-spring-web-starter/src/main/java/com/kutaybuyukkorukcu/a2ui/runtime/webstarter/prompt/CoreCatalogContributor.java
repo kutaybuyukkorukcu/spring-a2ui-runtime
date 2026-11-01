@@ -19,13 +19,13 @@ public final class CoreCatalogContributor implements A2UiGenerationContextContri
 
     @Override
     public void contribute(A2UiGenerationRequest request, A2UiGenerationContext.Builder context) {
-        String catalogId = request.catalogId() != null ? request.catalogId() : A2UiCatalogIds.BASIC_V0_9;
+        String catalogId = request.catalogId() != null ? request.catalogId() : A2UiCatalogIds.BASIC_V1;
         String digest = catalogRegistry.renderPlannerDigest(catalogId, request.allowedTypes());
         String catalogRules = catalogRegistry.catalogRulesText();
 
         StringBuilder prompt = new StringBuilder();
         prompt.append("""
-                You are an A2UI v0.9.1 layout planner. Compose a surface by calling the renderA2Ui tool exactly once.
+                You are an A2UI v1.0 layout planner. Compose a surface by calling the renderA2Ui tool exactly once.
 
                 Hard requirements:
                 - Include a root component with id "root" in the components array (required).
@@ -33,12 +33,12 @@ public final class CoreCatalogContributor implements A2UiGenerationContextContri
                 - Every child UI element must be its own entry in the flat array; reference children by id only. Every child, children, content, and trigger id MUST also exist as a component id in the same array.
                 - List, Column, and Row use children as a bare string id array, or a template object {componentId, path}.
                 - Card uses a single child id (child) — wrap multiple children in a Column and set Card.child to that Column id.
-                - Text styling uses variant (h1–h5, body, caption) — not usageHint.
-                - Button requires child (Text component id) and action — use action string shorthand or {event:{name}}.
-                - Dynamic values are native JSON strings/numbers/booleans, or {"path":"/..."}. Never use literalString/literalNumber.
-                - Bind dynamic Text and labels with path objects like {"path":"/regionSales/North"} — never {data.regionSales.North}.
-                - TextField and CheckBox MUST bind value to a data-model path: {"path":"/fieldName"}. Labels may be a literal or a path. A TextField with only label is not editable.
-                - Submit/primary Buttons that collect a form MUST set action.event.context mapping each field the host needs, e.g. {"summary":{"path":"/summary"},"notes":{"path":"/notes"}}. Never put the path string itself as the value ("/notes") — the client sends that literal instead of the typed text. A Button with only event.name yields empty context {}.
+                - Text styling uses variant (caption or body) — not usageHint.
+                - Button requires child (Text component id) and action — use action string shorthand or {event:{name}}. action.event.name is an event. action.functionCall is a catalog function.
+                - Dynamic values are native JSON strings/numbers/booleans, or {"@path":"/..."}. Never use literalString/literalNumber.
+                - Bind dynamic Text and labels with path objects like {"@path":"/regionSales/North"} — never {data.regionSales.North}.
+                - TextField and CheckBox bind value with {"@path":"/fieldName"}. Labels may be a literal or a path.
+                - Submit/primary Buttons that collect a form MUST set action.event.context mapping each field the host needs, e.g. {"summary":{"@path":"/summary"},"notes":{"@path":"/notes"}}. Never put the path string itself as the value ("/notes") — the client sends that literal instead of the typed text. A Button with only event.name yields empty context {}.
                 - Do not emit empty {} objects; every component must have meaningful props.
                 - Populate data-bound props in the data object when the UI needs dynamic values.
                 - Do not emit A2UI wire protocol envelopes or lifecycle commits; only call renderA2Ui.

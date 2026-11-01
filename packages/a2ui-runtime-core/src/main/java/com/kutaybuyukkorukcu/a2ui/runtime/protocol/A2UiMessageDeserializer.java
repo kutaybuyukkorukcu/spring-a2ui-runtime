@@ -35,9 +35,10 @@ public class A2UiMessageDeserializer extends JsonDeserializer<A2UiMessage> {
         }
 
         JsonNode versionNode = node.get("version");
-        if (versionNode != null && versionNode.isTextual()
-                && !A2UiProtocol.isSupportedVersion(versionNode.asText())) {
-            throw new IllegalArgumentException("Unsupported A2UI version: " + versionNode.asText());
+        if (versionNode == null || !versionNode.isTextual()
+                || !A2UiProtocol.isSupportedVersion(versionNode.asText())) {
+            String found = versionNode == null ? "missing" : versionNode.asText();
+            throw new IllegalArgumentException("Unsupported A2UI version: " + found);
         }
 
         String type = null;
@@ -66,8 +67,60 @@ public class A2UiMessageDeserializer extends JsonDeserializer<A2UiMessage> {
             case "updateComponents" -> PAYLOAD_MAPPER.treeToValue(payload, A2UiMessage.UpdateComponents.class);
             case "updateDataModel" -> PAYLOAD_MAPPER.treeToValue(payload, A2UiMessage.UpdateDataModel.class);
             case "deleteSurface" -> PAYLOAD_MAPPER.treeToValue(payload, A2UiMessage.DeleteSurface.class);
+            case "callRendererFunction" -> readCallRendererFunction(payload);
+            case "agentFunctionResponse" -> readAgentFunctionResponse(payload);
+            case "surfaceUpdate", "beginRendering", "dataModelUpdate" ->
+                    throw new IllegalArgumentException("Unsupported A2UI version: legacy message " + type);
             default -> throw new IllegalArgumentException("Unknown A2UI message type: " + type);
         };
+    }
+
+    private static A2UiMessage.CallRendererFunction readCallRendererFunction(JsonNode payload) {
+        JsonNode callFunction = payload.get("callFunction");
+        if (callFunction == null || !callFunction.isObject()) {
+            throw new IllegalArgumentException("callFunction is required");
+        }
+        if (callFunction.has("call") && !callFunction.has("@call")) {
+            throw new IllegalArgumentException("function call uses call instead of @call");
+        }
+        JsonNode call = callFunction.get("@call");
+        JsonNode catalogId = callFunction.get("catalogId");
+        JsonNode functionCallId = payload.get("functionCallId");
+        if (call == null || !call.isTextual() || call.asText().isBlank()
+                || catalogId == null || !catalogId.isTextual() || catalogId.asText().isBlank()
+                || functionCallId == null || !functionCallId.isTextual() || functionCallId.asText().isBlank()) {
+            throw new IllegalArgumentException("callRendererFunction requires functionCallId, @call, and catalogId");
+        }
+        String surfaceId = payload.has("surfaceId") && payload.get("surfaceId").isTextual()
+                ? payload.get("surfaceId").asText()
+                : null;
+        Map<String, Object> args = Map.of();
+        if (callFunction.has("args") && callFunction.get("args").isObject()) {
+            args = PAYLOAD_MAPPER.convertValue(callFunction.get("args"), new com.fasterxml.jackson.core.type.TypeReference<>() {});
+        }
+        return new A2UiMessage.CallRendererFunction(
+                surfaceId, functionCallId.asText(), catalogId.asText(), call.asText(), args);
+    }
+
+    private static A2UiMessage.AgentFunctionResponse readAgentFunctionResponse(JsonNode payload) {
+        JsonNode functionCallId = payload.get("functionCallId");
+        if (functionCallId == null || !functionCallId.isTextual() || functionCallId.asText().isBlank()) {
+            throw new IllegalArgumentException("functionCallId is required");
+        }
+        boolean hasValue = payload.has("value");
+        boolean hasError = payload.has("error");
+        if (hasValue == hasError) {
+            throw new IllegalArgumentException("agentFunctionResponse requires value or error");
+        }
+        if (hasError) {
+            JsonNode error = payload.get("error");
+            return A2UiMessage.AgentFunctionResponse.error(
+                    functionCallId.asText(),
+                    error.path("code").asText(),
+                    error.path("message").asText());
+        }
+        return A2UiMessage.AgentFunctionResponse.ok(
+                functionCallId.asText(), PAYLOAD_MAPPER.convertValue(payload.get("value"), Object.class));
     }
 
     static final class ComponentDefinitionDeserializer extends JsonDeserializer<A2UiMessage.ComponentDefinition> {

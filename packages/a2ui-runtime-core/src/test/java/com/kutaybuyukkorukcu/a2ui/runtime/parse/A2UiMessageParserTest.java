@@ -19,8 +19,8 @@ class A2UiMessageParserTest {
 
     @Test
     void shouldParseCreateSurface() throws Exception {
-        String json = "{\"version\":\"v0.9.1\",\"createSurface\":{\"surfaceId\":\"main\",\"catalogId\":\""
-                + A2UiCatalogIds.BASIC_V0_9 + "\"}}";
+        String json = "{\"version\":\"1.0\",\"createSurface\":{\"surfaceId\":\"main\",\"catalogId\":\""
+                + A2UiCatalogIds.BASIC_V1 + "\"}}";
         List<A2UiMessage> messages = parser.parseAll(json);
         assertThat(messages).hasSize(1);
         assertThat(messages.get(0)).isInstanceOf(A2UiMessage.CreateSurface.class);
@@ -28,7 +28,7 @@ class A2UiMessageParserTest {
 
     @Test
     void shouldParseUpdateComponents() throws Exception {
-        String json = "{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"main\",\"components\":[{\"id\":\"root\",\"component\":\"Text\",\"text\":\"Hello\"}]}}";
+        String json = "{\"version\":\"1.0\",\"updateComponents\":{\"surfaceId\":\"main\",\"components\":[{\"id\":\"root\",\"component\":\"Text\",\"text\":\"Hello\"}]}}";
         List<A2UiMessage> messages = parser.parseAll(json);
         assertThat(messages.get(0)).isInstanceOf(A2UiMessage.UpdateComponents.class);
         A2UiMessage.UpdateComponents uc = (A2UiMessage.UpdateComponents) messages.get(0);
@@ -38,10 +38,10 @@ class A2UiMessageParserTest {
     @Test
     void shouldParseJsonlSequence() throws Exception {
         String jsonl = """
-                {"version":"v0.9.1","createSurface":{"surfaceId":"main","catalogId":"%s"}}
-                {"version":"v0.9.1","updateComponents":{"surfaceId":"main","components":[{"id":"root","component":"Text","text":"Hi"}]}}
-                {"version":"v0.9.1","updateDataModel":{"surfaceId":"main","path":"/","value":{"x":1}}}
-                """.formatted(A2UiCatalogIds.BASIC_V0_9);
+                {"version":"1.0","createSurface":{"surfaceId":"main","catalogId":"%s"}}
+                {"version":"1.0","updateComponents":{"surfaceId":"main","components":[{"id":"root","component":"Text","text":"Hi"}]}}
+                {"version":"1.0","updateDataModel":{"surfaceId":"main","path":"/","value":{"x":1}}}
+                """.formatted(A2UiCatalogIds.BASIC_V1);
         List<A2UiMessage> messages = parser.parseAll(jsonl);
         assertThat(messages).hasSize(3);
         assertThat(messages.get(0)).isInstanceOf(A2UiMessage.CreateSurface.class);
@@ -51,7 +51,7 @@ class A2UiMessageParserTest {
 
     @Test
     void shouldParseUpdateDataModel() throws Exception {
-        String json = "{\"version\":\"v0.9.1\",\"updateDataModel\":{\"surfaceId\":\"main\",\"path\":\"/\",\"value\":{\"name\":\"Alice\"}}}";
+        String json = "{\"version\":\"1.0\",\"updateDataModel\":{\"surfaceId\":\"main\",\"path\":\"/\",\"value\":{\"name\":\"Alice\"}}}";
         List<A2UiMessage> messages = parser.parseAll(json);
         A2UiMessage.UpdateDataModel udm = (A2UiMessage.UpdateDataModel) messages.get(0);
         assertThat(udm.path()).isEqualTo("/");
@@ -80,7 +80,7 @@ class A2UiMessageParserTest {
             assertThat(parsed).hasSize(2);
             assertThat(parsed.get(0)).isInstanceOf(A2UiMessage.CreateSurface.class);
             A2UiMessage.CreateSurface cs = (A2UiMessage.CreateSurface) parsed.get(0);
-            assertThat(cs.catalogId()).isEqualTo(A2UiCatalogIds.BASIC_V0_9);
+            assertThat(cs.catalogId()).isEqualTo(A2UiCatalogIds.BASIC_V1);
 
             assertThat(parsed.get(1)).isInstanceOf(A2UiMessage.UpdateComponents.class);
             A2UiMessage.UpdateComponents uc = (A2UiMessage.UpdateComponents) parsed.get(1);

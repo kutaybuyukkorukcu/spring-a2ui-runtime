@@ -15,7 +15,7 @@ class A2UiSurfaceBufferTest {
     @Test
     void applyDispatchesCreateUpdateAndDelete() {
         A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
-        buffer.apply(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9));
+        buffer.apply(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1));
         buffer.apply(new A2UiMessage.UpdateComponents("main", List.of(
                 new ComponentDefinition("root", "Column", Map.of("children", List.of("title"))))));
         buffer.apply(new A2UiMessage.UpdateDataModel("main", "/name", "Alice"));
@@ -32,7 +32,7 @@ class A2UiSurfaceBufferTest {
     @Test
     void shouldApplyCreateAndUpdateComponents() {
         A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
-        buffer.applyCreateSurface(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9));
+        buffer.applyCreateSurface(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1));
         buffer.applyUpdateComponents(new A2UiMessage.UpdateComponents("main", List.of(
                 new ComponentDefinition("root", "Column", Map.of("children", List.of("title"))),
                 new ComponentDefinition("title", "Text", Map.of("text", "Hello")))));
@@ -40,7 +40,7 @@ class A2UiSurfaceBufferTest {
         A2UiSurfaceBuffer.SurfaceState state = buffer.getSurface("main");
         assertThat(state).isNotNull();
         assertThat(state.isCreated()).isTrue();
-        assertThat(state.getCatalogId()).isEqualTo(A2UiCatalogIds.BASIC_V0_9);
+        assertThat(state.getCatalogId()).isEqualTo(A2UiCatalogIds.BASIC_V1);
         assertThat(state.hasComponent("root")).isTrue();
         assertThat(state.hasComponent("title")).isTrue();
         assertThat(state.getRootComponentId()).isEqualTo("root");
@@ -50,7 +50,7 @@ class A2UiSurfaceBufferTest {
     @Test
     void shouldApplyUpdateDataModelWithJsonValue() {
         A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
-        buffer.applyCreateSurface(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9));
+        buffer.applyCreateSurface(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1));
         buffer.applyUpdateDataModel(new A2UiMessage.UpdateDataModel(
                 "main", "/", Map.of("name", "Alice", "count", 3)));
 
@@ -62,7 +62,7 @@ class A2UiSurfaceBufferTest {
     @Test
     void shouldApplyNestedPathUpdate() {
         A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
-        buffer.applyCreateSurface(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9));
+        buffer.applyCreateSurface(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1));
         buffer.applyUpdateDataModel(new A2UiMessage.UpdateDataModel(
                 "main", "/user/name", "Bob"));
 
@@ -73,7 +73,7 @@ class A2UiSurfaceBufferTest {
     @Test
     void shouldDeleteSurface() {
         A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
-        buffer.applyCreateSurface(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9));
+        buffer.applyCreateSurface(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1));
         assertThat(buffer.hasSurface("main")).isTrue();
         buffer.deleteSurface("main");
         assertThat(buffer.hasSurface("main")).isFalse();
@@ -82,7 +82,7 @@ class A2UiSurfaceBufferTest {
     @Test
     void shouldMergeMultipleUpdateComponents() {
         A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
-        buffer.applyCreateSurface(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9));
+        buffer.applyCreateSurface(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1));
         buffer.applyUpdateComponents(new A2UiMessage.UpdateComponents("main", List.of(
                 new ComponentDefinition("root", "Column", Map.of("children", List.of("a"))))));
         buffer.applyUpdateComponents(new A2UiMessage.UpdateComponents("main", List.of(
@@ -95,7 +95,7 @@ class A2UiSurfaceBufferTest {
     @Test
     void shouldDeleteDataAtPathWhenValueNull() {
         A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
-        buffer.applyCreateSurface(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9));
+        buffer.applyCreateSurface(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1));
         buffer.applyUpdateDataModel(new A2UiMessage.UpdateDataModel(
                 "main", "/", Map.of("temp", "x")));
         buffer.applyUpdateDataModel(new A2UiMessage.UpdateDataModel("main", "/temp", null));
@@ -107,7 +107,7 @@ class A2UiSurfaceBufferTest {
     @Test
     void shouldPatchNestedImmutableMapWithoutThrowing() {
         A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
-        buffer.applyCreateSurface(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9));
+        buffer.applyCreateSurface(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1));
         buffer.applyUpdateDataModel(new A2UiMessage.UpdateDataModel(
                 "main", "/", Map.of("user", Map.of("name", "Alice"))));
         buffer.applyUpdateDataModel(new A2UiMessage.UpdateDataModel("main", "/user/name", "Bob"));
@@ -119,7 +119,7 @@ class A2UiSurfaceBufferTest {
     @Test
     void getDataAtRootShouldReturnCopyNotLiveMap() {
         A2UiSurfaceBuffer buffer = new A2UiSurfaceBuffer();
-        buffer.applyCreateSurface(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9));
+        buffer.applyCreateSurface(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1));
         buffer.applyUpdateDataModel(new A2UiMessage.UpdateDataModel(
                 "main", "/", Map.of("name", "Alice")));
 

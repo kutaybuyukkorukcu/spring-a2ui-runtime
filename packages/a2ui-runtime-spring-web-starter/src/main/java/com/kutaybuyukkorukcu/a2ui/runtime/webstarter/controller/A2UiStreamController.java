@@ -8,6 +8,8 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionExcep
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.properties.A2UiWebProperties;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiRuntimeEvent;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.runtime.A2UiSseEventMapper;
+import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRendererCallGuard;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRequestCatalogNegotiator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiSurfaceService;
@@ -38,19 +40,22 @@ public class A2UiStreamController {
     private final A2UiRuntimeMetrics runtimeMetrics;
     private final ObjectMapper objectMapper;
     private final A2UiRequestCatalogNegotiator catalogNegotiator;
+    private final A2UiRendererCallGuard rendererCallGuard;
 
     public A2UiStreamController(A2UiSurfaceService surfaceService,
                                 RequestCorrelationService requestCorrelationService,
                                 A2UiWebProperties webProperties,
                                 A2UiRuntimeMetrics runtimeMetrics,
                                 ObjectMapper objectMapper,
-                                A2UiRequestCatalogNegotiator catalogNegotiator) {
+                                A2UiRequestCatalogNegotiator catalogNegotiator,
+                                A2UiRendererCallGuard rendererCallGuard) {
         this.surfaceService = surfaceService;
         this.requestCorrelationService = requestCorrelationService;
         this.webProperties = webProperties;
         this.runtimeMetrics = runtimeMetrics;
         this.objectMapper = objectMapper;
         this.catalogNegotiator = catalogNegotiator;
+        this.rendererCallGuard = rendererCallGuard;
     }
 
     @PostMapping(value = STREAM_PATH, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -65,8 +70,9 @@ public class A2UiStreamController {
             return surfaceService.stream(request, requestId, catalogId);
         })
                 .map(event -> {
+                    A2UiRuntimeEvent outgoing = prepareRendererCall(event);
                     try {
-                        return A2UiSseEventMapper.toSse(event, objectMapper);
+                        return A2UiSseEventMapper.toSse(outgoing, objectMapper);
                     } catch (Exception e) {
                         LOGGER.error("Failed to serialize streaming runtime event", e);
                         return ServerSentEvent.<String>builder()
@@ -103,6 +109,17 @@ public class A2UiStreamController {
                         runtimeMetrics.recordTransformSuccess("stream");
                     }
                 });
+    }
+
+    private A2UiRuntimeEvent prepareRendererCall(A2UiRuntimeEvent event) {
+        if (rendererCallGuard == null) {
+            return event;
+        }
+        if (event instanceof A2UiRuntimeEvent.Surface surface
+                && surface.message() instanceof A2UiMessage.CallRendererFunction call) {
+            return new A2UiRuntimeEvent.Surface(rendererCallGuard.prepareOne(call));
+        }
+        return event;
     }
 
     private Flux<ServerSentEvent<String>> lifecycleAwareErrorFlux(String requestId, String errorCode, String message) {

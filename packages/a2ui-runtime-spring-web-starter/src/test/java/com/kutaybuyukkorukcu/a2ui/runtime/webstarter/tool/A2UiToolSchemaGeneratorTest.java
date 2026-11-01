@@ -18,7 +18,7 @@ class A2UiToolSchemaGeneratorTest {
 
     @Test
     void shouldProduceValidJsonObject() throws Exception {
-        String schema = generator.renderA2UiInputSchema(A2UiCatalogIds.BASIC_V0_9);
+        String schema = generator.renderA2UiInputSchema(A2UiCatalogIds.BASIC_V1);
         JsonNode root = mapper.readTree(schema);
         assertThat(root.get("type").asText()).isEqualTo("object");
         assertThat(root.get("required").toString()).contains("surfaceId", "root", "components");
@@ -26,19 +26,19 @@ class A2UiToolSchemaGeneratorTest {
 
     @Test
     void shouldConstrainRootToRootId() throws Exception {
-        String schema = generator.renderA2UiInputSchema(A2UiCatalogIds.BASIC_V0_9);
+        String schema = generator.renderA2UiInputSchema(A2UiCatalogIds.BASIC_V1);
         JsonNode rootProp = mapper.readTree(schema).path("properties").path("root");
         assertThat(rootProp.path("const").asText()).isEqualTo("root");
     }
 
     @Test
     void shouldEnumComponentTypesAsStrings() throws Exception {
-        String schema = generator.renderA2UiInputSchema(A2UiCatalogIds.BASIC_V0_9);
+        String schema = generator.renderA2UiInputSchema(A2UiCatalogIds.BASIC_V1);
         JsonNode componentEnum = mapper.readTree(schema)
                 .path("properties").path("components").path("items")
                 .path("properties").path("component").path("enum");
         assertThat(componentEnum.isArray()).isTrue();
-        Set<String> expectedTypes = registry.componentTypesForCatalog(A2UiCatalogIds.BASIC_V0_9);
+        Set<String> expectedTypes = registry.componentTypesForCatalog(A2UiCatalogIds.BASIC_V1);
         for (String type : expectedTypes) {
             assertThat(componentEnum.toString()).contains(type);
         }
@@ -46,19 +46,19 @@ class A2UiToolSchemaGeneratorTest {
 
     @Test
     void shouldDescribeDynamicStringAsStringOrPath() throws Exception {
-        String schema = generator.renderA2UiInputSchema(A2UiCatalogIds.BASIC_V0_9);
+        String schema = generator.renderA2UiInputSchema(A2UiCatalogIds.BASIC_V1);
         JsonNode textProp = mapper.readTree(schema)
                 .path("properties").path("components").path("items")
                 .path("properties").path("text");
         assertThat(textProp.has("oneOf")).isTrue();
         assertThat(textProp.toString()).contains("\"type\":\"string\"");
-        assertThat(textProp.toString()).contains("\"path\"");
+        assertThat(textProp.toString()).contains("\"@path\"");
         assertThat(textProp.toString()).doesNotContain("literalString");
     }
 
     @Test
     void shouldDescribeChildrenAsBareArrayOrTemplate() throws Exception {
-        String schema = generator.renderA2UiInputSchema(A2UiCatalogIds.BASIC_V0_9);
+        String schema = generator.renderA2UiInputSchema(A2UiCatalogIds.BASIC_V1);
         JsonNode children = mapper.readTree(schema)
                 .path("properties").path("components").path("items")
                 .path("properties").path("children");
@@ -69,7 +69,7 @@ class A2UiToolSchemaGeneratorTest {
 
     @Test
     void shouldDescribeActionAsStringOrEventObject() throws Exception {
-        String schema = generator.renderA2UiInputSchema(A2UiCatalogIds.BASIC_V0_9);
+        String schema = generator.renderA2UiInputSchema(A2UiCatalogIds.BASIC_V1);
         JsonNode action = mapper.readTree(schema)
                 .path("properties").path("components").path("items")
                 .path("properties").path("action");

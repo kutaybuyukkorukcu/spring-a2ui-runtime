@@ -22,6 +22,14 @@ public interface A2UiCatalogContribution {
      */
     Map<String, Map<String, Object>> componentSchemas();
 
+    /**
+     * Catalog {@code functions} map (name to definition), including {@code allowedCallers}
+     * and the args schema. Empty when the contribution adds components only.
+     */
+    default Map<String, Map<String, Object>> functions() {
+        return Map.of();
+    }
+
     /** Optional catalog authoring rules appended to the runtime's catalog rules text. */
     default String rulesText() {
         return "";

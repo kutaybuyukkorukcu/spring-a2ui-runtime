@@ -14,8 +14,9 @@ class A2UiCatalogRegistryTest {
     @Test
     void shouldLoadBasicCatalog() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        assertThat(registry.isSupportedCatalogId(A2UiCatalogIds.BASIC_V0_9)).isTrue();
-        assertThat(registry.isSupportedCatalogId(A2UiCatalogIds.BASIC_V0_9_1)).isTrue();
+        assertThat(registry.isSupportedCatalogId(A2UiCatalogIds.BASIC_V1)).isTrue();
+        assertThat(registry.isSupportedCatalogId(A2UiCatalogIds.BASIC_V0_9)).isFalse();
+        assertThat(registry.isSupportedCatalogId(A2UiCatalogIds.BASIC_V0_9_1)).isFalse();
     }
 
     @Test
@@ -56,7 +57,7 @@ class A2UiCatalogRegistryTest {
     @Test
     void shouldReturnCorrectComponentTypesForCatalog() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        var types = registry.componentTypesForCatalog(A2UiCatalogIds.BASIC_V0_9);
+        var types = registry.componentTypesForCatalog(A2UiCatalogIds.BASIC_V1);
         assertThat(types).hasSize(18);
         assertThat(types).contains("Text", "Button", "Row", "Column", "ChoicePicker");
     }
@@ -64,7 +65,7 @@ class A2UiCatalogRegistryTest {
     @Test
     void shouldReturnSupportedCatalogIds() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        assertThat(registry.supportedCatalogIds()).contains(A2UiCatalogIds.BASIC_V0_9, A2UiCatalogIds.BASIC_V0_9_1);
+        assertThat(registry.supportedCatalogIds()).containsExactly(A2UiCatalogIds.BASIC_V1);
     }
 
     @Test
@@ -76,7 +77,7 @@ class A2UiCatalogRegistryTest {
     @Test
     void shouldExposeComponentSchemaForKnownType() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        Map<String, Object> schema = registry.componentSchema(A2UiCatalogIds.BASIC_V0_9, "CheckBox");
+        Map<String, Object> schema = registry.componentSchema(A2UiCatalogIds.BASIC_V1, "CheckBox");
         assertThat(schema).isNotEmpty();
         assertThat(schema.get("type")).isEqualTo("object");
         assertThat(schema.get("additionalProperties")).isEqualTo(false);
@@ -85,7 +86,7 @@ class A2UiCatalogRegistryTest {
     @Test
     void shouldRejectMutationOfReturnedComponentSchema() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        Map<String, Object> schema = registry.componentSchema(A2UiCatalogIds.BASIC_V0_9, "CheckBox");
+        Map<String, Object> schema = registry.componentSchema(A2UiCatalogIds.BASIC_V1, "CheckBox");
         assertThatThrownBy(() -> schema.put("injected", "value"))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
@@ -93,7 +94,7 @@ class A2UiCatalogRegistryTest {
     @Test
     void shouldRejectNestedSchemaMutation() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        Map<String, Object> schema = registry.componentSchema(A2UiCatalogIds.BASIC_V0_9, "CheckBox");
+        Map<String, Object> schema = registry.componentSchema(A2UiCatalogIds.BASIC_V1, "CheckBox");
         @SuppressWarnings("unchecked")
         Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
         assertThatThrownBy(() -> properties.put("injected", "value"))
@@ -103,23 +104,23 @@ class A2UiCatalogRegistryTest {
     @Test
     void shouldReturnEmptySchemaForUnknownType() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        assertThat(registry.componentSchema(A2UiCatalogIds.BASIC_V0_9, "NonExistent")).isEmpty();
+        assertThat(registry.componentSchema(A2UiCatalogIds.BASIC_V1, "NonExistent")).isEmpty();
         assertThat(registry.componentSchema("unknown-catalog", "CheckBox")).isEmpty();
         assertThat(registry.componentSchema(null, "CheckBox")).isEmpty();
-        assertThat(registry.componentSchema(A2UiCatalogIds.BASIC_V0_9, null)).isEmpty();
+        assertThat(registry.componentSchema(A2UiCatalogIds.BASIC_V1, null)).isEmpty();
     }
 
     @Test
     void shouldReturnRequiredPropsForTextField() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        Set<String> required = registry.requiredProps(A2UiCatalogIds.BASIC_V0_9, "TextField");
-        assertThat(required).containsExactlyInAnyOrder("label", "value");
+        Set<String> required = registry.requiredProps(A2UiCatalogIds.BASIC_V1, "TextField");
+        assertThat(required).containsExactly("label");
     }
 
     @Test
     void shouldReturnRequiredPropsForCheckBox() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        Set<String> required = registry.requiredProps(A2UiCatalogIds.BASIC_V0_9, "CheckBox");
+        Set<String> required = registry.requiredProps(A2UiCatalogIds.BASIC_V1, "CheckBox");
         assertThat(required).containsExactlyInAnyOrder("label", "value");
     }
 
@@ -137,34 +138,34 @@ class A2UiCatalogRegistryTest {
     @Test
     void shouldReturnRequiredPropsForButton() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        Set<String> required = registry.requiredProps(A2UiCatalogIds.BASIC_V0_9, "Button");
+        Set<String> required = registry.requiredProps(A2UiCatalogIds.BASIC_V1, "Button");
         assertThat(required).containsExactlyInAnyOrder("child", "action");
     }
 
     @Test
     void shouldReturnEmptyRequiredPropsForDivider() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        Set<String> required = registry.requiredProps(A2UiCatalogIds.BASIC_V0_9, "Divider");
+        Set<String> required = registry.requiredProps(A2UiCatalogIds.BASIC_V1, "Divider");
         assertThat(required).isEmpty();
     }
 
     @Test
     void shouldReturnEmptyRequiredPropsForUnknownType() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        assertThat(registry.requiredProps(A2UiCatalogIds.BASIC_V0_9, "NonExistent")).isEmpty();
+        assertThat(registry.requiredProps(A2UiCatalogIds.BASIC_V1, "NonExistent")).isEmpty();
     }
 
     @Test
     void shouldReturnAllowedPropsForCheckBox() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        Set<String> allowed = registry.allowedProps(A2UiCatalogIds.BASIC_V0_9, "CheckBox");
+        Set<String> allowed = registry.allowedProps(A2UiCatalogIds.BASIC_V1, "CheckBox");
         assertThat(allowed).contains("label", "value");
     }
 
     @Test
     void shouldReturnAllowedPropsForButton() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        Set<String> allowed = registry.allowedProps(A2UiCatalogIds.BASIC_V0_9, "Button");
+        Set<String> allowed = registry.allowedProps(A2UiCatalogIds.BASIC_V1, "Button");
         assertThat(allowed).contains("child", "action", "variant");
         assertThat(allowed).doesNotContain("primary");
     }
@@ -172,14 +173,14 @@ class A2UiCatalogRegistryTest {
     @Test
     void shouldReturnEmptyAllowedPropsForUnknownType() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        assertThat(registry.allowedProps(A2UiCatalogIds.BASIC_V0_9, "NonExistent")).isEmpty();
+        assertThat(registry.allowedProps(A2UiCatalogIds.BASIC_V1, "NonExistent")).isEmpty();
     }
 
     @Test
     void shouldReportAdditionalPropertiesNotAllowedForKnownComponents() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        for (String type : registry.componentTypesForCatalog(A2UiCatalogIds.BASIC_V0_9)) {
-            assertThat(registry.isAdditionalPropertiesAllowed(A2UiCatalogIds.BASIC_V0_9, type))
+        for (String type : registry.componentTypesForCatalog(A2UiCatalogIds.BASIC_V1)) {
+            assertThat(registry.isAdditionalPropertiesAllowed(A2UiCatalogIds.BASIC_V1, type))
                     .as("additionalProperties should be false for %s", type)
                     .isFalse();
         }
@@ -188,14 +189,14 @@ class A2UiCatalogRegistryTest {
     @Test
     void shouldReturnTrueForAdditionalPropertiesOnUnknownType() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        assertThat(registry.isAdditionalPropertiesAllowed(A2UiCatalogIds.BASIC_V0_9, "NonExistent")).isTrue();
+        assertThat(registry.isAdditionalPropertiesAllowed(A2UiCatalogIds.BASIC_V1, "NonExistent")).isTrue();
     }
 
     @Test
     void shouldExposePropSchemaForKnownProp() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
         Map<String, Object> valueSchema = registry.propSchema(
-                A2UiCatalogIds.BASIC_V0_9, "CheckBox", "value");
+                A2UiCatalogIds.BASIC_V1, "CheckBox", "value");
         assertThat(valueSchema).isNotEmpty();
         assertThat(valueSchema.get("$ref").toString()).contains("DynamicBoolean");
     }
@@ -203,26 +204,26 @@ class A2UiCatalogRegistryTest {
     @Test
     void shouldReturnEmptyPropSchemaForUnknownProp() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        assertThat(registry.propSchema(A2UiCatalogIds.BASIC_V0_9, "CheckBox", "nonExistent")).isEmpty();
+        assertThat(registry.propSchema(A2UiCatalogIds.BASIC_V1, "CheckBox", "nonExistent")).isEmpty();
     }
 
     @Test
     void shouldExposeEnumValuesForTextVariant() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
         Map<String, Object> variantSchema = registry.propSchema(
-                A2UiCatalogIds.BASIC_V0_9, "Text", "variant");
+                A2UiCatalogIds.BASIC_V1, "Text", "variant");
         assertThat(variantSchema.get("enum"))
                 .as("variant should define enum values")
                 .isInstanceOf(List.class);
         @SuppressWarnings("unchecked")
         List<String> enumValues = (List<String>) variantSchema.get("enum");
-        assertThat(enumValues).contains("h1", "h2", "h3", "body", "caption");
+        assertThat(enumValues).containsExactlyInAnyOrder("body", "caption");
     }
 
     @Test
     void shouldRenderPlannerDigestForBasicCatalog() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        String digest = registry.renderPlannerDigest(A2UiCatalogIds.BASIC_V0_9);
+        String digest = registry.renderPlannerDigest(A2UiCatalogIds.BASIC_V1);
 
         assertThat(digest).isNotBlank();
         assertThat(digest).contains("Text", "Button", "required:", "allowed:");
@@ -232,7 +233,7 @@ class A2UiCatalogRegistryTest {
     @Test
     void shouldIncludeButtonRequiredPropsInPlannerDigest() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        String digest = registry.renderPlannerDigest(A2UiCatalogIds.BASIC_V0_9);
+        String digest = registry.renderPlannerDigest(A2UiCatalogIds.BASIC_V1);
 
         assertThat(digest).containsPattern("Button\\R  required: .*child.*action");
     }
@@ -248,7 +249,7 @@ class A2UiCatalogRegistryTest {
     @Test
     void shouldPrunePlannerDigestToAllowedTypes() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
-        String digest = registry.renderPlannerDigest(A2UiCatalogIds.BASIC_V0_9, Set.of("Button"));
+        String digest = registry.renderPlannerDigest(A2UiCatalogIds.BASIC_V1, Set.of("Button"));
 
         assertThat(digest).contains("Button");
         assertThat(digest).doesNotContain("Text\n");
@@ -258,7 +259,7 @@ class A2UiCatalogRegistryTest {
     void shouldReturnEmptyPlannerDigestWhenPruneSetHasNoKnownTypes() {
         A2UiCatalogRegistry registry = A2UiCatalogRegistry.shared();
         String digest = registry.renderPlannerDigest(
-                A2UiCatalogIds.BASIC_V0_9, Set.of("NonExistent", "AlsoUnknown"));
+                A2UiCatalogIds.BASIC_V1, Set.of("NonExistent", "AlsoUnknown"));
 
         assertThat(digest).isEmpty();
     }

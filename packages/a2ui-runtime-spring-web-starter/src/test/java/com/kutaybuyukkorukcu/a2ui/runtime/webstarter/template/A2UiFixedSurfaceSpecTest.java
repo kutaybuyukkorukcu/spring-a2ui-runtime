@@ -43,11 +43,11 @@ class A2UiFixedSurfaceSpecTest {
                 .filter(component -> "title-txt".equals(component.id()))
                 .findFirst()
                 .orElseThrow();
-        assertThat(title.componentProperties().get("text")).isEqualTo(Map.of("path", "/title"));
+        assertThat(title.componentProperties().get("text")).isEqualTo(Map.of("@path", "/title"));
     }
 
     private List<A2UiMessage> assemble(Map<String, String> slots) {
         return assemblyService.assemble(
-                ExampleTextCardTemplate.ID, "main", A2UiCatalogIds.BASIC_V0_9, slots);
+                ExampleTextCardTemplate.ID, "main", A2UiCatalogIds.BASIC_V1, slots);
     }
 }

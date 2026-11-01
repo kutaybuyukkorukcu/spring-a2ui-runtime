@@ -106,7 +106,7 @@ class DynamicGenerationAdapterTest {
                     "root",
                     List.of(
                             Map.of("id", "root", "component", "Column", "children", List.of("title")),
-                            Map.of("id", "title", "component", "Text", "text", "Hello", "variant", "h2")),
+                            Map.of("id", "title", "component", "Text", "text", "Hello", "variant", "body")),
                     Map.of("heading", "Hello"),
                     new ToolContext(toolContextRef.get()));
             return callResponseSpec;
@@ -114,7 +114,7 @@ class DynamicGenerationAdapterTest {
 
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show a dashboard", null, null);
 
-        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
+        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V1))
                 .assertNext(event -> assertThat(event).isInstanceOf(A2UiRuntimeEvent.Surface.class)
                         .extracting(e -> ((A2UiRuntimeEvent.Surface) e).message())
                         .isInstanceOf(A2UiMessage.CreateSurface.class))
@@ -144,7 +144,7 @@ class DynamicGenerationAdapterTest {
 
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("ambiguous request", null, null);
 
-        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
+        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V1))
                 .expectErrorSatisfies(error -> {
                     assertThat(error).isInstanceOf(SurfaceExecutionException.class);
                     assertThat(((SurfaceExecutionException) error).getErrorCode())
@@ -164,7 +164,7 @@ class DynamicGenerationAdapterTest {
 
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("show a dashboard", null, null);
 
-        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V0_9))
+        StepVerifier.create(runtime.stream(request, "req-1", A2UiCatalogIds.BASIC_V1))
                 .expectErrorSatisfies(error -> {
                     assertThat(error).isInstanceOf(SurfaceExecutionException.class);
                     SurfaceExecutionException failure = (SurfaceExecutionException) error;

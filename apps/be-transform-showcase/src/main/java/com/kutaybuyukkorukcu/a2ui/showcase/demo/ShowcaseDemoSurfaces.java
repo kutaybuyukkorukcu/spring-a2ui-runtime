@@ -46,7 +46,7 @@ public class ShowcaseDemoSurfaces {
     slots.put("continueLabel", "Capture remaining facts");
     slots.put("recordId", ShowcaseWorkspace.COMPOSED_RECORD_ID);
     return assemblyService.assemble(
-        ShowcaseTemplateConfiguration.CASE_BRIEF, SURFACE_ID, A2UiCatalogIds.BASIC_V0_9, slots);
+        ShowcaseTemplateConfiguration.CASE_BRIEF, SURFACE_ID, A2UiCatalogIds.BASIC_V1, slots);
   }
 
   public List<A2UiMessage> assembleApproval(ChangeRequest change) {
@@ -59,7 +59,7 @@ public class ShowcaseDemoSurfaces {
     slots.put("approveLabel", "Approve change");
     slots.put("rejectLabel", "Reject");
     return assemblyService.assemble(
-        ShowcaseTemplateConfiguration.OPS_APPROVAL, SURFACE_ID, A2UiCatalogIds.BASIC_V0_9, slots);
+        ShowcaseTemplateConfiguration.OPS_APPROVAL, SURFACE_ID, A2UiCatalogIds.BASIC_V1, slots);
   }
 
   public List<A2UiMessage> assembleOutcome(ChangeRequest change) {
@@ -86,7 +86,7 @@ public class ShowcaseDemoSurfaces {
       }
     }
     return assemblyService.assemble(
-        ShowcaseTemplateConfiguration.CHANGE_OUTCOME, SURFACE_ID, A2UiCatalogIds.BASIC_V0_9, slots);
+        ShowcaseTemplateConfiguration.CHANGE_OUTCOME, SURFACE_ID, A2UiCatalogIds.BASIC_V1, slots);
   }
 
   static String approvalSummary(ChangeRequest change) {

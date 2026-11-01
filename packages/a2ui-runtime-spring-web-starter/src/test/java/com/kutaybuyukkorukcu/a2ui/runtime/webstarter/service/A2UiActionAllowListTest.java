@@ -1,7 +1,7 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
-import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiUserAction;
+import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiAction;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashSet;
@@ -43,7 +43,7 @@ class A2UiActionAllowListTest {
     @Test
     void extractActionNamesFromUpdateComponentsEventName() {
         List<A2UiMessage> messages = List.of(
-                new A2UiMessage.CreateSurface("main", "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"),
+                new A2UiMessage.CreateSurface("main", "https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json"),
                 new A2UiMessage.UpdateComponents("main", List.of(
                         new A2UiMessage.ComponentDefinition(
                                 "root",
@@ -74,17 +74,23 @@ class A2UiActionAllowListTest {
         }
 
         @Override
-        public Set<String> actionNames() {
-            return names;
+        public Set<com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiEventName> eventNames() {
+            java.util.LinkedHashSet<com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiEventName> ordered = new java.util.LinkedHashSet<>();
+            for (String name : names) {
+                if (name != null && !name.isBlank()) {
+                    ordered.add(new com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiEventName(name));
+                }
+            }
+            return java.util.Collections.unmodifiableSet(ordered);
         }
 
         @Override
-        public boolean supports(A2UiUserAction userAction) {
+        public boolean supports(A2UiAction userAction) {
             return false;
         }
 
         @Override
-        public List<A2UiMessage> handle(A2UiUserAction userAction, String requestId) {
+        public List<A2UiMessage> handle(A2UiAction userAction, String requestId) {
             return List.of();
         }
     }

@@ -73,7 +73,7 @@ class A2UiDynamicStreamIntegrationTest {
                     "root",
                     List.of(
                             Map.of("id", "root", "component", "Column", "children", List.of("title"), "justify", "start"),
-                            Map.of("id", "title", "component", "Text", "text", "KPI", "variant", "h2")),
+                            Map.of("id", "title", "component", "Text", "text", "KPI", "variant", "body")),
                     Map.of("metric", "42"),
                     new ToolContext(toolContextRef.get()));
             return callResponseSpec;

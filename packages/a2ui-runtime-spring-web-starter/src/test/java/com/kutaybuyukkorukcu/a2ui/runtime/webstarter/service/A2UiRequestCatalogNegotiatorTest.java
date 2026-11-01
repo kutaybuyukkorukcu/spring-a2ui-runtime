@@ -20,7 +20,7 @@ class A2UiRequestCatalogNegotiatorTest {
     void shouldReturnDefaultWhenNoCapabilities() {
         String catalogId = A2UiRequestCatalogNegotiator.negotiateCatalogId(
                 new A2UiSurfaceRequest("test", null, null));
-        assertThat(catalogId).isEqualTo(A2UiCatalogIds.BASIC_V0_9);
+        assertThat(catalogId).isEqualTo(A2UiCatalogIds.BASIC_V1);
     }
 
     @Test
@@ -28,15 +28,15 @@ class A2UiRequestCatalogNegotiatorTest {
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("test", null,
                 new A2UiSurfaceRequest.ClientCapabilities(null));
         String catalogId = A2UiRequestCatalogNegotiator.negotiateCatalogId(request);
-        assertThat(catalogId).isEqualTo(A2UiCatalogIds.BASIC_V0_9);
+        assertThat(catalogId).isEqualTo(A2UiCatalogIds.BASIC_V1);
     }
 
     @Test
     void shouldReturnMatchingSupportedCatalogId() {
         A2UiSurfaceRequest request = new A2UiSurfaceRequest("test", null,
-                new A2UiSurfaceRequest.ClientCapabilities(List.of(A2UiCatalogIds.BASIC_V0_9)));
+                new A2UiSurfaceRequest.ClientCapabilities(List.of(A2UiCatalogIds.BASIC_V1)));
         String catalogId = A2UiRequestCatalogNegotiator.negotiateCatalogId(request);
-        assertThat(catalogId).isEqualTo(A2UiCatalogIds.BASIC_V0_9);
+        assertThat(catalogId).isEqualTo(A2UiCatalogIds.BASIC_V1);
     }
 
     @Test

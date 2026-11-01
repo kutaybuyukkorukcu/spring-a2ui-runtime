@@ -13,7 +13,7 @@ public class HealthController {
     public ResponseEntity<Map<String, Object>> health() {
         return ResponseEntity.ok(Map.of(
                 "status", "healthy",
-                "version", "2.2.0",
+                "version", "3.0.0-SNAPSHOT",
                 "timestamp", System.currentTimeMillis()
         ));
     }
@@ -22,7 +22,7 @@ public class HealthController {
     public ResponseEntity<Map<String, Object>> info() {
         return ResponseEntity.ok(Map.of(
                 "name", ShowcaseWorkspace.PRODUCT_NAME,
-                "version", "2.2.0",
+                "version", "3.0.0-SNAPSHOT",
                 "description",
                 "Spring GenUI host demo — a page the host owns, with one slot whose tree depends on this record",
                 "endpoints", Map.of(
@@ -30,7 +30,7 @@ public class HealthController {
                         "demoInfo", "GET /api/demo/info",
                         "recordOpen", "GET /api/demo/records/{id}/open",
                         "surfaceStream", "POST /a2ui/surface/stream",
-                        "catalog", "GET /a2ui/catalogs/basic-v0.9",
+                        "catalog", "GET /a2ui/catalogs/basic",
                         "actions", "POST /a2ui/actions"),
                 "notes", Map.of(
                         "runtimeBoundary", "Reusable routing, validation, and transport behavior lives in the runtime modules; this host stays thin.",

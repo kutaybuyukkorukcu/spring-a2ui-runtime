@@ -46,7 +46,7 @@ class ShowcaseTemplateConfigurationTest {
         List<A2UiMessage> messages = assemblyService.assemble(
                 ShowcaseTemplateConfiguration.CHANGE_INTAKE,
                 "main",
-                A2UiCatalogIds.BASIC_V0_9,
+                A2UiCatalogIds.BASIC_V1,
                 Map.of(
                         "title", "Propose production change",
                         "intro", "Review and submit payment-config v2.4 for payments-api.",
@@ -76,9 +76,9 @@ class ShowcaseTemplateConfigurationTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> context = (Map<String, Object>) event.get("context");
         assertThat(event.get("name")).isEqualTo("submit_change");
-        assertThat(context).containsEntry("service", Map.of("path", "/service"));
-        assertThat(context).containsEntry("changeType", Map.of("path", "/changeType"));
-        assertThat(context).containsEntry("summary", Map.of("path", "/summary"));
+        assertThat(context).containsEntry("service", Map.of("@path", "/service"));
+        assertThat(context).containsEntry("changeType", Map.of("@path", "/changeType"));
+        assertThat(context).containsEntry("summary", Map.of("@path", "/summary"));
     }
 
     @Test
@@ -87,7 +87,7 @@ class ShowcaseTemplateConfigurationTest {
         List<A2UiMessage> messages = assemblyService.assemble(
                 ShowcaseTemplateConfiguration.OPS_APPROVAL,
                 "main",
-                A2UiCatalogIds.BASIC_V0_9,
+                A2UiCatalogIds.BASIC_V1,
                 Map.of(
                         "title", "Review production change",
                         "summary", "Increase payment retry limit from 3 to 5",
@@ -105,7 +105,7 @@ class ShowcaseTemplateConfigurationTest {
         List<A2UiMessage> messages = assemblyService.assemble(
                 ShowcaseTemplateConfiguration.OPS_APPROVAL,
                 "main",
-                A2UiCatalogIds.BASIC_V0_9,
+                A2UiCatalogIds.BASIC_V1,
                 Map.of(
                         "title", "Review production change",
                         "meta", "payments-api · config · chg-demo",
@@ -131,7 +131,7 @@ class ShowcaseTemplateConfigurationTest {
         List<A2UiMessage> messages = assemblyService.assemble(
                 ShowcaseTemplateConfiguration.CASE_BRIEF,
                 "main",
-                A2UiCatalogIds.BASIC_V0_9,
+                A2UiCatalogIds.BASIC_V1,
                 Map.of(
                         "title", "mig-311 · schema migration",
                         "flags", "staging failed · customer-impacting",
@@ -157,7 +157,7 @@ class ShowcaseTemplateConfigurationTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> context = (Map<String, Object>) event.get("context");
         assertThat(event.get("name")).isEqualTo("capture_remaining");
-        assertThat(context).containsEntry("recordId", Map.of("path", "/recordId"));
+        assertThat(context).containsEntry("recordId", Map.of("@path", "/recordId"));
         assertThat(update.components()).noneMatch(component -> "TextField".equals(component.component()));
     }
 
@@ -167,7 +167,7 @@ class ShowcaseTemplateConfigurationTest {
         List<A2UiMessage> messages = assemblyService.assemble(
                 ShowcaseTemplateConfiguration.CHANGE_OUTCOME,
                 "main",
-                A2UiCatalogIds.BASIC_V0_9,
+                A2UiCatalogIds.BASIC_V1,
                 Map.of(
                         "title", "Recorded in your ledger",
                         "meta", "payments-api · migration · chg-demo",
@@ -199,7 +199,7 @@ class ShowcaseTemplateConfigurationTest {
         Map<String, Object> approveAction = (Map<String, Object>) approve.componentProperties().get("action");
         Map<String, Object> approveEvent = (Map<String, Object>) approveAction.get("event");
         Map<String, Object> approveContext = (Map<String, Object>) approveEvent.get("context");
-        assertThat(approveContext).containsEntry("changeId", Map.of("path", "/changeId"));
+        assertThat(approveContext).containsEntry("changeId", Map.of("@path", "/changeId"));
         if (expectReject) {
             A2UiMessage.ComponentDefinition reject = update.components().stream()
                     .filter(component -> "reject-btn".equals(component.id()))
@@ -208,7 +208,7 @@ class ShowcaseTemplateConfigurationTest {
             Map<String, Object> rejectAction = (Map<String, Object>) reject.componentProperties().get("action");
             Map<String, Object> rejectEvent = (Map<String, Object>) rejectAction.get("event");
             Map<String, Object> rejectContext = (Map<String, Object>) rejectEvent.get("context");
-            assertThat(rejectContext).containsEntry("changeId", Map.of("path", "/changeId"));
+            assertThat(rejectContext).containsEntry("changeId", Map.of("@path", "/changeId"));
         }
     }
 

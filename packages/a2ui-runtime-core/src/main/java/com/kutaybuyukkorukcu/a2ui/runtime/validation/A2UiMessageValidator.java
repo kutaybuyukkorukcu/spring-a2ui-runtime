@@ -105,16 +105,22 @@ public class A2UiMessageValidator {
         }
 
         switch (message) {
-            case A2UiMessage.CreateSurface cs -> validateCreateSurface(path + ".createSurface", cs, diagnostics);
+            case A2UiMessage.CreateSurface cs ->
+                    validateCreateSurface(path + ".createSurface", cs, context, diagnostics);
             case A2UiMessage.UpdateComponents uc ->
                     validateUpdateComponents(path + ".updateComponents", uc, context, diagnostics);
             case A2UiMessage.UpdateDataModel udm ->
                     validateUpdateDataModel(path + ".updateDataModel", udm, diagnostics);
             case A2UiMessage.DeleteSurface ds -> validateDeleteSurface(path + ".deleteSurface", ds, diagnostics);
+            case A2UiMessage.CallRendererFunction call ->
+                    validateCallRendererFunction(path + ".callRendererFunction", call, diagnostics);
+            case A2UiMessage.AgentFunctionResponse response ->
+                    validateAgentFunctionResponse(path + ".agentFunctionResponse", response, diagnostics);
         }
     }
 
-    private void validateCreateSurface(String path, A2UiMessage.CreateSurface cs, List<A2UiDiagnostic> diagnostics) {
+    private void validateCreateSurface(String path, A2UiMessage.CreateSurface cs, A2UiValidationContext context,
+                                       List<A2UiDiagnostic> diagnostics) {
         if (isBlank(cs.surfaceId())) {
             diagnostics.add(diagnostic(path + SURFACE_ID_SUFFIX, A2UiErrorCode.MISSING_SURFACE_ID, SURFACE_ID_REQUIRED));
         }
@@ -126,6 +132,27 @@ public class A2UiMessageValidator {
             details.put("supportedCatalogIds", List.copyOf(catalogRegistry.supportedCatalogIds()));
             diagnostics.add(diagnostic(path + ".catalogId", A2UiErrorCode.UNSUPPORTED_CATALOG_ID,
                     "catalogId is not supported by this runtime", details));
+        }
+        if (cs.components() != null) {
+            for (int i = 0; i < cs.components().size(); i++) {
+                validateComponentDefinition(
+                        cs.components().get(i), path + ".components[" + i + "]", context, diagnostics);
+            }
+        }
+    }
+
+    private void validateCallRendererFunction(String path, A2UiMessage.CallRendererFunction call,
+                                              List<A2UiDiagnostic> diagnostics) {
+        if (isBlank(call.functionCallId()) || isBlank(call.call()) || isBlank(call.catalogId())) {
+            diagnostics.add(diagnostic(path, A2UiErrorCode.INVALID_FUNCTION_CALL,
+                    "callRendererFunction requires functionCallId, @call, and catalogId"));
+        }
+    }
+
+    private void validateAgentFunctionResponse(String path, A2UiMessage.AgentFunctionResponse response,
+                                               List<A2UiDiagnostic> diagnostics) {
+        if (isBlank(response.functionCallId())) {
+            diagnostics.add(diagnostic(path, A2UiErrorCode.INVALID_FUNCTION_CALL, "functionCallId is required"));
         }
     }
 
@@ -224,7 +251,15 @@ public class A2UiMessageValidator {
                                     "createSurface must not target an already created surface without deleteSurface",
                                     details));
                         } else {
-                            surfaces.put(cs.surfaceId(), new SurfaceState(true));
+                            SurfaceState created = new SurfaceState(true);
+                            if (cs.components() != null) {
+                                for (A2UiMessage.ComponentDefinition component : cs.components()) {
+                                    if (component != null && !isBlank(component.id())) {
+                                        created.componentIds.add(component.id());
+                                    }
+                                }
+                            }
+                            surfaces.put(cs.surfaceId(), created);
                         }
                     }
                 }
@@ -237,6 +272,10 @@ public class A2UiMessageValidator {
                     if (!isBlank(ds.surfaceId())) {
                         surfaces.remove(ds.surfaceId());
                     }
+                }
+                case A2UiMessage.CallRendererFunction ignored -> {
+                }
+                case A2UiMessage.AgentFunctionResponse ignored -> {
                 }
             }
         }

@@ -4,7 +4,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogContribution;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
-import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiUserAction;
+import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiAction;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionAllowList;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionHandler;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiSurfacePolicy;
@@ -25,7 +25,7 @@ class DynamicA2UiPromptProviderTest {
     @Test
     void pruneOverloadShouldLimitDigestToAllowedComponentHeaders() {
         String prunedPrompt = promptProvider.createPlannerSystemPrompt(
-                A2UiCatalogIds.BASIC_V0_9, Set.of("Button"));
+                A2UiCatalogIds.BASIC_V1, Set.of("Button"));
 
         assertThat(prunedPrompt).contains("\nButton\n  required:");
         assertThat(prunedPrompt).doesNotContain("\nText\n  required:");
@@ -33,7 +33,7 @@ class DynamicA2UiPromptProviderTest {
 
     @Test
     void fullCatalogPromptShouldStillContainTextDigestHeader() {
-        String fullPrompt = promptProvider.createPlannerSystemPrompt(A2UiCatalogIds.BASIC_V0_9);
+        String fullPrompt = promptProvider.createPlannerSystemPrompt(A2UiCatalogIds.BASIC_V1);
 
         assertThat(fullPrompt).contains("\nText\n  required:");
     }
@@ -45,7 +45,7 @@ class DynamicA2UiPromptProviderTest {
         DynamicA2UiPromptProvider provider = new DynamicA2UiPromptProvider(
                 A2UiCatalogRegistry.shared(), null, metrics);
 
-        provider.createPlannerSystemPrompt(A2UiCatalogIds.BASIC_V0_9);
+        provider.createPlannerSystemPrompt(A2UiCatalogIds.BASIC_V1);
 
         assertThat(registry.find("a2ui.generation.context.chars").summary().count()).isEqualTo(1L);
         assertThat(registry.find("a2ui.generation.context.chars").summary().max()).isGreaterThan(0.0);
@@ -53,18 +53,18 @@ class DynamicA2UiPromptProviderTest {
 
     @Test
     void plannerPromptShouldDescribeV091FlatComponents() {
-        String plannerPrompt = promptProvider.createPlannerSystemPrompt(A2UiCatalogIds.BASIC_V0_9);
+        String plannerPrompt = promptProvider.createPlannerSystemPrompt(A2UiCatalogIds.BASIC_V1);
 
         assertThat(plannerPrompt).contains("root");
         assertThat(plannerPrompt).contains("renderA2Ui");
         assertThat(plannerPrompt).contains("variant");
-        assertThat(plannerPrompt).contains("{\"path\":");
+        assertThat(plannerPrompt).contains("{\"@path\":");
         assertThat(plannerPrompt).contains("Catalog rules:");
         assertThat(plannerPrompt.toLowerCase()).doesNotContain("beginrendering");
         assertThat(plannerPrompt.toLowerCase()).doesNotContain("surfaceupdate");
         assertThat(plannerPrompt).doesNotContain("BoundValue");
         assertThat(plannerPrompt).contains("Never use literalString");
-        assertThat(plannerPrompt).contains("TextField and CheckBox MUST bind value");
+        assertThat(plannerPrompt).contains("TextField and CheckBox bind value");
         assertThat(plannerPrompt).contains("action.event.context");
         assertThat(plannerPrompt).contains("Never put the path string itself as the value");
         assertThat(plannerPrompt).contains("bind 'value' to a data-model path");
@@ -97,7 +97,7 @@ class DynamicA2UiPromptProviderTest {
                 A2UiCatalogRegistry.shared(), List.of(withExamples));
         DynamicA2UiPromptProvider provider = new DynamicA2UiPromptProvider(registry);
 
-        String plannerPrompt = provider.createPlannerSystemPrompt(A2UiCatalogIds.BASIC_V0_9);
+        String plannerPrompt = provider.createPlannerSystemPrompt(A2UiCatalogIds.BASIC_V1);
 
         assertThat(plannerPrompt).contains("Examples:");
         assertThat(plannerPrompt).contains("StatusBadge is a small pill.");
@@ -117,7 +117,7 @@ class DynamicA2UiPromptProviderTest {
         A2UiPromptContext context = new A2UiPromptContext(
                 "show metrics",
                 "Intent: dashboard",
-                A2UiCatalogIds.BASIC_V0_9,
+                A2UiCatalogIds.BASIC_V1,
                 List.of());
 
         String retryPrompt = promptProvider.createPlannerUserPrompt(
@@ -146,7 +146,7 @@ class DynamicA2UiPromptProviderTest {
         A2UiPromptContext context = new A2UiPromptContext(
                 "show metrics",
                 "Intent: dashboard",
-                A2UiCatalogIds.BASIC_V0_9,
+                A2UiCatalogIds.BASIC_V1,
                 List.of());
 
         String plannerUserPrompt = provider.createPlannerUserPrompt(context);
@@ -168,7 +168,7 @@ class DynamicA2UiPromptProviderTest {
         A2UiPromptContext context = new A2UiPromptContext(
                 "show metrics",
                 "Intent: dashboard",
-                A2UiCatalogIds.BASIC_V0_9,
+                A2UiCatalogIds.BASIC_V1,
                 List.of());
 
         String plannerUserPrompt = provider.createPlannerUserPrompt(context);
@@ -186,17 +186,17 @@ class DynamicA2UiPromptProviderTest {
         }
 
         @Override
-        public Set<String> actionNames() {
-            return names;
+        public Set<com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiEventName> eventNames() {
+            return names.stream().map(com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiEventName::new).collect(java.util.stream.Collectors.toUnmodifiableSet());
         }
 
         @Override
-        public boolean supports(A2UiUserAction userAction) {
+        public boolean supports(A2UiAction userAction) {
             return false;
         }
 
         @Override
-        public List<A2UiMessage> handle(A2UiUserAction userAction, String requestId) {
+        public List<A2UiMessage> handle(A2UiAction userAction, String requestId) {
             return List.of();
         }
     }

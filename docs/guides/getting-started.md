@@ -1,12 +1,12 @@
 # Getting started
 
 This guide walks a Spring Boot app from dependency to a first A2UI SSE stream
-using **spring-a2ui-runtime** (A2UI **v0.9.1**).
+using **spring-a2ui-runtime** (A2UI **v1.0**, library `3.0.0-SNAPSHOT`, not published).
 
 The runtime owns **compose → validate → stream → fail-fast → actions**. Your app
 keeps product logic, design system, and FE renderer. For positioning and roadmap
 stages, see [Runtime positioning](../platform.md).
-For the v0.8 → v0.9.1 cutover, see [Migrating to v0.9.1](migrating-to-v0.9.1.md).
+For the v0.9.1 → v1.0 cutover, see [Migrating to v1.0](migrating-to-v1.0.md). The v0.8 → v0.9.1 cutover stays on the `2.x` line: [Migrating to v0.9.1](migrating-to-v0.9.1.md).
 
 For endpoint shapes and error codes, see [REST API](../rest-api.md).
 For dynamic-mode internals, see [Dynamic generative UI](dynamic-generative-ui.md).
@@ -24,7 +24,7 @@ For dynamic-mode internals, see [Dynamic generative UI](dynamic-generative-ui.md
 <dependency>
   <groupId>com.kutaybuyukkorukcu.a2ui.runtime</groupId>
   <artifactId>a2ui-runtime-spring-web-starter</artifactId>
-  <version>2.2.0</version>
+  <version>3.0.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -109,7 +109,7 @@ There is no silent fallback text surface.
 ## 4. Template vs dynamic in practice
 
 **Dynamic** is the starting point when this case’s tree is not predetermined.
-The LLM composes from the **active** catalog (vendored basic v0.9.1, plus any
+The LLM composes from the **active** catalog (vendored basic v1.0, plus any
 host catalogs you [register](registering-catalogs.md)). Invalid planner output
 is retried once. The retry prompt carries `VALIDATION_FAILED` (`code`, `surfaceId`, `path`, `message`). A second failure is surfaced as `A2UI_VALIDATION_FAILED`.
 
@@ -127,7 +127,7 @@ either way. Known trees should still assemble in the host.
 
 ## 5. Wire a client
 
-Any client that speaks A2UI v0.9.1 over SSE can consume the stream. This repo’s
+Any client that speaks A2UI v1.0 over SSE can consume the stream. This repo’s
 sample UI lives in [`apps/fe-a2ui-demo`](../../apps/fe-a2ui-demo) and uses
 `@a2ui/react` against the **basic** catalog — it is a smoke client, not where
 product catalogs are meant to live permanently.
