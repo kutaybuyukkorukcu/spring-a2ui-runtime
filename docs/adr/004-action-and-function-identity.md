@@ -66,7 +66,15 @@ Resolution:
 
 1. Use `catalogId` on the call when it is present.
 2. At **assemble**, if it is absent, use the surface `catalogId` being assembled (component override, then surface default). If neither exists, fail with the existing `MISSING_CATALOG_ID`. Do not fall back to the basic catalog or to advertised capabilities.
-3. At **ingress** (`callAgentFunction`), this process has no surface table. If `catalogId` is absent, resolve only through registered agent functions with that `@call`: one match uses it; zero matches is `UNKNOWN_FUNCTION`; two or more is `INVALID_FUNCTION_CALL` (the client must send `catalogId`). Do not invent a session store to remember the surface catalog.
+3. At **ingress** (`callAgentFunction`), this process has no surface table. Do not invent a session store to remember the surface catalog. If `catalogId` is present, resolve that catalog. If it is absent:
+
+- Two or more registered agent functions use that `@call`: `INVALID_FUNCTION_CALL`. The client must send `catalogId`.
+- Exactly one registered agent function uses that `@call`, and no other supported catalog defines it: execute that function.
+- Exactly one registered agent function uses that `@call`, and another supported catalog also defines it: `INVALID_FUNCTION_CALL`. Do not execute the agent function. The client must send `catalogId`.
+- No registered agent function, and every catalog definition of that `@call` is `rendererOnly` or `agentOnly`: `INVALID_FUNCTION_CALL`. This includes every basic-catalog function, with or without `catalogId`.
+- No registered agent function, exactly one supported catalog defines it as `rendererOrAgent`, and no other catalog defines it: `UNKNOWN_FUNCTION`.
+- No registered agent function, and more than one catalog defines it, or the catalogs disagree (`rendererOnly` in one and `rendererOrAgent` in another): `INVALID_FUNCTION_CALL`. The client must send `catalogId`.
+- No supported catalog defines it: `UNKNOWN_FUNCTION`.
 
 `@index` is the system function in `common_types.json`. It is not a catalog function and cannot be registered as an agent function.
 
@@ -78,7 +86,7 @@ The event allow-list does not contain function ids. A button `functionCall` whos
 
 | `allowedCallers` | Component `functionCall`, checks, dynamic `@call` | `callRendererFunction` (renderer runs it) | `callAgentFunction` (this runtime) |
 |------------------|----------------------------------------------------|--------------------------------------------|------------------------------------|
-| `rendererOnly` (default) | Allowed when the catalog defines it. The host FE runs it. | This runtime must not emit it. | `agentFunctionResponse.error` code `INVALID_FUNCTION_CALL`. No Java body. |
+| `rendererOnly` (default) | Allowed when the catalog defines it. The host FE runs it. | This runtime must not emit it. | `agentFunctionResponse.error` code `INVALID_FUNCTION_CALL`, with or without `catalogId`. No Java body. |
 | `agentOnly` | Assemble fails `INVALID_FUNCTION_CALL`. The spec forbids binding these into UI. | This runtime may emit it. The FE runs it. | `INVALID_FUNCTION_CALL`. This is not the agent-executed direction. |
 | `rendererOrAgent` | Allowed. The FE runs it when the FE has a local implementation; otherwise the FE sends `callAgentFunction`. | This runtime may emit it. | Execute the registered `A2UiAgentFunction`. No bean → `UNKNOWN_FUNCTION`. |
 
@@ -194,6 +202,8 @@ HTTP results:
 
 `UNKNOWN_ACTION` is never the code for a function. `UNKNOWN_FUNCTION` is never the code for an event. A function failure is an `agentFunctionResponse` with HTTP 200 because that is the protocol message, not an admission reject of an event.
 
+An unchecked exception from the agent function is that same HTTP 200 shape. `error.code` is `FUNCTION_FAILED` and `error.message` is `Function execution failed`. The process stores that result. A retry with the same surface and `functionCallId` replays it and does not call the function again.
+
 `A2UiActionResponse` as a private wrapper is removed on 3.0.0. The 200 body is the protocol array so `agentFunctionResponse` and surface envelopes share one shape.
 
 Assemble codes, fail-fast on the stream (ADR 001), same strings:
@@ -231,16 +241,18 @@ When the client sends `X-A2UI-Idempotency-Key`, the process stores the HTTP resu
 
 `confirmationSatisfied` is true only when policy requires confirmation for that event name **and** `context.confirmed` is boolean `true` or the string `"true"`. Otherwise it is false.
 
-- The same pair, while in flight, waits for the first result (single-flight).
-- The same pair, after completion, replays the stored result and does not call `handle` again. A stored 409 replays as 409.
+The stored result is also bound to the event fingerprint: `name`, `surfaceId`, `sourceComponentId`, and canonical `context`. The same key and confirmation flag with a different fingerprint is HTTP 400 `INVALID_CLIENT_EVENT`. That rejection does not replay the first result and does not replace it.
+
+- The same pair and the same fingerprint, while in flight, waits for the first result (single-flight). The waiter stops after 30 seconds. The first call keeps the slot.
+- The same pair and the same fingerprint, after completion, replays the stored result and does not call `handle` again. A stored 409 replays as 409.
 - The confirmed retry uses the other pair, so it is a new authorized `handle`. A second confirmed POST with the same key replays that success.
 - Absent header: every event POST executes.
 
-**Functions.** `functionCallId` is the dedupe key for `callAgentFunction` in this process. The spec defines it as one invocation.
+**Functions.** The dedupe key for `callAgentFunction` in this process is `(surfaceId, functionCallId)`. The spec defines `functionCallId` as one invocation. The same id on two surfaces is two calls.
 
-- Same id, same resolved `A2UiFunctionId`, same args, in flight → wait, one `invoke`.
-- Same id, same id and args, completed → replay the stored `agentFunctionResponse`. Do not call the host again.
-- Same id, different `@call`, catalog, or args → `INVALID_FUNCTION_CALL`. The id is not a fresh ticket.
+- Same surface and id, same resolved `A2UiFunctionId`, same args, in flight: wait, one `invoke`. The waiter stops after 30 seconds. The first call keeps the slot.
+- Same surface and id, same function and args, completed: replay the stored `agentFunctionResponse`. Do not call the host again.
+- Same surface and id, different `@call`, catalog, or args: `INVALID_FUNCTION_CALL`. The id is not a fresh ticket.
 - Restart drops the map. The host function must still tolerate a replay.
 
 Both maps are bounded (cap and TTL chosen and tested in the implementation). When the map cannot store a new key, the call **executes**. A full cache must not turn into a false reject of a real click. That preserves at-least-once and refuses a runtime datastore.
@@ -268,7 +280,7 @@ No `surfaceId`, `functionCallId`, `requestId`, or `catalogId` tag. `catalogId` i
 - Event allow-list: declared name admitted; unknown name `UNKNOWN_ACTION`; empty list fail-open; a `functionCall` is invisible to that list.
 - Function registry: exact pair; duplicate bean fails startup; `rendererOnly` / `agentOnly` bean fails startup; omitted ingress `catalogId` resolves only when one agent function owns that `@call`.
 - Assemble: unknown event and unknown function produce different codes; `agentOnly` on a button is `INVALID_FUNCTION_CALL`; a basic-catalog `openUrl` action is allowed and does not hit an event handler.
-- Idempotency keys: absent event header executes twice; same idempotency key replays; confirmed retry is a second `handle`; same `functionCallId` replays; same id with different args is `INVALID_FUNCTION_CALL`.
+- Idempotency keys: absent event header executes twice; same idempotency key and the same event fingerprint replays; the same key with a different name, surface, source component, or context is `INVALID_CLIENT_EVENT`; confirmed retry is a second `handle`; same surface and `functionCallId` replays; the same id on another surface runs again; same id with different args is `INVALID_FUNCTION_CALL`. A thrown agent function is HTTP 200 `FUNCTION_FAILED`, and the retry replays it.
 
 **Golden / conformance**
 
@@ -280,14 +292,14 @@ Vendor, at the pinned commit, `specification/v1_0/json/{renderer_to_agent,agent_
 - Unknown event → 400 `UNKNOWN_ACTION`.
 - `callAgentFunction` for a registered function → 200 array of one `agentFunctionResponse`, same `functionCallId`.
 - Unknown function → 200 `agentFunctionResponse.error.code` `UNKNOWN_FUNCTION`, not 400 `UNKNOWN_ACTION`.
-- `rendererOnly` target → `INVALID_FUNCTION_CALL` inside that response.
+- `rendererOnly` target → `INVALID_FUNCTION_CALL` inside that response, with or without `catalogId`.
 - SSE: a stream frame `event: callRendererFunction`; a later POST `rendererFunctionResponse` with that `functionCallId` completes the pending call; a different id does not.
 
 **Browser**
 
 One showcase + Vite test (`apps/be-transform-showcase` and `apps/fe-a2ui-demo`) only if the FE can mount a **web** v1.0 renderer that renders a surface and POSTs an `action` validating against `renderer_to_agent.json`.
 
-As of 2026-10-31, [the renderer matrix](https://a2ui.org/reference/renderers/) lists React, Lit, and Angular v1.0 as Planned. The Vite demo depends on `@a2ui/react`. SwiftUI v1.0 Alpha is not that demo. `@a2ui/web_core` has a v1.0 path and [issue 3486](https://github.com/a2ui-project/a2ui/issues/3486) tracks `@call` serialized as `call`. Until a web renderer clears that bar, the test is skipped and the report names this paragraph. `@a2ui/react/v0_9` against v1.0 envelopes is not a passing e2e.
+As of 2026-11-01, [the renderer matrix](https://a2ui.org/reference/renderers/) lists React, Lit, and Angular v1.0 as Planned. The Vite demo depends on `@a2ui/react` v0.9 and still posts v0.9 action bodies. SwiftUI v1.0 Alpha is not that demo. `@a2ui/web_core` has a v1.0 path. [Issue 3486](https://github.com/a2ui-project/a2ui/issues/3486) was closed on 2026-10-27 by [pull request 3665](https://github.com/a2ui-project/a2ui/pull/3665). That change fixes a web_core RPC payload (`@call` sent as `call`). It is not a JSON Schema fix, and it is not in a released `@a2ui/web_core` (latest 0.14.0). Until a web renderer clears that bar, the test is skipped and the report names this paragraph. `@a2ui/react/v0_9` against v1.0 envelopes is not a passing e2e.
 
 **2.x regression**
 
@@ -303,7 +315,7 @@ As of 2026-10-31, [the renderer matrix](https://a2ui.org/reference/renderers/) l
 
 **Colon-joined `catalogId:call`.** Catalog ids in the spec are absolute URLs. The pair is a record so the two fields cannot be sliced back apart, and so an event name cannot be passed where a function id is required.
 
-**A server-side surface session so omitted `catalogId` can use the surface default.** That is a datastore this runtime does not own (ADR 002). Omitted `catalogId` resolves only when a single registered agent function has that `@call`.
+**A server-side surface session so omitted `catalogId` can use the surface default.** That is a datastore this runtime does not own (ADR 002). Omitted `catalogId` resolves to a single registered agent function only when no other supported catalog defines that `@call`. A `rendererOnly` definition is `INVALID_FUNCTION_CALL` even when `catalogId` is absent.
 
 **Executing `rendererOnly` functions on the JVM, including the basic catalog.** The evolution guide puts `openUrl` and validation helpers on the renderer, and `requiresUserActivation` cannot be honored on a POST. The spec also says a renderer that lacks a local implementation may send `callAgentFunction`. We still refuse `rendererOnly` with `INVALID_FUNCTION_CALL`. A host that wants server execution declares `rendererOrAgent` and registers a bean. Running `formatDate` inside the runtime would build a second renderer.
 
@@ -321,7 +333,7 @@ As of 2026-10-31, [the renderer matrix](https://a2ui.org/reference/renderers/) l
 
 - Host event handlers keep stable button names (`approve`, `submit_change`). They do not prefix `surfaceId`. They update `supports` / `handle` to `A2UiAction` and declare `eventNames()`. A host that declared nothing stays fail-open for events.
 - Hosts that want a server function add it to the catalog `functions` map with `allowedCallers: rendererOrAgent` and register `A2UiAgentFunction`. The FE calls it with `callAgentFunction`. It does not arrive at `A2UiActionHandler`.
-- Basic functions such as `openUrl` stay in the FE. A POST of those calls gets `INVALID_FUNCTION_CALL`, not a write.
+- Basic functions such as `openUrl` stay in the FE. A POST of those calls gets `INVALID_FUNCTION_CALL`, with or without `catalogId`, not a write.
 - `POST` success bodies become a JSON array of v1.0 envelopes. Clients that read `A2UiActionResponse` change with the 3.0.0 bump. The showcase FE changes in the same phase, or the browser test stays skipped until a v1.0 web renderer exists.
 - Operators tag `kind` and `name`, not `surfaceId`. Unknown names collapse to `unknown`.
 - Two instances do not share function-call replay or pending renderer calls. Hosts who run more than one instance treat function execution as at-least-once, which they already must do across restarts.
@@ -332,7 +344,7 @@ As of 2026-10-31, [the renderer matrix](https://a2ui.org/reference/renderers/) l
 
 These are decided above. The maintainer should confirm them before the implementation PR merges:
 
-1. `callAgentFunction` for a `rendererOnly` function is `INVALID_FUNCTION_CALL`, including every basic-catalog function.
+1. `callAgentFunction` for a `rendererOnly` function is `INVALID_FUNCTION_CALL`, including every basic-catalog function, with or without `catalogId`. If the same `@call` is `rendererOnly` in one supported catalog and a registered agent function in another, omitting `catalogId` is also `INVALID_FUNCTION_CALL`. The runtime does not pick the agent function.
 2. HTTP 200 success is a JSON array of v1.0 agent→renderer envelopes, and `A2UiActionResponse` goes away on 3.0.0.
 3. Idempotency state is process-local. No shared cache.
 4. The envelope version const is `1.0`, matching the schema, not `v1.0`.
@@ -342,7 +354,7 @@ These are decided above. The maintainer should confirm them before the implement
 ## References
 
 - [ADR 001](001-streaming-surface-generation.md), [ADR 002](002-in-product-surfaces.md), [ADR 003](003-catalog-scoped-fail-fast.md)
-- [BACKLOG — A2UI v1.0 actions / functions](../../BACKLOG.md#next--a2ui-v10-actions--functions)
+- [BACKLOG — A2UI v1.0 actions / functions](../../BACKLOG.md#done--a2ui-v10-actions--functions)
 - [Implementation plan](../plans/a2ui-v1-actions-functions.md)
 - [A2UI v1.0 protocol](https://a2ui.org/specification/v1.0-a2ui/), [evolution guide](https://a2ui.org/specification/v1.0-evolution-guide/), [renderer matrix](https://a2ui.org/reference/renderers/)
 - Pinned spec commit `825beac2813a6d0ccef3b6fb4124ad6c3c8419f0` in `a2ui-project/a2ui`
