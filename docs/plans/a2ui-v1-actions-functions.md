@@ -2,7 +2,7 @@
 
 **Status:** implemented on `cursor/a2ui-v1-actions-functions-6e50` (stacked on `cursor/a2ui-v1-action-identity-ab47`). Not on `main`. The `2.x` line is not retargeted.
 **Branch:** `cursor/a2ui-v1-actions-functions-6e50`.
-**Backlog:** [A2UI v1.0 actions / functions](../../BACKLOG.md#next--a2ui-v10-actions--functions)
+**Backlog:** [A2UI v1.0 actions / functions](../../BACKLOG.md#done--a2ui-v10-actions--functions)
 **Library:** `3.0.0` candidate. Hard cutover. Envelope `"version": "1.0"`.
 
 ADR 004 is the decision. This file is the order of work. Do not reopen event-name vs `(catalogId, @call)`, the `rendererOrAgent`-only Java seam, the rename, or the idempotency keys.

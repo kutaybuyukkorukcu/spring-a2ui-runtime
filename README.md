@@ -29,15 +29,17 @@ Surfaces are streamed as **A2UI v1.0 envelopes over SSE** (`"version":"1.0"`, `c
 
 ## Getting started
 
-You do not need to build this repository to use the runtime. Add the web starter to a Spring Boot 3.4+ application (Java 21) that already configures Spring AI chat:
+You do not need to build this repository to use the runtime that is on Maven Central. Add the web starter to a Spring Boot 3.4+ application (Java 21) that already configures Spring AI chat:
 
 ```xml
 <dependency>
   <groupId>com.kutaybuyukkorukcu.a2ui.runtime</groupId>
   <artifactId>a2ui-runtime-spring-web-starter</artifactId>
-  <version>3.0.0-SNAPSHOT</version>
+  <version>2.2.0</version>
 </dependency>
 ```
+
+`2.2.0` speaks A2UI v0.9.1. `3.0.0` (A2UI v1.0, this branch) is not released. Build from source to run it. The sample request below is the published v0.9.1 client.
 
 Set a generation mode explicitly (library default is `dynamic` if omitted). Use **dynamic** when this case’s tree is not predetermined; use **template** only if you still want LLM slot-fill of a registered spec. Known acks should **assemble** in the host with no model call.
 
@@ -86,7 +88,7 @@ Sample apps under `apps/` (`be-transform-showcase`, `fe-a2ui-demo`) are for loca
 
 * Streams A2UI v1.0 envelopes (`createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface`, `callRendererFunction`, `agentFunctionResponse`) over SSE
 * Negotiates catalogs from client capabilities and pins `catalogId` on `createSurface`
-* Validates messages against the **active** catalog (vendored basic v0.9 today, plus host-registered catalogs via [`A2UiCatalogContribution`](docs/guides/registering-catalogs.md))
+* Validates messages against the **active** catalog (vendored basic v1.0, plus host-registered catalogs via [`A2UiCatalogContribution`](docs/guides/registering-catalogs.md))
 * Fails fast with SSE `event: error` — no silent fallback surfaces
 * Offers template tools for deterministic UX and a two-hop dynamic path for catalog composition
 * Retries dynamic assembly once with validation diagnostics, then errors
@@ -110,6 +112,8 @@ cd apps/fe-a2ui-demo && npm install && npm run dev
 ```
 
 The showcase listens on port `5001` by default.
+
+`apps/fe-a2ui-demo` still posts v0.9 action bodies (`App.tsx` sends `{ action }` from `@a2ui/web_core/v0_9`, and `api.ts` uses `"version":"v0.9"`). This backend answers HTTP 400: `INVALID_CLIENT_EVENT` when `version` is missing, `UNSUPPORTED_VERSION` when `version` is `v0.9` or `v0.9.1`. It is not a client of this process. See [Migrating to v1.0](docs/guides/migrating-to-v1.0.md).
 
 ## Building from source
 

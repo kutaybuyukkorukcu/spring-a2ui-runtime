@@ -60,7 +60,7 @@ Ship a Maven Central Spring Boot runtime that turns host intent plus context int
 - ~~Tool API shape~~ → **Builder + runtime `@Tool` adapters**
 - ~~Is dynamic A2UI in scope?~~ → **Yes — Phase 2 (shipped)**
 - ~~Generation product: basic catalog only~~ → **basic + host `A2UiCatalogContribution` SPI** (Central `2.1.0`)
-- ~~Provider scope~~ → **OpenAI-first for getting started**; Groq and other OpenAI-compatible servers use that path. Dynamic force on Spring AI **1.1.8**: OpenAI named `tool_choice`, Anthropic named `tool_choice`, native Mistral `any`; `TOOL_CHOICE_UNAVAILABLE` when the active provider cannot force — **merged on `2.x`, paused** for Gemini, Bedrock, native Azure OpenAI, and native Ollama until Boot 4 ([multi-provider guide](docs/guides/multi-provider-spring-ai.md))
+- ~~Provider scope~~ → **OpenAI-first for getting started**; Groq and other OpenAI-compatible servers use that path. Dynamic force on Spring AI **1.1.8**: OpenAI named `tool_choice`, Anthropic named `tool_choice`, native Mistral `any`; `TOOL_CHOICE_UNAVAILABLE` when the active provider cannot force — **ships on the `3.0.0` line with this stack, paused** for Gemini, Bedrock, native Azure OpenAI, and native Ollama until Boot 4 ([multi-provider guide](docs/guides/multi-provider-spring-ai.md))
 - ~~Platform vs foreign protocol-as-core~~ → **Platform**; native SSE remains identity
 - ~~v0.8 / Central `1.1.0`~~ → **Published**
 - ~~Patch `1.1.1` dynamic fail-fast~~ → **Published**
@@ -84,7 +84,7 @@ Near-term **execution order stays locked** (see header). This section only expla
 | **MVP demo (sample apps)** ✅ | Sample slot in `apps/`: compose then assemble — [ADR 002](docs/adr/002-in-product-surfaces.md) |
 | **A2UI v1.0 actions / functions** ✅ | v1.0 wire, event vs function, idempotency, routing meters — **`3.0.0`** line on `main`; Central release pending ([ADR 004](docs/adr/004-action-and-function-identity.md)) |
 | **Parallel two-hop generation** | Next: overlap planner with hop 1; live `toolProgress` on SSE |
-| **Later (residual)** | After parallel two-hop: host compose tools (facts hop), then Spring AI 2.1 / Boot 4 (facts hop vs upgrade **TBD by Kutay**), then progressive rendering; **dynamic compose tool forcing beyond OpenAI merged on `2.x`, paused** for Gemini, Bedrock, native Azure OpenAI, and native Ollama; multi-surface, Spring AI hop adapter, provider prompt cache |
+| **Later (residual)** | After parallel two-hop: host compose tools (facts hop), then Spring AI 2.1 / Boot 4 (facts hop vs upgrade **TBD by Kutay**), then progressive rendering; **dynamic compose tool forcing beyond OpenAI ships on the `3.0.0` line with this stack, paused** for Gemini, Bedrock, native Azure OpenAI, and native Ollama; multi-surface, Spring AI hop adapter, provider prompt cache |
 
 ---
 
@@ -481,7 +481,7 @@ Shipped: v1.0 ingress and assemble; event vs function identity (`A2UiAction` / `
 **Honest gaps**
 
 - Browser e2e `V1WebRendererE2ETest` stays disabled until an official web renderer ships v1.0. The renderer matrix lists React, Lit, and Angular v1.0 as **Planned**.
-- Upstream `@call` JSON Schema fix (issue [a2ui-project/a2ui#3486](https://github.com/a2ui-project/a2ui/issues/3486)) is merged upstream but not yet in a released `@a2ui/*` package pin.
+- [a2ui-project/a2ui#3486](https://github.com/a2ui-project/a2ui/issues/3486) was closed on 2026-10-27 by [a2ui-project/a2ui#3665](https://github.com/a2ui-project/a2ui/pull/3665). That pull request fixes a web_core RPC payload (`@call` sent as `call`). It is not a JSON Schema fix, and it is not in a released `@a2ui/web_core` (latest 0.14.0).
 
 ---
 
@@ -518,7 +518,7 @@ Items below stay **after** parallel two-hop (or never, if they fail the extensio
 
 **Sequencing (locked):** parallel two-hop generation (Next) → host compose tools (facts hop) → Spring AI 2.1 / Boot 4 upgrade → progressive rendering. Facts hop vs the upgrade: **TBD by Kutay**. The upgrade before progressive rendering is decided (tool-argument deltas). The facts hop adds wall-clock to `POST /a2ui/surface/stream`; do not stack it on serial hops.
 
-**Independent of that pair (merged on `2.x`, paused):** [dynamic compose tool forcing beyond OpenAI](#dynamic-compose-tool-forcing-beyond-openai). OpenAI, Anthropic, and native Mistral force on Spring AI 1.1.8. Gemini, Bedrock, native Azure OpenAI, and native Ollama wait for the Boot 4 line.
+**Independent of that pair (ships on the `3.0.0` line with this stack, paused):** [dynamic compose tool forcing beyond OpenAI](#dynamic-compose-tool-forcing-beyond-openai). OpenAI, Anthropic, and native Mistral force on Spring AI 1.1.8. Gemini, Bedrock, native Azure OpenAI, and native Ollama wait for the Boot 4 line.
 
 ### Host compose tools (facts hop)
 
@@ -572,7 +572,7 @@ Own plan file if starting. Not the architecture-revisions Spring AI hop adapter 
 
 ### Dynamic compose tool forcing beyond OpenAI
 
-**Status:** merged on **`2.x`**, paused. OpenAI named `tool_choice`, Anthropic named `tool_choice`, and native Mistral `any` ship on Spring AI **1.1.8** / Boot 3.4.1. **Independent** of the parallel two-hop → facts hop pair and of the **`3.0.0`** v1.0 line.
+**Status:** ships on the **`3.0.0`** line with this stack, paused. OpenAI named `tool_choice`, Anthropic named `tool_choice`, and native Mistral `any` ship on Spring AI **1.1.8** / Boot 3.4.1. **Independent** of the parallel two-hop → facts hop pair. It does not live on a `2.x` branch.
 
 **Follow-up (paused, revisit with the Boot 4 line):**
 - Gemini via native Google GenAI needs Spring AI 2.x / Boot 4 (`GoogleGenAiChatOptions.ToolChoice` mode `ANY` plus `allowedFunctionNames`). Vertex Gemini chat options have no force on 1.1.8, and Spring AI 2.0.2 removes that chat module.
@@ -584,7 +584,7 @@ Own plan file if starting. Not the architecture-revisions Spring AI hop adapter 
 
 `A2UiForcedToolChoiceFactory` builds a forced `ChatOptions` for the active provider and fail-closes with `TOOL_CHOICE_UNAVAILABLE` when that provider cannot force. Empty options are not returned. OpenAI (and OpenAI-compatible servers, including Groq) send a named `tool_choice`. Anthropic sends a named `tool_choice` (`type` `tool`) on Spring AI 1.1.8. Native Mistral sends `any`. Vertex Gemini, Google GenAI, Bedrock Converse, native Azure OpenAI, and native Ollama stay fail-closed: no Boot 3 Spring AI `ChatOptions` type exposes a force for them. Google GenAI forcing exists only in Spring AI 2.x (Boot 4).
 
-**In (shipped on `2.x`):**
+**In (ships on the `3.0.0` line with this stack):**
 - Classpath-conditional forced tool choice for Anthropic (named `tool_choice`) and native Mistral (`any`)
 - Fail-closed when the active provider cannot force — `TOOL_CHOICE_UNAVAILABLE` on the stream, no silent skip
 - Keep one-shot `returnDirect` (do not reopen TPM tool loops)

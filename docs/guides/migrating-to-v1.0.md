@@ -18,6 +18,11 @@ v0.9.1 stays on the **`2.x`** line. There is no dual-protocol parser in `3.x`. A
 | Text `variant` | `h1` … `h5` | `caption` or `body` |
 | TextField `value` | schema-required | label is required; `value` is optional |
 | Button action | event name only, for routing | `action.event.name` is an event; `action.functionCall` is a catalog function (`@call`) |
+| Action fields | `sourceComponentId`, `timestamp`, and `context` may be omitted | All three are required. A missing one is HTTP 400 `INVALID_CLIENT_EVENT` |
+| Error details | `routeKey` (`surfaceId` + `:` + name) plus `surfaceId` and `actionName` | `routeKey` is removed. `surfaceId` and `actionName` stay separate fields |
+| `a2ui.action.executed` | One count per handled event, no tags | Also counts idempotent replays (`outcome=duplicate`) and renderer `error` acks (`kind=error`). Tags are `kind`, `outcome`, `name` |
+| `a2ui.policy.rejected` | Every action rejection, tag `reason` only | Confirmation and hidden-component denies only (`reason` `confirmation` or `component`) |
+| `a2ui.runtime.action.event` | Untagged counter | Tags `kind`, `outcome` (`executed` or `duplicate`), and `name` |
 
 `A2UiAction` still has no `catalogId`. Response validation still infers the catalog from the first `createSurface`, otherwise the basic v1.0 catalog.
 
@@ -59,11 +64,11 @@ public List<A2UiMessage> handle(A2UiAction action, String requestId) {
 
 An empty allow-list stays fail-open for events. A non-empty list denies unknown names with **400** `UNKNOWN_ACTION` before `supports()`. Confirmation is unchanged: **409** `CONFIRMATION_REQUIRED` until `context.confirmed` is boolean `true` or the string `"true"`.
 
-Send `X-A2UI-Idempotency-Key` when a retry must not run the handler again. The same key replays the stored HTTP result, including a 409. A confirmed retry is a **new** call. Omit the header and every POST runs. The map is process-local (cap 1024, 10 minutes). A restart runs the handler again.
+Send `X-A2UI-Idempotency-Key` when a retry must not run the handler again. The same key replays the stored HTTP result, including a 409, when `name`, `surfaceId`, `sourceComponentId`, and `context` match. A different payload on that key is HTTP 400 `INVALID_CLIENT_EVENT` and does not replace the stored result. A confirmed retry is a **new** call. Omit the header and every POST runs. The map is process-local (cap 1024, 10 minutes). A restart runs the handler again. A second request that arrives while the first is still running waits up to 30 seconds, then fails, and does not cancel the first call.
 
 ## Functions
 
-Basic-catalog functions (`openUrl`, `required`, `formatDate`, …) stay on the host frontend. They are `rendererOnly`. A `callAgentFunction` for one of them is HTTP **200** with `agentFunctionResponse.error.code` `INVALID_FUNCTION_CALL`. That is not `UNKNOWN_ACTION`.
+Basic-catalog functions (`openUrl`, `required`, `formatDate`, …) stay on the host frontend. They are `rendererOnly`. A `callAgentFunction` for one of them is HTTP **200** with `agentFunctionResponse.error.code` `INVALID_FUNCTION_CALL`, whether or not the client sends `catalogId`. That is not `UNKNOWN_ACTION`. If the same `@call` is `rendererOnly` in one supported catalog and a registered agent function in another, omitting `catalogId` is also `INVALID_FUNCTION_CALL`. The runtime does not guess the agent function.
 
 A server function is a catalog entry with `allowedCallers: rendererOrAgent` plus an `A2UiAgentFunction` bean. Identity is the pair `(catalogId, @call)`, not a colon-joined string.
 
@@ -84,17 +89,17 @@ A2UiAgentFunction quote() {
 }
 ```
 
-The frontend calls it with `callAgentFunction`. The runtime returns one `agentFunctionResponse` that copies `functionCallId`. Unknown functions are HTTP 200 `UNKNOWN_FUNCTION`. A bean that is `rendererOnly`, `agentOnly`, missing from the catalog, or duplicated fails startup.
+The frontend calls it with `callAgentFunction`. The runtime returns one `agentFunctionResponse` that copies `functionCallId`. Unknown functions are HTTP 200 `UNKNOWN_FUNCTION`. A bean that throws is HTTP 200 `FUNCTION_FAILED` with message `Function execution failed`, not HTTP 500 `ACTION_FAILED`. A bean that is `rendererOnly`, `agentOnly`, missing from the catalog, or duplicated fails startup.
 
 `agentOnly` inside a component fails assemble with `INVALID_FUNCTION_CALL`. `rendererOnly` and `rendererOrAgent` inside a component are valid and are not checked against `eventNames()`.
 
 To ask the frontend to run a function, return `callRendererFunction` (or emit it on the SSE stream). The runtime remembers `functionCallId` in this process. A later `POST /a2ui/actions` with `rendererFunctionResponse` and that id calls `A2UiRendererFunctionResponseHandler`. An unknown id is **400** `INVALID_FUNCTION_CALL`. There is no blocking client inside the POST that emitted the call.
 
-`functionCallId` dedupes `callAgentFunction`. The same id with the same resolved function and the same arguments replays. A different `@call`, catalog, or arguments on that id is `INVALID_FUNCTION_CALL`. `confirmed=true` does not apply to functions.
+`functionCallId` dedupes `callAgentFunction` together with `surfaceId`. The same surface and id, with the same resolved function and the same arguments, replays. The same id on another surface runs again. A different `@call`, catalog, or arguments on that surface and id is `INVALID_FUNCTION_CALL`. `confirmed=true` does not apply to functions. A waiter on an in-flight call stops after 30 seconds. The first call keeps the slot.
 
 ## Frontend
 
-`apps/fe-a2ui-demo` stays on `@a2ui/react` v0.9. React, Lit, and Angular v1.0 renderers are still Planned, so the showcase + Vite browser test is skipped. Do not point `@a2ui/react/v0_9` at these envelopes and treat that as a v1.0 client.
+`apps/fe-a2ui-demo` stays on `@a2ui/react` and `@a2ui/web_core` v0.9. `App.tsx` posts `{ action: <A2uiClientAction> }` with no envelope `"version":"1.0"`, and `api.ts` still builds data-model messages with `"version":"v0.9"`. Against this backend that POST is HTTP 400. A body with no `version` is `INVALID_CLIENT_EVENT`. A body with `"version":"v0.9"` or `"v0.9.1"` is `UNSUPPORTED_VERSION`. React, Lit, and Angular v1.0 renderers are still Planned, so the showcase + Vite browser test is skipped. Do not point `@a2ui/react/v0_9` at these envelopes and treat that as a v1.0 client.
 
 ## Stay on 2.x
 

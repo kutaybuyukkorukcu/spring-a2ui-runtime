@@ -64,7 +64,7 @@ A `functionCall` on a button is not an event name. It is checked against the cat
 
 Events and functions are different types. A host function the runtime executes is an `A2UiAgentFunction` bean whose catalog entry says `allowedCallers: rendererOrAgent`. Identity is `(catalogId, @call)`. Basic-catalog functions such as `openUrl` stay on the frontend. A bean that is not `rendererOrAgent`, is missing from the catalog, or duplicates an id fails startup.
 
-The frontend sends `callAgentFunction`. The HTTP 200 body is one `agentFunctionResponse` with the same `functionCallId`. Unknown functions use `UNKNOWN_FUNCTION`. `rendererOnly` targets use `INVALID_FUNCTION_CALL`. Neither code is `UNKNOWN_ACTION`.
+The frontend sends `callAgentFunction`. The HTTP 200 body is one `agentFunctionResponse` with the same `functionCallId`. Unknown functions use `UNKNOWN_FUNCTION`. `rendererOnly` targets use `INVALID_FUNCTION_CALL`, including when `catalogId` is omitted. If that `@call` is also a registered agent function in a different catalog, the client must send `catalogId`. Omitting it is `INVALID_FUNCTION_CALL`. Neither code is `UNKNOWN_ACTION`. A bean that throws returns `FUNCTION_FAILED` in that same HTTP 200 body. Dedup is `(surfaceId, functionCallId)` in this process.
 
 Return `A2UiMessage.CallRendererFunction` when the frontend should run an `agentOnly` or `rendererOrAgent` function. A later POST `rendererFunctionResponse` with that `functionCallId` calls `A2UiRendererFunctionResponseHandler`. The runtime does not block the first response waiting for the second POST.
 
