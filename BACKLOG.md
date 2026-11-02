@@ -1,8 +1,8 @@
 # Backlog
 
-Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** ✅ → **Central `2.1.0` (Template + Catalog SPI)** ✅ → **Architecture revisions** ✅ → **Generate / govern / execute** ✅ → **Central `2.2.0` (v0.9.1 line)** ✅ → **MVP demo (sample apps)** ✅ → **A2UI v1.0 actions / functions** ✅ → **Parallel two-hop generation** → **Later (facts hop → Spring AI 2.1 / Boot 4 → progressive rendering; residual)**.
+Execution order: **Phase 0–2.5** ✅ → **v0.8 / Maven Central `1.1.0`** ✅ → **patch `1.1.1` (dynamic fail-fast)** ✅ → **Phase X (A2UI v0.9.1 / Central `2.0.0`)** ✅ → **utilization layer (our SSE vocabulary)** ✅ → **Platform builder batteries (OSS DX)** ✅ → **Central `2.1.0` (Template + Catalog SPI)** ✅ → **Architecture revisions** ✅ → **Generate / govern / execute** ✅ → **Central `2.2.0` (v0.9.1 line)** ✅ → **MVP demo (sample apps)** ✅ → **A2UI v1.0 actions / functions** ✅ → **Verification framework** → **Parallel two-hop generation** → **Later (facts hop → Spring AI 2.1 / Boot 4 → progressive rendering; residual)**.
 
-ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)` · `[docs/adr/002-in-product-surfaces.md](docs/adr/002-in-product-surfaces.md)` · `[docs/adr/003-catalog-scoped-fail-fast.md](docs/adr/003-catalog-scoped-fail-fast.md)` · `[docs/adr/004-action-and-function-identity.md](docs/adr/004-action-and-function-identity.md)`
+ADR: `[docs/adr/001-streaming-surface-generation.md](docs/adr/001-streaming-surface-generation.md)` · `[docs/adr/002-in-product-surfaces.md](docs/adr/002-in-product-surfaces.md)` · `[docs/adr/003-catalog-scoped-fail-fast.md](docs/adr/003-catalog-scoped-fail-fast.md)` · `[docs/adr/004-action-and-function-identity.md](docs/adr/004-action-and-function-identity.md)` · `[docs/adr/005-verification-framework.md](docs/adr/005-verification-framework.md)`
 
 **Branches:** `main` (Phase X hard cutover merged) · Legacy patch line `1.1.x`.
 
@@ -482,6 +482,17 @@ Shipped: v1.0 ingress and assemble; event vs function identity (`A2UiAction` / `
 
 - Browser e2e `V1WebRendererE2ETest` stays disabled until an official web renderer ships v1.0. The renderer matrix lists React, Lit, and Angular v1.0 as **Planned**.
 - [a2ui-project/a2ui#3486](https://github.com/a2ui-project/a2ui/issues/3486) was closed on 2026-10-27 by [a2ui-project/a2ui#3665](https://github.com/a2ui-project/a2ui/pull/3665). That pull request fixes a web_core RPC payload (`@call` sent as `call`). It is not a JSON Schema fix, and it is not in a released `@a2ui/web_core` (latest 0.14.0).
+
+---
+
+## Next — Verification framework
+
+**Status:** Next, top priority. **Before** parallel two-hop generation, which adds threads to compose.  
+**Docs:** [ADR 005](docs/adr/005-verification-framework.md) (proposed) · [plan](docs/plans/verification-framework.md)
+
+A merge needs deterministic evidence the owner can read in the PR body, without a line-by-line review. Layers: unit, schema conformance of emitted envelopes, ADR-rule traceability, mocked-provider integration, concurrency sequences on the ingress maps, an optional formal model of the dedupe slots, ArchUnit guardrails, and a docs-accuracy check. Every PR carries a review guide. A risk tier decides when a large-model review is worth its cost. There is no evaluation layer: model-graded scores never gate a merge.
+
+**First steps:** CI on every pull request (stacked PRs get no CI today), the merge-gate rule and PR template, then emitted-envelope conformance and the docs check. The plan has twelve steps, each at most about 400 lines.
 
 ---
 
