@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -178,39 +179,23 @@ public class A2UiActionService {
         boolean confirmationSatisfied = confirmationSatisfied(action);
         String meterName = meterEventName(action.name());
         String eventFingerprint = eventFingerprint(action);
-        A2UiIngressDeduper.Admission admission =
-                deduper.beginEvent(idempotencyKey, confirmationSatisfied, eventFingerprint);
-        return switch (admission) {
-            case A2UiIngressDeduper.Admission.Replay replay -> {
+        return switch (deduper.runEvent(
+                idempotencyKey,
+                confirmationSatisfied,
+                eventFingerprint,
+                () -> executeEvent(action, requestId, started, meterName))) {
+            case A2UiIngressDeduper.Decision.Ran(var value) -> value;
+            case A2UiIngressDeduper.Decision.Replayed(var stored) -> {
                 record(started, "event", "duplicate", meterName, null);
-                yield replay.stored().materialize();
+                yield stored.materialize();
             }
-            case A2UiIngressDeduper.Admission.InFlight inFlight -> joinInFlight(inFlight, started, "event", meterName);
-            case A2UiIngressDeduper.Admission.Mismatch ignored -> {
+            case A2UiIngressDeduper.Decision.Joined(var future) -> joinInFlight(future, started, "event", meterName);
+            case A2UiIngressDeduper.Decision.Rejected<A2UiIngressResult> ignored -> {
                 record(started, "event", "rejected", meterName, "idempotency_mismatch");
                 throw new A2UiActionException(
                         "Idempotency key was already used for a different event",
                         A2UiActionErrorCodes.INVALID_CLIENT_EVENT,
                         Map.of("surfaceId", action.surfaceId(), "actionName", action.name()));
-            }
-            case A2UiIngressDeduper.Admission.Proceed proceed -> {
-                try {
-                    A2UiIngressResult result = executeEvent(action, requestId, started, meterName);
-                    if (proceed.store()) {
-                        deduper.completeEvent(idempotencyKey, confirmationSatisfied, result, null);
-                    }
-                    yield result;
-                } catch (A2UiActionException ex) {
-                    if (proceed.store()) {
-                        deduper.completeEvent(idempotencyKey, confirmationSatisfied, null, ex);
-                    }
-                    throw ex;
-                } catch (RuntimeException ex) {
-                    if (proceed.store()) {
-                        deduper.abandonEvent(idempotencyKey, confirmationSatisfied, ex);
-                    }
-                    throw ex;
-                }
             }
         };
     }
@@ -263,40 +248,34 @@ public class A2UiActionService {
                 call.catalogId(),
                 call.call(),
                 requestId);
-        A2UiIngressDeduper.Admission admission =
-                deduper.beginFunction(call.surfaceId(), call.functionCallId(), fingerprint);
-        return switch (admission) {
-            case A2UiIngressDeduper.Admission.Replay replay -> {
+        return switch (deduper.runFunction(
+                call.surfaceId(),
+                call.functionCallId(),
+                fingerprint,
+                () -> {
+                    try {
+                        return executeFunction(call, resolved, requestId, started, meterName);
+                    } catch (RuntimeException ex) {
+                        LOGGER.warn(
+                                "a2ui function failed surfaceId={} functionCallId={} requestId={}",
+                                call.surfaceId(),
+                                call.functionCallId(),
+                                requestId,
+                                ex);
+                        record(started, "function", "rejected", meterName, "failed");
+                        return functionError(call.functionCallId(), FUNCTION_FAILED, "Function execution failed");
+                    }
+                })) {
+            case A2UiIngressDeduper.Decision.Ran(var value) -> value;
+            case A2UiIngressDeduper.Decision.Replayed(var stored) -> {
                 record(started, "function", "duplicate", meterName, null);
-                yield replay.stored().materialize();
+                yield stored.materialize();
             }
-            case A2UiIngressDeduper.Admission.InFlight inFlight -> joinInFlight(inFlight, started, "function", meterName);
-            case A2UiIngressDeduper.Admission.Mismatch ignored -> {
+            case A2UiIngressDeduper.Decision.Joined(var future) -> joinInFlight(future, started, "function", meterName);
+            case A2UiIngressDeduper.Decision.Rejected<A2UiIngressResult> ignored -> {
                 record(started, "function", "rejected", meterName, "invalid_function_call");
-                yield functionError(call.functionCallId(), A2UiErrorCode.INVALID_FUNCTION_CALL.code(), "functionCallId was already used");
-            }
-            case A2UiIngressDeduper.Admission.Proceed proceed -> {
-                try {
-                    A2UiIngressResult result = executeFunction(call, resolved, requestId, started, meterName);
-                    if (proceed.store()) {
-                        deduper.completeFunction(call.surfaceId(), call.functionCallId(), result, null);
-                    }
-                    yield result;
-                } catch (RuntimeException ex) {
-                    LOGGER.warn(
-                            "a2ui function failed surfaceId={} functionCallId={} requestId={}",
-                            call.surfaceId(),
-                            call.functionCallId(),
-                            requestId,
-                            ex);
-                    A2UiIngressResult failed = functionError(
-                            call.functionCallId(), FUNCTION_FAILED, "Function execution failed");
-                    if (proceed.store()) {
-                        deduper.completeFunction(call.surfaceId(), call.functionCallId(), failed, null);
-                    }
-                    record(started, "function", "rejected", meterName, "failed");
-                    yield failed;
-                }
+                yield functionError(
+                        call.functionCallId(), A2UiErrorCode.INVALID_FUNCTION_CALL.code(), "functionCallId was already used");
             }
         };
     }
@@ -444,9 +423,13 @@ public class A2UiActionService {
     }
 
     private A2UiIngressResult joinInFlight(
-            A2UiIngressDeduper.Admission.InFlight inFlight, long started, String kind, String meterName) {
+            CompletableFuture<A2UiIngressDeduper.Stored<A2UiIngressResult>> future,
+            long started,
+            String kind,
+            String meterName) {
         try {
-            A2UiIngressDeduper.Stored stored = inFlight.future().get(joinTimeout.toMillis(), TimeUnit.MILLISECONDS);
+            A2UiIngressDeduper.Stored<A2UiIngressResult> stored =
+                    future.get(joinTimeout.toMillis(), TimeUnit.MILLISECONDS);
             record(started, kind, "duplicate", meterName, null);
             return stored.materialize();
         } catch (TimeoutException ex) {
