@@ -490,7 +490,7 @@ Shipped: v1.0 ingress and assemble; event vs function identity (`A2UiAction` / `
 **Status:** Next, top priority. **Before** parallel two-hop generation, which adds threads to compose.  
 **Docs:** [ADR 005](docs/adr/005-verification-framework.md) (proposed) · [plan](docs/plans/verification-framework.md)
 
-A merge needs deterministic evidence the owner can read in the PR body, without a line-by-line review. Layers: unit, schema conformance of emitted envelopes, ADR-rule traceability, mocked-provider integration, concurrency sequences on the ingress maps, an optional formal model of the dedupe slots, ArchUnit guardrails, and a docs-accuracy check. Every PR carries a review guide. A risk tier decides when a large-model review is worth its cost. There is no evaluation layer: model-graded scores never gate a merge.
+A merge needs deterministic evidence the owner can read in the PR body, without a line-by-line review. Layers: unit, schema conformance of emitted envelopes, ADR-rule traceability, mocked-provider integration, concurrency sequences on the ingress maps, an optional formal model of the dedupe slots, ArchUnit guardrails, and a docs-accuracy check. Every PR carries a review guide. A risk tier scales review effort to change risk (tier 3 precedent: large-model review on PR #39 before merge). There is no evaluation layer: model-graded scores never gate a merge.
 
 **First steps:** CI on every pull request (stacked PRs get no CI today), the merge-gate rule and PR template, then emitted-envelope conformance and the docs check. The plan has twelve steps, each at most about 400 lines.
 

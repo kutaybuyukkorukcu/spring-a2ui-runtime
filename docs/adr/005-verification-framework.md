@@ -10,7 +10,7 @@ This ADR decides how a change proves it is safe to merge, and what the owner rea
 
 ## Context
 
-The owner reviews behavior summaries, not code line by line, and pays for model usage on a $20 Cursor plan. A merge must be low risk without a line-by-line read. Today the evidence for "safe" is mostly `mvn verify` plus whatever the authoring agent writes in the PR body.
+Merges rest on deterministic evidence and a consistent, scalable way to run any phased plan. Maintainers read behavior summaries in the PR review guide, not the diff line by line. Review effort stays proportional to risk. Today the evidence for "safe" is mostly `mvn verify` plus whatever the authoring agent writes in the PR body.
 
 ### What `mvn verify` already covers
 
@@ -78,11 +78,11 @@ Each layer has one question it answers. A layer is listed even when it does not 
 | Docs accuracy | Do names, error codes, defaults, and versions in docs match the code? | Reviewer reading | A JUnit test that reads Markdown and fails on a backticked `A2Ui*` type, or an error code, that does not exist in code. Upstream claims carry a date and a link. |
 | Real browser end-to-end | Does a real renderer in a real browser render our surface and post an action the backend accepts? | `V1WebRendererE2ETest` disabled | Stays gated on a web v1.0 renderer (ADR 004, confirmation 5). Until then, a cloud agent can record a browser proof only when the owner names `mvp-demo-host` / `mvp-demo-fe` (`.cursor/rules/work-lanes.mdc`). |
 
-### What runs where, and what it costs
+### What runs where
 
-Cost has two parts. Compute is CPU time on a laptop, a cloud agent VM, or GitHub Actions. Standard GitHub-hosted runners are free for public repositories, and this repository is public. Model usage is what the $20 plan pays for. It grows with the size of the model and the amount of code the model reads.
+Compute is CPU time on a laptop, a cloud agent VM, or GitHub Actions. Standard GitHub-hosted runners are free for public repositories, and this repository is public. A separate line item is model-assisted review: it scales with model size and how much of the diff and blast radius the review reads. The risk tiers below keep that effort proportional to change risk so the same rules work for every plan step.
 
-| Layer | Owner laptop | Cloud agent | CI on every PR | Model usage |
+| Layer | Owner laptop | Cloud agent | CI on every PR | Model-assisted review |
 |-------|--------------|-------------|----------------|-------------|
 | Unit, contract, decision traceability, integration, guardrail lints, docs accuracy | `mvn verify` | `mvn verify` before every push | Yes, one `mvn verify` | None to run. Writing them is small-model work. |
 | Concurrency and properties | Inside `mvn verify` | Inside `mvn verify` | Yes. Generated cases are capped so `mvn verify` stays near today's time. | None to run. Writing them is medium-model work. |
@@ -90,7 +90,7 @@ Cost has two parts. Compute is CPU time on a laptop, a cloud agent VM, or GitHub
 | Stored model responses | Inside `mvn verify` | Inside `mvn verify` | Yes | None in CI. Recording costs provider tokens once, on the owner's key. |
 | Live prompt smoke | Owner's choice | Only with an owner-provided key | Never | Provider tokens on the owner's key. No Cursor model usage beyond starting the run. |
 | Real browser end-to-end | Optional | Only when the owner names the demo apps | Later, path-filtered to FE and wire changes, once a v1.0 web renderer exists | Small model for a scripted run; screen recording review costs more. |
-| Model review of the PR | Never required | See the review policy below | Never | The largest line item. Rationed by risk tier. |
+| Model review of the PR | Never required | See the review policy below | Never | Scoped by risk tier; one pass per tier 3 stack at most. |
 
 ### Merge gate checklist
 
@@ -138,7 +138,9 @@ Tier 0 to 3, the reason, and the review that was done.
 
 ### Risk-tiered review policy
 
-A large-model review is worth its cost when the change touches state that tests reach poorly, or a promise that a host cannot easily work around. The PR #39 blocker was concurrency in the ingress path. The idempotency and schema findings were contract rules. None of them were in leaf logic.
+Review depth follows from the way of work: deterministic gates carry most merges, and model-assisted review adds depth only where risk outruns what tests and lints already prove. A large-model pass belongs on changes that touch state tests reach poorly, or a promise a host cannot easily work around. The PR #39 blocker was concurrency in the ingress path. The idempotency and schema findings were contract rules. None of them were in leaf logic.
+
+PR #39 (A2UI v1.0 actions and functions: concurrency, idempotency, release cut) was the first tier 3 change in this repository. It received one large-model review before merge. That review found the dedupe-slot blocker and the contract and docs gaps that green `mvn verify` had missed.
 
 | Tier | Changes in it | Review |
 |------|---------------|--------|
@@ -149,12 +151,12 @@ A large-model review is worth its cost when the change touches state that tests 
 
 The tier is the highest tier any changed file falls into. The authoring agent proposes it in the review guide, and the owner can raise it.
 
-To stay inside the $20 plan:
+Review discipline (same for every plan step and every stack):
 
-- Spend at most one large-model review per stack of PRs. Run it on the PR that carries the tier 3 change, not on every PR in the stack.
+- Run at most one large-model review per stack of PRs. Run it on the PR that carries the tier 3 change, not on every PR in the stack.
 - Never re-review a whole stack after a fix. Review the fix commit.
 - Do not run multi-model `arena` reviews on ordinary PRs. Keep them for a release cut, and only if the owner asks.
-- Prefer cheap checks that remove a whole class of finding over reviews that find one instance. The docs-accuracy test and the schema `$ref` test are examples.
+- Prefer deterministic checks that remove a whole class of finding over reviews that find one instance. The docs-accuracy test and the schema `$ref` test are examples.
 
 ### How the framework stays current
 
@@ -195,7 +197,7 @@ The repo-local skills, the ArchUnit rules, the conformance tests, and the CI fil
 
 **An LLM-as-judge evaluation suite in CI.** It costs model usage on every run, it can flip between runs on the same commit, and it scores something the host owns. A flaky gate trains everyone to rerun until green.
 
-**A large-model review on every PR.** It does not fit the plan, and most PRs are tier 0 or tier 1. Cheap checks that remove a class of finding pay back on every later PR.
+**A large-model review on every PR.** Most PRs are tier 0 or tier 1, and review effort should track that distribution. Cheap checks that remove a class of finding pay back on every later PR.
 
 **Rely on `mvn verify` alone.** PR #39 had 372 green tests when the review found the blocker, four contract findings, and five docs findings.
 
@@ -223,7 +225,7 @@ The owner should confirm these before the first implementation PR merges:
 1. Only deterministic verification gates merges. The runtime ships no evaluation layer. The live prompt smoke is manual, optional, and reports meter counts only.
 2. CI runs on every pull request, whatever its base, and runs `mvn verify` once.
 3. The review guide is required in every PR body, and a CI check enforces its headings after the template has been used for a while.
-4. The risk tiers and the review budget: no model review for tier 0, self-review for tier 1, one medium pass for tier 2, and at most one large-model pass per stack for tier 3.
+4. The risk tiers and matching review depth: no model review for tier 0, self-review for tier 1, one medium pass for tier 2, and at most one large-model pass per stack for tier 3 (precedent: PR #39 before merge).
 5. The failing-before rule: each new test shows its failing output before the fix, in the PR body.
 6. Spotless: fix the `CONTRIBUTING.md` claim now, and reformat plus enforce after the open stack merges. The other option is to drop Spotless.
 7. New test-scoped dependencies or local tools, each approved in its own PR: jqwik for property tests, TLA+ tools for the dedupe model, and Playwright for Java once a v1.0 web renderer exists.

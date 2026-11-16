@@ -23,11 +23,11 @@
 - `mvn verify` stays near its current time (35 to 50 seconds on a cloud agent). A layer that adds more than 30 seconds says so in its review guide.
 - `mvp-demo-host` and `mvp-demo-fe` run only when the owner names them (`.cursor/rules/work-lanes.mdc`).
 - Model sizes follow `.cursor/rules/work-lanes.mdc`. **Small** means mechanical work for `composer-2.5`. **Medium** means the implementer is still `composer-2.5`, but what to assert is settled on the design lane first.
-- Cost risk is about model usage on the $20 plan. CI minutes are free on this public repository.
+- Steps order by risk removed before parallel two-hop adds compose threads. Model lane follows `.cursor/rules/work-lanes.mdc`. CI minutes are free on this public repository.
 
 ## Order
 
-Steps are ordered by risk removed per unit of cost. Step 1 bases on `main`, so it can merge without the open stack. Steps 2 to 12 stack on this design PR, because they test code that exists only on the `3.0.0` line.
+Steps are ordered by risk removed first, then by how much model-assisted work the step needs. Step 1 bases on `main`, so it can merge without the open stack. Steps 2 to 12 stack on this design PR, because they test code that exists only on the `3.0.0` line.
 
 ### 1. Run CI on every pull request
 
