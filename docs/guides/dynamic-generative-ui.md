@@ -54,7 +54,7 @@ sequenceDiagram
 - **Primary agent** calls `generateA2Ui()` when a visual UI helps.
 - **Planner** (second ChatClient inside `generateA2Ui`) must call `renderA2Ui` exactly once with flat planner-friendly component objects.
 - Both tools are **one-shot** (`returnDirect`): Spring AI executes the forced tool and returns to the caller. It does not send the success string back under the same forced tool choice, which would make the model call the same tool again.
-- The force is provider-specific and fail-closed. OpenAI (and OpenAI-compatible servers) send a named `tool_choice`. Native Mistral sends `any`. Other providers in Spring AI 1.1.0-M2 fail the stream with `TOOL_CHOICE_UNAVAILABLE` instead of composing without the tool. Matrix: [multi-provider Spring AI](multi-provider-spring-ai.md).
+- The force is provider-specific and fail-closed. OpenAI (and OpenAI-compatible servers) and Anthropic send a named `tool_choice`. Native Mistral sends `any`. Vertex, Google GenAI, Bedrock Converse, native Azure OpenAI, and native Ollama fail the stream with `TOOL_CHOICE_UNAVAILABLE` on Spring AI 1.1.8. Matrix: [multi-provider Spring AI](multi-provider-spring-ai.md).
 - **`A2UiDynamicComponentNormalizer`** converts flat args to flat v0.9.1 `ComponentDefinition`s (thin sanitize only).
 - **`responseFormat=NONE`** in dynamic mode. Tool calling is incompatible with global `JSON_OBJECT`.
 - Response format modes are `NONE` and `JSON_OBJECT` only. There is no `JSON_SCHEMA` mode. Dynamic compose constrains planner output with the `renderA2Ui` tool schema.

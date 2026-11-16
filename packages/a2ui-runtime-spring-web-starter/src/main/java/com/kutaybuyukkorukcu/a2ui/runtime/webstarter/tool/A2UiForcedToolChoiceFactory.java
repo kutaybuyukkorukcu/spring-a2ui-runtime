@@ -13,10 +13,10 @@ import org.springframework.ai.chat.prompt.ChatOptions;
   * on the primary hop, {@code renderA2Ui} on the planner hop).
   *
   * <p>Construction is classpath-conditional reflection. There is no provider SPI. OpenAI (and
-  * OpenAI-compatible servers that honor {@code tool_choice}) get a named function. Native Mistral
-  * gets {@code tool_choice=any}, which is the only force Spring AI 1.1.0-M2 exposes, and each hop
-  * registers exactly one tool. Every other active provider fails closed with {@code
-  * TOOL_CHOICE_UNAVAILABLE}.
+  * OpenAI-compatible servers that honor {@code tool_choice}) get a named function. Anthropic gets a
+  * named {@code tool_choice} ({@code type=tool}). Native Mistral gets {@code tool_choice=any}, the
+  * only force that client exposes, and each hop registers exactly one tool. Every other active
+  * provider fails closed with {@code TOOL_CHOICE_UNAVAILABLE}.
   *
   * <p>When the caller passes {@link A2UiProviderType#UNKNOWN}, a single provider ChatOptions type on
   * the classpath is used. Several types and no configured provider is ambiguous and fails closed.
@@ -40,7 +40,7 @@ public final class A2UiForcedToolChoiceFactory {
                     new ProviderOptions(
                             A2UiProviderType.ANTHROPIC,
                             "org.springframework.ai.anthropic.AnthropicChatOptions",
-                            false),
+                            true),
                     new ProviderOptions(
                             A2UiProviderType.VERTEX_AI_GEMINI,
                             "org.springframework.ai.vertexai.gemini.VertexAiGeminiChatOptions",
@@ -167,6 +167,9 @@ public final class A2UiForcedToolChoiceFactory {
         if (provider == A2UiProviderType.OPENAI) {
             return OpenAiForcedToolChoice.create(toolName);
         }
+        if (provider == A2UiProviderType.ANTHROPIC) {
+            return AnthropicForcedToolChoice.create(toolName);
+        }
         if (provider == A2UiProviderType.MISTRAL) {
             return MistralForcedToolChoice.create();
         }
@@ -232,7 +235,7 @@ public final class A2UiForcedToolChoiceFactory {
             Class<?> openAiOptionsClass =
                     Class.forName("org.springframework.ai.openai.OpenAiChatOptions", true, loader);
             Object toolChoice =
-                    toolChoiceBuilderClass.getMethod("FUNCTION", String.class).invoke(null, toolName);
+                    toolChoiceBuilderClass.getMethod("function", String.class).invoke(null, toolName);
             Object builder = openAiOptionsClass.getMethod("builder").invoke(null);
             Class<?> builderClass = builder.getClass();
             builderClass.getMethod("toolChoice", Object.class).invoke(builder, toolChoice);
@@ -241,7 +244,33 @@ public final class A2UiForcedToolChoiceFactory {
     }
 
     /**
-      * Spring AI 1.1.0-M2 Mistral {@code tool_choice} is {@code AUTO}, {@code ANY}, or {@code NONE}.
+      * Spring AI 1.1.8 {@code AnthropicApi.ToolChoiceTool} is {@code {"type":"tool","name":...}}.
+      * The Anthropic chat model merges that field onto the Messages request.
+      */
+    private static final class AnthropicForcedToolChoice {
+
+        private AnthropicForcedToolChoice() {}
+
+        static ChatOptions create(String toolName) throws ReflectiveOperationException {
+            ClassLoader loader = classLoader();
+            Class<?> toolChoiceType =
+                    Class.forName(
+                            "org.springframework.ai.anthropic.api.AnthropicApi$ToolChoice", true, loader);
+            Class<?> namedToolChoice =
+                    Class.forName(
+                            "org.springframework.ai.anthropic.api.AnthropicApi$ToolChoiceTool", true, loader);
+            Class<?> optionsClass =
+                    Class.forName("org.springframework.ai.anthropic.AnthropicChatOptions", true, loader);
+            Object toolChoice = namedToolChoice.getConstructor(String.class).newInstance(toolName);
+            Object builder = optionsClass.getMethod("builder").invoke(null);
+            Class<?> builderClass = builder.getClass();
+            builderClass.getMethod("toolChoice", toolChoiceType).invoke(builder, toolChoice);
+            return (ChatOptions) builderClass.getMethod("build").invoke(builder);
+        }
+    }
+
+    /**
+      * Spring AI 1.1.8 Mistral {@code tool_choice} is {@code AUTO}, {@code ANY}, or {@code NONE}.
       * {@code ANY} forces a tool call. The hop registers one tool, so that call is the compose tool.
       */
     private static final class MistralForcedToolChoice {
