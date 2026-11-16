@@ -1,0 +1,14 @@
+---
+description: Every found bug gets a structural guardrail before the change is done
+alwaysApply: true
+---
+
+# Guardrails
+
+When an agent fixes a bug, or a reviewer finds one, run pstack's `correct` skill on that mistake. Encode the lesson in this order:
+
+1. **Design or types** that make the bad state unrepresentable. Move callers, then delete the old API.
+2. **A build-enforced check** when a gap remains: an ArchUnit test, an Error Prone, Checkstyle, or Maven Enforcer rule, or a test that fails on the bad pattern.
+3. **A learned-rules line in `AGENTS.md`** only for a judgment call those checks cannot express.
+
+Name the guardrail in the PR body. A learned-rules line names the guardrail that covers it.
