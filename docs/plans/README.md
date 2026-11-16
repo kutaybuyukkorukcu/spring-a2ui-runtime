@@ -1,5 +1,6 @@
 # Phase plans
 
-This folder is **empty unless a phase is in flight**.
+This folder holds **in-flight** execution plans, one file per phase. Shipped work lives in ADRs and guides. Delete a plan after that phase is on `main` (fold the durable decision into an ADR or guide first). See `.cursor/rules/docs-plans.mdc`.
 
-Shipped work lives in ADRs and guides, not here. When you start a new phase, add one plan file, link it from `BACKLOG.md`, and delete it after the phase is on `main` (fold durable decisions into an ADR or guide first). See `.cursor/rules/docs-plans.mdc`.
+- [Dynamic compose tool forcing](dynamic-compose-tool-forcing.md) — paused, not on `main`
+- [A2UI v1.0 actions / functions](a2ui-v1-actions-functions.md) — identity decided in [ADR 004](../adr/004-action-and-function-identity.md); wire code not started
