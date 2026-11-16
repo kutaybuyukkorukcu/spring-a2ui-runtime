@@ -27,7 +27,7 @@ X-A2UI-Request-Id: <optional-client-request-id>
     "instructions": "Use only catalog types the client advertised"
   },
   "a2uiClientCapabilities": {
-    "supportedCatalogIds": ["https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"]
+    "supportedCatalogIds": ["https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json"]
   }
 }
 ```
@@ -35,14 +35,16 @@ X-A2UI-Request-Id: <optional-client-request-id>
 **Response (200):** Server-Sent Events stream:
 ```
 event: createSurface
-data: {"version":"v0.9.1","createSurface":{"surfaceId":"main","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}}
+data: {"version":"1.0","createSurface":{"surfaceId":"main","catalogId":"https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json"}}
 
 event: updateComponents
-data: {"version":"v0.9.1","updateComponents":{"surfaceId":"main","components":[{"id":"root","component":"Text","text":"Hello"}]}}
+data: {"version":"1.0","updateComponents":{"surfaceId":"main","components":[{"id":"root","component":"Text","text":"Hello","variant":"body"}]}}
 
 event: done
 data: [DONE]
 ```
+
+A host function the frontend should run is `event: callRendererFunction`. The matching result from the agent is `event: agentFunctionResponse`. Both are v1.0 envelopes.
 
 When `a2ui.web.stream.lifecycle-events=true`, the stream may also include
 utilization events (`runStarted`, `toolProgress`, `assistantText`, `runFinished`)
@@ -70,11 +72,15 @@ data: {"error":"Content is required","errorCode":"CONTENT_REQUIRED"}
 POST /a2ui/actions
 Content-Type: application/json
 X-A2UI-Request-Id: <optional-client-request-id>
+X-A2UI-Idempotency-Key: <optional-event-dedupe-key>
 ```
+
+The body is version `1.0` plus exactly one of `action`, `callAgentFunction`, `rendererFunctionResponse`, or `error`. This is the only renderer→agent ingress.
 
 **Request (action):**
 ```json
 {
+  "version": "1.0",
   "action": {
     "name": "submit",
     "surfaceId": "main",
@@ -85,11 +91,28 @@ X-A2UI-Request-Id: <optional-client-request-id>
 }
 ```
 
+**Request (callAgentFunction):**
+```json
+{
+  "version": "1.0",
+  "callAgentFunction": {
+    "surfaceId": "main",
+    "functionCallId": "c1",
+    "callFunction": {
+      "@call": "quote",
+      "catalogId": "https://example.com/catalogs/host/1.0",
+      "args": {}
+    }
+  }
+}
+```
+
 **Request (client error):**
 ```json
 {
+  "version": "1.0",
   "error": {
-    "code": "RENDER_ERROR",
+    "code": "VALIDATION_FAILED",
     "surfaceId": "main",
     "path": "/components/btn-1",
     "message": "Component failed to render"
@@ -97,29 +120,33 @@ X-A2UI-Request-Id: <optional-client-request-id>
 }
 ```
 
-**Response (200):**
-```json
-{
-  "accepted": true,
-  "eventType": "actionResult",
-  "actionName": "submit",
-  "surfaceId": "main",
-  "sourceComponentId": "btn-1",
-  "messageCount": 1,
-  "messages": [...]
-}
-```
+**Response (200) for an event or a renderer-error ack:** a JSON array of v1.0 agent→renderer envelopes. An empty handler result is `[]`. A renderer `error` ack is also `[]`.
+
+**Response (200) for a function:** one `agentFunctionResponse` copying `functionCallId`, whether the call succeeded or the runtime rejected it (`UNKNOWN_FUNCTION`, `INVALID_FUNCTION_CALL`, `UNSUPPORTED_CATALOG_ID`, or the host `Failed` code).
+
+| Status | Code | When |
+| ------ | ---- | ---- |
+| 400 | `UNKNOWN_ACTION` | Event name is outside a non-empty allow-list |
+| 400 | `INVALID_CLIENT_EVENT` | Envelope shape is wrong, including a legacy `userAction` or `call` key |
+| 400 | `UNSUPPORTED_VERSION` | Version is not `1.0` (a v0.9.1 body fails here) |
+| 400 | `INVALID_FUNCTION_CALL` | `rendererFunctionResponse` names an unknown `functionCallId` |
+| 409 | `CONFIRMATION_REQUIRED` | Policy requires confirmation and `context.confirmed` is not true |
+| 422 | `ACTION_NOT_HANDLED` | No handler `supports()` the event |
+| 500 | `INVALID_ACTION_RESPONSE` | Handler messages failed validation |
+| 500 | `ACTION_FAILED` | Unexpected failure |
+
+`UNKNOWN_FUNCTION` is never the HTTP status for an event, and `UNKNOWN_ACTION` is never the code inside `agentFunctionResponse`.
 
 ---
 
 ### Get Basic Catalog
 
 ```
-GET /a2ui/catalogs/basic-v0.9
+GET /a2ui/catalogs/basic
 Accept: application/json
 ```
 
-**Response (200):** The vendored A2UI basic catalog (v0.9 / v0.9.1) as a JSON Schema document.
+**Response (200):** The vendored A2UI basic catalog (v1.0) as a JSON Schema document. Catalog id: `https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json`.
 
 This endpoint serves the **bootstrap** catalog. Hosts author production catalogs that match their design system and register those schemas with the runtime via `A2UiCatalogContribution` for validate/generate ([registering catalogs](guides/registering-catalogs.md), [catalog ownership](platform.md#catalog-ownership-a2ui-aligned)).
 
@@ -131,7 +158,8 @@ Optional `createSurface.sendDataModel` (default `false`): when `true`, clients s
 
 | Header | Direction | Description |
 |--------|-----------|-------------|
-| `X-A2UI-Request-Id` | Request/Response | Client-provided or server-generated correlation ID |
+| `X-A2UI-Request-Id` | Request/Response | Client-provided or server-generated correlation ID. Not a dedupe key. |
+| `X-A2UI-Idempotency-Key` | Request | Process-local event replay key, paired with whether confirmation was satisfied |
 
 ## Configuration Properties
 

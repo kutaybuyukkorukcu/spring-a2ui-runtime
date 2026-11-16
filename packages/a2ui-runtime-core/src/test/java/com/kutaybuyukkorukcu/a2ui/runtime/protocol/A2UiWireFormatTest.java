@@ -32,7 +32,7 @@ class A2UiWireFormatTest {
         ComponentDefinition title = new ComponentDefinition(
                 "title", "Text", Map.of("text", Map.of("path", "/title"), "variant", "h2"));
 
-        A2UiMessage.CreateSurface cs = new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9);
+        A2UiMessage.CreateSurface cs = new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1);
         A2UiMessage.UpdateComponents uc = new A2UiMessage.UpdateComponents("main", List.of(root, title));
         A2UiMessage.UpdateDataModel udm = new A2UiMessage.UpdateDataModel(
                 "main", "/", Map.of("title", "Weather Update"));
@@ -41,7 +41,7 @@ class A2UiWireFormatTest {
         String updateJson = mapper.writeValueAsString((A2UiMessage) uc);
         String dataJson = mapper.writeValueAsString((A2UiMessage) udm);
 
-        assertThat(createJson).contains("\"version\":\"v0.9.1\"");
+        assertThat(createJson).contains("\"version\":\"1.0\"");
         assertThat(createJson).contains("\"createSurface\"");
         assertThat(updateJson).contains("\"updateComponents\"");
         assertThat(updateJson).contains("\"component\":\"Column\"");

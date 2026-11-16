@@ -22,7 +22,7 @@ class A2UiCatalogServiceTest {
     void shouldLoadBasicCatalog() {
         Map<String, Object> catalog = catalogService.getBasicCatalog();
         assertThat(catalog).isNotEmpty();
-        assertThat(catalog.get("catalogId")).isEqualTo(A2UiCatalogIds.BASIC_V0_9);
+        assertThat(catalog.get("catalogId")).isEqualTo(A2UiCatalogIds.BASIC_V1);
     }
 
     @Test

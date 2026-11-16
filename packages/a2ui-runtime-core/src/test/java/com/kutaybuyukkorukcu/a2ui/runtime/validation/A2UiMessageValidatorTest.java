@@ -22,10 +22,10 @@ class A2UiMessageValidatorTest {
     @Test
     void shouldValidateCreateThenUpdateWithRoot() {
         List<A2UiMessage> messages = List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1),
                 new A2UiMessage.UpdateComponents("main", List.of(
                         new ComponentDefinition("root", "Text", Map.of("text", "Hello")))));
-        assertThat(validator.validate(messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9)))
+        assertThat(validator.validate(messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V1)))
                 .isEmpty();
     }
 
@@ -41,7 +41,7 @@ class A2UiMessageValidatorTest {
     @Test
     void shouldRejectMissingRootComponent() {
         List<A2UiMessage> messages = List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1),
                 new A2UiMessage.UpdateComponents("main", List.of(
                         new ComponentDefinition("title", "Text", Map.of("text", "Hello")))));
         List<A2UiDiagnostic> diagnostics = validator.validate(messages);
@@ -51,7 +51,7 @@ class A2UiMessageValidatorTest {
     @Test
     void shouldRejectBlankSurfaceIdOnCreate() {
         List<A2UiDiagnostic> diagnostics = validator.validateSingle(
-                new A2UiMessage.CreateSurface("", A2UiCatalogIds.BASIC_V0_9));
+                new A2UiMessage.CreateSurface("", A2UiCatalogIds.BASIC_V1));
         assertThat(diagnostics).anyMatch(d -> "MISSING_SURFACE_ID".equals(d.code()));
     }
 
@@ -72,7 +72,7 @@ class A2UiMessageValidatorTest {
     @Test
     void shouldValidateUpdateDataModel() {
         List<A2UiMessage> messages = List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1),
                 new A2UiMessage.UpdateComponents("main", List.of(
                         new ComponentDefinition("root", "Text", Map.of("text", "Hi")))),
                 new A2UiMessage.UpdateDataModel("main", "/", Map.of("name", "Alice")));
@@ -95,11 +95,11 @@ class A2UiMessageValidatorTest {
     @Test
     void shouldRejectUnknownComponentType() {
         List<A2UiMessage> messages = List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1),
                 new A2UiMessage.UpdateComponents("main", List.of(
                         new ComponentDefinition("root", "NotARealType", Map.of()))));
         List<A2UiDiagnostic> diagnostics = validator.validate(
-                messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9));
+                messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V1));
         assertThat(diagnostics).anyMatch(d -> "UNKNOWN_COMPONENT_TYPE".equals(d.code()));
     }
 
@@ -120,7 +120,7 @@ class A2UiMessageValidatorTest {
     @Test
     void shouldRejectUnsupportedVersion() {
         List<A2UiDiagnostic> diagnostics = validator.validate(
-                List.of(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9)),
+                List.of(new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1)),
                 A2UiValidationContext.forVersion("0.8"));
         assertThat(diagnostics).anyMatch(d -> "UNSUPPORTED_VERSION".equals(d.code()));
     }
@@ -129,7 +129,7 @@ class A2UiMessageValidatorTest {
     void shouldAcceptSupportedVersions() {
         assertThat(validator.validate(
                 List.of(
-                        new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                        new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1),
                         new A2UiMessage.UpdateComponents("main", List.of(
                                 new ComponentDefinition("root", "Text", Map.of("text", "Hi"))))),
                 A2UiValidationContext.forVersion(A2UiProtocol.SUPPORTED_VERSION))).isEmpty();
@@ -138,12 +138,12 @@ class A2UiMessageValidatorTest {
     @Test
     void shouldRejectCheckBoxMissingRequiredLabel() {
         ComponentDefinition checkbox = new ComponentDefinition(
-                "root", "CheckBox", Map.of("value", Map.of("path", "/enabled")));
+                "root", "CheckBox", Map.of("value", Map.of("@path", "/enabled")));
         List<A2UiMessage> messages = List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1),
                 new A2UiMessage.UpdateComponents("main", List.of(checkbox)));
         List<A2UiDiagnostic> diagnostics = validator.validate(
-                messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9));
+                messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V1));
         assertThat(diagnostics).anyMatch(d -> "MISSING_REQUIRED_PROP".equals(d.code()));
     }
 
@@ -152,23 +152,34 @@ class A2UiMessageValidatorTest {
         ComponentDefinition checkbox = new ComponentDefinition(
                 "root",
                 "CheckBox",
-                Map.of("label", "Notify me", "value", Map.of("path", "/notify")));
+                Map.of("label", "Notify me", "value", Map.of("@path", "/notify")));
         List<A2UiMessage> messages = List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1),
                 new A2UiMessage.UpdateComponents("main", List.of(checkbox)));
-        assertThat(validator.validate(messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9)))
+        assertThat(validator.validate(messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V1)))
                 .isEmpty();
     }
 
     @Test
-    void shouldRejectTextFieldMissingRequiredValue() {
+    void shouldAcceptTextFieldWithLabelOnly() {
         ComponentDefinition textField = new ComponentDefinition(
                 "root", "TextField", Map.of("label", "Summary"));
         List<A2UiMessage> messages = List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1),
                 new A2UiMessage.UpdateComponents("main", List.of(textField)));
+        assertThat(validator.validate(messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V1)))
+                .isEmpty();
+    }
+
+    @Test
+    void shouldRejectCheckBoxMissingRequiredValue() {
+        ComponentDefinition checkbox = new ComponentDefinition(
+                "root", "CheckBox", Map.of("label", "Notify me"));
+        List<A2UiMessage> messages = List.of(
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1),
+                new A2UiMessage.UpdateComponents("main", List.of(checkbox)));
         List<A2UiDiagnostic> diagnostics = validator.validate(
-                messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9));
+                messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V1));
         assertThat(diagnostics).anyMatch(d -> "MISSING_REQUIRED_PROP".equals(d.code()));
     }
 
@@ -177,11 +188,11 @@ class A2UiMessageValidatorTest {
         ComponentDefinition textField = new ComponentDefinition(
                 "root",
                 "TextField",
-                Map.of("label", "Summary", "value", Map.of("path", "/summary")));
+                Map.of("label", "Summary", "value", Map.of("@path", "/summary")));
         List<A2UiMessage> messages = List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1),
                 new A2UiMessage.UpdateComponents("main", List.of(textField)));
-        assertThat(validator.validate(messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9)))
+        assertThat(validator.validate(messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V1)))
                 .isEmpty();
     }
 
@@ -190,10 +201,10 @@ class A2UiMessageValidatorTest {
         ComponentDefinition text = new ComponentDefinition(
                 "root", "Text", Map.of("text", "Hi", "notARealProp", true));
         List<A2UiMessage> messages = List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1),
                 new A2UiMessage.UpdateComponents("main", List.of(text)));
         List<A2UiDiagnostic> diagnostics = validator.validate(
-                messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9));
+                messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V1));
         assertThat(diagnostics).anyMatch(d -> "UNKNOWN_PROP".equals(d.code()));
     }
 
@@ -202,10 +213,10 @@ class A2UiMessageValidatorTest {
         ComponentDefinition text = new ComponentDefinition(
                 "root", "Text", Map.of("text", "Hi", "variant", "huge"));
         List<A2UiMessage> messages = List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1),
                 new A2UiMessage.UpdateComponents("main", List.of(text)));
         List<A2UiDiagnostic> diagnostics = validator.validate(
-                messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9));
+                messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V1));
         assertThat(diagnostics).anyMatch(d -> "INVALID_ENUM_VALUE".equals(d.code()));
     }
 
@@ -214,10 +225,10 @@ class A2UiMessageValidatorTest {
         ComponentDefinition button = new ComponentDefinition(
                 "root", "Button", Map.of("child", "label"));
         List<A2UiMessage> messages = List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1),
                 new A2UiMessage.UpdateComponents("main", List.of(button)));
         List<A2UiDiagnostic> diagnostics = validator.validate(
-                messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9));
+                messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V1));
         assertThat(diagnostics).anyMatch(d -> "MISSING_REQUIRED_PROP".equals(d.code()));
     }
 
@@ -232,9 +243,9 @@ class A2UiMessageValidatorTest {
                         "variant", "primary"));
         ComponentDefinition label = new ComponentDefinition("label", "Text", Map.of("text", "Go"));
         List<A2UiMessage> messages = List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1),
                 new A2UiMessage.UpdateComponents("main", List.of(button, label)));
-        assertThat(validator.validate(messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9)))
+        assertThat(validator.validate(messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V1)))
                 .isEmpty();
     }
 
@@ -244,9 +255,9 @@ class A2UiMessageValidatorTest {
                 "root", "Column", Map.of("children", List.of("a"), "justify", "start"));
         ComponentDefinition child = new ComponentDefinition("a", "Text", Map.of("text", "A"));
         List<A2UiMessage> messages = List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1),
                 new A2UiMessage.UpdateComponents("main", List.of(column, child)));
-        assertThat(validator.validate(messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9)))
+        assertThat(validator.validate(messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V1)))
                 .isEmpty();
     }
 
@@ -255,10 +266,10 @@ class A2UiMessageValidatorTest {
         ComponentDefinition column = new ComponentDefinition(
                 "root", "Column", Map.of("children", Map.of("explicitList", List.of("a"))));
         List<A2UiMessage> messages = List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1),
                 new A2UiMessage.UpdateComponents("main", List.of(column)));
         List<A2UiDiagnostic> diagnostics = validator.validate(
-                messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9));
+                messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V1));
         assertThat(diagnostics).isNotEmpty();
     }
 
@@ -271,14 +282,14 @@ class A2UiMessageValidatorTest {
     @Test
     void shouldAcceptChoicePickerWithStringListValue() {
         List<A2UiMessage> messages = choicePickerMessages(List.of("opt-a"));
-        assertThat(validator.validate(messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9)))
+        assertThat(validator.validate(messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V1)))
                 .isEmpty();
     }
 
     @Test
     void shouldAcceptChoicePickerWithBoundStringListValue() {
-        List<A2UiMessage> messages = choicePickerMessages(Map.of("path", "/selected"));
-        assertThat(validator.validate(messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9)))
+        List<A2UiMessage> messages = choicePickerMessages(Map.of("@path", "/selected"));
+        assertThat(validator.validate(messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V1)))
                 .isEmpty();
     }
 
@@ -286,7 +297,7 @@ class A2UiMessageValidatorTest {
     void shouldRejectChoicePickerWithBareStringValue() {
         List<A2UiMessage> messages = choicePickerMessages("opt-a");
         List<A2UiDiagnostic> diagnostics = validator.validate(
-                messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9));
+                messages, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V1));
         assertThat(diagnostics).isNotEmpty();
     }
 
@@ -317,15 +328,15 @@ class A2UiMessageValidatorTest {
                 new ComponentDefinition("root", "StatusBadge", Map.of("text", "Approved"))));
 
         List<A2UiDiagnostic> underBasic = catalogValidator.validateSingle(
-                update, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V0_9));
+                update, A2UiValidationContext.forCatalog(A2UiCatalogIds.BASIC_V1));
         assertThat(underBasic).anyMatch(d -> "UNKNOWN_COMPONENT_TYPE".equals(d.code()));
     }
 
     @Test
     void catalogIdFromShouldReadFirstCreateSurface() {
         assertThat(A2UiMessageValidator.catalogIdFrom(List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9))))
-                .isEqualTo(A2UiCatalogIds.BASIC_V0_9);
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1))))
+                .isEqualTo(A2UiCatalogIds.BASIC_V1);
         assertThat(A2UiMessageValidator.catalogIdFrom(List.of())).isNull();
     }
 
@@ -337,7 +348,7 @@ class A2UiMessageValidatorTest {
                         "options", List.of(Map.of("label", "A", "value", "opt-a")),
                         "value", value));
         return List.of(
-                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V0_9),
+                new A2UiMessage.CreateSurface("main", A2UiCatalogIds.BASIC_V1),
                 new A2UiMessage.UpdateComponents("main", List.of(picker)));
     }
 

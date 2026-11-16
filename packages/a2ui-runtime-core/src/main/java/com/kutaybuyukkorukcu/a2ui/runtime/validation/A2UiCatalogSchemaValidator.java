@@ -22,8 +22,8 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Validates component properties against the A2UI catalog's JSON Schema definitions.
  * <p>
- * v0.9.1: DynamicString / DynamicNumber / DynamicBoolean are native JSON literals or
- * {@code {"path":"..."}} — not BoundValue {@code literalString} wrappers.
+ * v1.0: DynamicString / DynamicNumber / DynamicBoolean are native JSON literals,
+ * {@code {"@path":"..."}}, or a function call — not BoundValue {@code literalString} wrappers.
  */
 public final class A2UiCatalogSchemaValidator {
 
@@ -259,7 +259,7 @@ public final class A2UiCatalogSchemaValidator {
         String schemaLocation = error.getSchemaLocation() != null
                 ? error.getSchemaLocation().toString()
                 : "";
-        return schemaLocation.contains("DataBinding") || schemaLocation.contains("/path");
+        return schemaLocation.contains("DataBinding") || schemaLocation.contains("/@path");
     }
 
     private String formatPath(String instancePath, String pathPrefix) {

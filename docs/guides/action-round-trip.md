@@ -14,7 +14,7 @@ POST /a2ui/surface/stream   (unknown tree)
   — or host assemble        (known tree, no model)
   → surface in a page slot or process step
 User clicks
-  → POST /a2ui/actions  { "action": { "name": "…", "surfaceId": "…", "context": {…} } }
+  → POST /a2ui/actions  { "version":"1.0", "action": { "name": "…", "surfaceId": "…", "context": {…} } }
   → your A2UiActionHandler
        · authorize + persist or no-op
        · return A2UiMessage list (ack surface and/or data model)
@@ -46,17 +46,12 @@ onto a write.
 
 Pass structured payloads in `action.context` when the FE/data model has them.
 Submit Buttons must declare `action.event.context` as path maps (for example
-`"summary": {"path": "/summary"}`) so the renderer sends field values on
+`"summary": {"@path": "/summary"}`) so the renderer sends field values on
 `POST /a2ui/actions`. A Button with only `event.name` yields `context: {}`.
 
-## Toward A2UI v1.0
+## Functions
 
-Ship this loop on v0.9.1 `action` + follow-up messages. The next runtime
-phase is **A2UI v1.0 actions / functions** ([BACKLOG](../../BACKLOG.md)):
-`event` stays the backend-agent write path; `functionCall` is a catalog
-executable (renderer-local or agent RPC), not a second name for the same
-handler. Keep host correlation ids and acks boring so they map to
-`functionCallId` / v1.0 ingress without a rewrite.
+`action.event.name` is the write path above. `action.functionCall` (`@call`) is a catalog function. Renderer-only functions, including every basic-catalog function, stay on the frontend. A server function is `rendererOrAgent` in the catalog and an `A2UiAgentFunction` bean. The frontend posts `callAgentFunction`; the 200 body is one `agentFunctionResponse`. A later `rendererFunctionResponse` completes a `callRendererFunction` the runtime already emitted. See [Migrating to v1.0](migrating-to-v1.0.md).
 
 ## After the decision
 

@@ -2,6 +2,7 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiErrorCode;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiValidationContext;
@@ -13,6 +14,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionAllowList;
+import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiAssembleGate;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiComponentVisibility;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiSurfacePolicy;
@@ -33,6 +35,7 @@ public class A2UiDynamicAssemblyService {
     private final Supplier<A2UiActionAllowList> actionAllowList;
     private final A2UiSurfacePolicy surfacePolicy;
     private final A2UiRuntimeMetrics runtimeMetrics;
+    private final A2UiCatalogRegistry catalogRegistry;
 
     public A2UiDynamicAssemblyService(
             A2UiDynamicComponentNormalizer componentNormalizer,
@@ -88,6 +91,7 @@ public class A2UiDynamicAssemblyService {
         this.actionAllowList = actionAllowList == null ? A2UiActionAllowList::empty : actionAllowList;
         this.surfacePolicy = surfacePolicy == null ? A2UiSurfacePolicy.none() : surfacePolicy;
         this.runtimeMetrics = runtimeMetrics == null ? A2UiRuntimeMetrics.noop() : runtimeMetrics;
+        this.catalogRegistry = A2UiCatalogRegistry.shared();
     }
 
     public A2UiDynamicAssemblyService(
@@ -156,7 +160,7 @@ public class A2UiDynamicAssemblyService {
         List<A2UiMessage> messages = new ArrayList<>();
         messages.add(new A2UiMessage.CreateSurface(negotiatedSurfaceId, catalogId));
         messages.add(new A2UiMessage.UpdateComponents(negotiatedSurfaceId, components));
-        rejectUnknownActions(messages);
+        A2UiAssembleGate.check(messages, resolveAllowList(actionAllowList), catalogRegistry, catalogId);
 
         Map<String, Object> data = sanitizeData(args.data());
         if (!data.isEmpty()) {
@@ -185,15 +189,6 @@ public class A2UiDynamicAssemblyService {
         }
         rejectHiddenComponents(messages);
         return List.copyOf(messages);
-    }
-
-    private void rejectUnknownActions(List<A2UiMessage> messages) {
-        resolveAllowList(actionAllowList).firstUnknownName(messages).ifPresent(actionName -> {
-            throw new SurfaceExecutionException(
-                    "Unknown action: " + actionName,
-                    SurfaceErrorCodes.UNKNOWN_ACTION,
-                    Map.of("actionName", actionName));
-        });
     }
 
     private void rejectHiddenComponents(List<A2UiMessage> messages) {

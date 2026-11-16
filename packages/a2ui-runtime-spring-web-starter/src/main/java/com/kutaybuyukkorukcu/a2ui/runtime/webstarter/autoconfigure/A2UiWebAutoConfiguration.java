@@ -170,8 +170,10 @@ public class A2UiWebAutoConfiguration {
 
         @Bean
         @ConditionalOnMissingBean
-        public ActionContributor actionContributor(A2UiActionAllowList actionAllowList) {
-            return new ActionContributor(actionAllowList);
+        public ActionContributor actionContributor(
+                A2UiActionAllowList actionAllowList,
+                A2UiAgentFunctionRegistry agentFunctions) {
+            return new ActionContributor(actionAllowList, agentFunctions);
         }
 
         @Bean
@@ -319,20 +321,58 @@ public class A2UiWebAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public A2UiIngressDeduper a2UiIngressDeduper() {
+        return new A2UiIngressDeduper();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public A2UiPendingRendererCalls a2UiPendingRendererCalls() {
+        return new A2UiPendingRendererCalls();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public A2UiAgentFunctionRegistry a2UiAgentFunctionRegistry(
+            ObjectProvider<A2UiAgentFunction> agentFunctions,
+            A2UiCatalogRegistry catalogRegistry) {
+        return new A2UiAgentFunctionRegistry(agentFunctions.orderedStream().toList(), catalogRegistry);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public A2UiRendererCallGuard a2UiRendererCallGuard(
+            A2UiCatalogRegistry catalogRegistry,
+            A2UiPendingRendererCalls pendingRendererCalls) {
+        return new A2UiRendererCallGuard(catalogRegistry, pendingRendererCalls);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public A2UiActionService a2UiActionService(
             ObjectProvider<List<A2UiActionHandler>> actionHandlersProvider,
             A2UiRuntimeMetrics runtimeMetrics,
             A2UiMessageValidator messageValidator,
             A2UiActionAllowList actionAllowList,
             A2UiActionPolicy actionPolicy,
-            A2UiSurfacePolicy surfacePolicy) {
+            A2UiSurfacePolicy surfacePolicy,
+            A2UiCatalogRegistry catalogRegistry,
+            A2UiAgentFunctionRegistry agentFunctions,
+            ObjectProvider<A2UiRendererFunctionResponseHandler> responseHandlers,
+            A2UiIngressDeduper deduper,
+            A2UiPendingRendererCalls pendingRendererCalls) {
         return new A2UiActionService(
                 actionHandlersProvider.getIfAvailable(List::of),
                 runtimeMetrics,
                 messageValidator,
                 actionAllowList,
                 actionPolicy,
-                surfacePolicy);
+                surfacePolicy,
+                catalogRegistry,
+                agentFunctions,
+                responseHandlers.orderedStream().toList(),
+                deduper,
+                pendingRendererCalls);
     }
 
     @Bean
@@ -344,8 +384,8 @@ public class A2UiWebAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty(prefix = "a2ui.web.stream", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public A2UiStreamController a2UiStreamController(A2UiSurfaceService surfaceService, RequestCorrelationService requestCorrelationService, A2UiWebProperties properties, A2UiRuntimeMetrics runtimeMetrics, ObjectMapper objectMapper, A2UiRequestCatalogNegotiator catalogNegotiator) {
-        return new A2UiStreamController(surfaceService, requestCorrelationService, properties, runtimeMetrics, objectMapper, catalogNegotiator);
+    public A2UiStreamController a2UiStreamController(A2UiSurfaceService surfaceService, RequestCorrelationService requestCorrelationService, A2UiWebProperties properties, A2UiRuntimeMetrics runtimeMetrics, ObjectMapper objectMapper, A2UiRequestCatalogNegotiator catalogNegotiator, A2UiRendererCallGuard rendererCallGuard) {
+        return new A2UiStreamController(surfaceService, requestCorrelationService, properties, runtimeMetrics, objectMapper, catalogNegotiator, rendererCallGuard);
     }
 
     @Bean

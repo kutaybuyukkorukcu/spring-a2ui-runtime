@@ -91,7 +91,7 @@ public final class DynamicA2UiPromptProvider {
     }
 
     public String createPlannerSystemPrompt(String catalogId, Set<String> allowedTypes) {
-        String resolvedCatalogId = catalogId != null ? catalogId : A2UiCatalogIds.BASIC_V0_9;
+        String resolvedCatalogId = catalogId != null ? catalogId : A2UiCatalogIds.BASIC_V1;
         A2UiGenerationRequest request = new A2UiGenerationRequest(
                 resolvedCatalogId,
                 allowedTypes,

@@ -22,6 +22,10 @@ public final class A2UiSurfaceBuffer {
             case A2UiMessage.UpdateComponents uc -> applyUpdateComponents(uc);
             case A2UiMessage.UpdateDataModel udm -> applyUpdateDataModel(udm);
             case A2UiMessage.DeleteSurface ds -> deleteSurface(ds.surfaceId());
+            case A2UiMessage.CallRendererFunction ignored -> {
+            }
+            case A2UiMessage.AgentFunctionResponse ignored -> {
+            }
         }
     }
 
@@ -48,6 +52,14 @@ public final class A2UiSurfaceBuffer {
         state.setSendDataModel(Boolean.TRUE.equals(create.sendDataModel()));
         if (create.theme() != null) {
             state.setTheme(create.theme());
+        }
+        if (create.components() != null) {
+            for (A2UiMessage.ComponentDefinition component : create.components()) {
+                state.addComponent(component.id(), component.componentType());
+            }
+        }
+        if (create.dataModel() instanceof Map<?, ?> dataModel) {
+            state.applyDataValue("/", dataModel);
         }
     }
 

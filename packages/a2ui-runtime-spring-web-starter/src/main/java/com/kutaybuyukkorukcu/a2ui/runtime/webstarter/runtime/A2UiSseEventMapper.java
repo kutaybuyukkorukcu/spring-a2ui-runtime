@@ -62,6 +62,8 @@ public final class A2UiSseEventMapper {
             case A2UiMessage.UpdateComponents ignored -> "updateComponents";
             case A2UiMessage.UpdateDataModel ignored -> "updateDataModel";
             case A2UiMessage.DeleteSurface ignored -> "deleteSurface";
+            case A2UiMessage.CallRendererFunction ignored -> "callRendererFunction";
+            case A2UiMessage.AgentFunctionResponse ignored -> "agentFunctionResponse";
         };
     }
 }

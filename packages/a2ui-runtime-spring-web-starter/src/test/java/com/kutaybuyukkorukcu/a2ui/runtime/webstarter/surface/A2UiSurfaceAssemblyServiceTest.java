@@ -3,7 +3,7 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage.ComponentDefinition;
-import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiUserAction;
+import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiAction;
 import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
@@ -39,7 +39,7 @@ class A2UiSurfaceAssemblyServiceTest {
                 A2UiActionAllowList.fromHandlers(List.of(new NamedHandler(Set.of("save")))));
 
         assertThatThrownBy(() -> restricted.assemble(
-                TEMPLATE_ID, "main", A2UiCatalogIds.BASIC_V0_9, Map.of()))
+                TEMPLATE_ID, "main", A2UiCatalogIds.BASIC_V1, Map.of()))
                 .isInstanceOf(SurfaceExecutionException.class)
                 .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
                 .isEqualTo(SurfaceErrorCodes.UNKNOWN_ACTION);
@@ -53,7 +53,7 @@ class A2UiSurfaceAssemblyServiceTest {
                 A2UiActionAllowList.fromHandlers(List.of(new NamedHandler(Set.of("submit")))));
 
         List<A2UiMessage> messages = restricted.assemble(
-                TEMPLATE_ID, "main", A2UiCatalogIds.BASIC_V0_9, Map.of());
+                TEMPLATE_ID, "main", A2UiCatalogIds.BASIC_V1, Map.of());
 
         assertThat(messages).isNotEmpty();
         assertThat(A2UiActionAllowList.extractActionNames(messages)).containsExactly("submit");
@@ -68,7 +68,7 @@ class A2UiSurfaceAssemblyServiceTest {
                 () -> Set.of("Button"));
 
         assertThatThrownBy(() -> restricted.assemble(
-                TEMPLATE_ID, "main", A2UiCatalogIds.BASIC_V0_9, Map.of()))
+                TEMPLATE_ID, "main", A2UiCatalogIds.BASIC_V1, Map.of()))
                 .isInstanceOf(SurfaceExecutionException.class)
                 .extracting(ex -> ((SurfaceExecutionException) ex).getErrorCode())
                 .isEqualTo(SurfaceErrorCodes.COMPONENT_NOT_ALLOWED);
@@ -83,7 +83,7 @@ class A2UiSurfaceAssemblyServiceTest {
                 A2UiSurfacePolicy.none());
 
         List<A2UiMessage> messages = restricted.assemble(
-                TEMPLATE_ID, "main", A2UiCatalogIds.BASIC_V0_9, Map.of());
+                TEMPLATE_ID, "main", A2UiCatalogIds.BASIC_V1, Map.of());
 
         assertThat(messages).isNotEmpty();
         assertThat(A2UiActionAllowList.extractActionNames(messages)).containsExactly("submit");
@@ -123,17 +123,17 @@ class A2UiSurfaceAssemblyServiceTest {
         }
 
         @Override
-        public Set<String> actionNames() {
-            return names;
+        public Set<com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiEventName> eventNames() {
+            return names.stream().map(com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiEventName::new).collect(java.util.stream.Collectors.toUnmodifiableSet());
         }
 
         @Override
-        public boolean supports(A2UiUserAction userAction) {
+        public boolean supports(A2UiAction userAction) {
             return false;
         }
 
         @Override
-        public List<A2UiMessage> handle(A2UiUserAction userAction, String requestId) {
+        public List<A2UiMessage> handle(A2UiAction userAction, String requestId) {
             return List.of();
         }
     }

@@ -36,7 +36,7 @@ public final class ExampleTextCardTemplate {
     private static List<ComponentDefinition> components(Map<String, String> slots) {
         return List.of(
                 column("root", List.of("title-txt", "body-txt")),
-                text("title-txt", "/title", "h2"),
+                text("title-txt", "/title", "body"),
                 text("body-txt", "/body", null));
     }
 
@@ -49,7 +49,7 @@ public final class ExampleTextCardTemplate {
 
     private static ComponentDefinition text(String id, String path, String variant) {
         Map<String, Object> props = new LinkedHashMap<>();
-        props.put("text", Map.of("path", path));
+        props.put("text", Map.of("@path", path));
         if (variant != null) {
             props.put("variant", variant);
         }

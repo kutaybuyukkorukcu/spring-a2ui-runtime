@@ -42,10 +42,10 @@ class RuntimeSurfaceE2ETest {
     private static final String REQUEST_ID_HEADER = RequestCorrelationService.REQUEST_ID_HEADER;
     private static final String STREAM_PATH = "/a2ui/surface/stream";
     private static final String ACTIONS_PATH = "/a2ui/actions";
-    private static final String CATALOG_PATH = "/a2ui/catalogs/basic-v0.9";
+    private static final String CATALOG_PATH = "/a2ui/catalogs/basic";
     private static final String DEMO_INFO_PATH = "/api/demo/info";
     private static final String RECORD_OPEN_PATH = "/api/demo/records/%s/open";
-    private static final String DEFAULT_CATALOG_ID = A2UiCatalogIds.BASIC_V0_9;
+    private static final String DEFAULT_CATALOG_ID = A2UiCatalogIds.BASIC_V1;
 
     @Autowired
     private MockMvc mockMvc;
@@ -147,10 +147,10 @@ class RuntimeSurfaceE2ETest {
                                 .header(REQUEST_ID_HEADER, "req-e2e-capture-remaining")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                        {"action":{"name":"capture_remaining","surfaceId":"main","sourceComponentId":"capture-btn","timestamp":"2026-05-19T00:00:00Z","context":{"recordId":"mig-311"}}}
+                                        {"version":"1.0","action":{"name":"capture_remaining","surfaceId":"main","sourceComponentId":"capture-btn","timestamp":"2026-05-19T00:00:00Z","context":{"recordId":"mig-311"}}}
                                         """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accepted").value(true))
+                .andExpect(jsonPath("$").isArray())
                 .andExpect(content().string(containsString("\"nextStep\":\"compose\"")))
                 .andExpect(content().string(containsString("\"recordId\":\"mig-311\"")));
 
@@ -173,14 +173,14 @@ class RuntimeSurfaceE2ETest {
                                 .header(REQUEST_ID_HEADER, "req-e2e-submit-change")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                        {"action":{"name":"submit_change","surfaceId":"main","sourceComponentId":"submit-btn","timestamp":"2026-05-19T00:00:00Z","context":{"service":"payments-api","changeType":"config","summary":"Deploy payment-config v2.4"}}}
+                                        {"version":"1.0","action":{"name":"submit_change","surfaceId":"main","sourceComponentId":"submit-btn","timestamp":"2026-05-19T00:00:00Z","context":{"service":"payments-api","changeType":"config","summary":"Deploy payment-config v2.4"}}}
                                         """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accepted").value(true))
+                .andExpect(jsonPath("$").isArray())
                 .andExpect(content().string(containsString("approve-btn")))
                 .andExpect(content().string(containsString("PENDING_APPROVAL")))
                 .andExpect(content().string(containsString("\"nextStep\":\"approval\"")))
-                .andExpect(content().string(containsString("\"path\":\"/changeId\"")));
+                .andExpect(content().string(containsString("\"@path\":\"/changeId\"")));
 
         assertThat(changeStore.latestPending()).isPresent();
         assertThat(changeStore.latestPending().orElseThrow().service()).isEqualTo("payments-api");
@@ -201,10 +201,10 @@ class RuntimeSurfaceE2ETest {
                                 .header(REQUEST_ID_HEADER, "req-e2e-submit-custom")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                        {"action":{"name":"submit_change","surfaceId":"main","sourceComponentId":"submit-btn","timestamp":"2026-05-19T00:00:00Z","context":{"service":"payments-api","changeType":"migration","summary":"Cut over retry index on payments-api","notes":"Staging failed on the last run: unique constraint on retry_key.","rollback":"15-minute window; restore payments-api 2.3.","risk":"Customer-facing unique-key failure if we skip the backfill."}}}
+                                        {"version":"1.0","action":{"name":"submit_change","surfaceId":"main","sourceComponentId":"submit-btn","timestamp":"2026-05-19T00:00:00Z","context":{"service":"payments-api","changeType":"migration","summary":"Cut over retry index on payments-api","notes":"Staging failed on the last run: unique constraint on retry_key.","rollback":"15-minute window; restore payments-api 2.3.","risk":"Customer-facing unique-key failure if we skip the backfill."}}}
                                         """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accepted").value(true))
+                .andExpect(jsonPath("$").isArray())
                 .andExpect(content().string(containsString("Cut over retry index on payments-api")))
                 .andExpect(content().string(containsString("Staging failed on the last run: unique constraint on retry_key.")))
                 .andExpect(content().string(containsString("15-minute window; restore payments-api 2.3.")))
@@ -229,7 +229,7 @@ class RuntimeSurfaceE2ETest {
                                 .header(REQUEST_ID_HEADER, "req-e2e-submit-empty")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                        {"action":{"name":"submit_change","surfaceId":"main","sourceComponentId":"submit-btn","timestamp":"2026-05-19T00:00:00Z","context":{}}}
+                                        {"version":"1.0","action":{"name":"submit_change","surfaceId":"main","sourceComponentId":"submit-btn","timestamp":"2026-05-19T00:00:00Z","context":{}}}
                                         """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_USER_ACTION"));
@@ -243,7 +243,7 @@ class RuntimeSurfaceE2ETest {
                                 .header(REQUEST_ID_HEADER, "req-e2e-submit-pointers")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                        {"action":{"name":"submit_change","surfaceId":"main","sourceComponentId":"submit-btn","timestamp":"2026-05-19T00:00:00Z","context":{"service":"/service","changeType":"/changeType","summary":"/summary","notes":"/notes"}}}
+                                        {"version":"1.0","action":{"name":"submit_change","surfaceId":"main","sourceComponentId":"submit-btn","timestamp":"2026-05-19T00:00:00Z","context":{"service":"/service","changeType":"/changeType","summary":"/summary","notes":"/notes"}}}
                                         """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_USER_ACTION"));
@@ -259,14 +259,12 @@ class RuntimeSurfaceE2ETest {
                                 .header(REQUEST_ID_HEADER, "req-e2e-action-approve")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                        {"action":{"name":"approve","surfaceId":"main","sourceComponentId":"approve-btn","timestamp":"2026-05-19T00:00:00Z","context":{"changeId":"%s"}}}
+                                        {"version":"1.0","action":{"name":"approve","surfaceId":"main","sourceComponentId":"approve-btn","timestamp":"2026-05-19T00:00:00Z","context":{"changeId":"%s"}}}
                                         """.formatted(changeId)))
                 .andExpect(status().isOk())
                 .andExpect(header().string(REQUEST_ID_HEADER, "req-e2e-action-approve"))
-                .andExpect(jsonPath("$.accepted").value(true))
-                .andExpect(jsonPath("$.eventType").value("actionResult"))
-                .andExpect(jsonPath("$.messages").isArray())
-                .andExpect(jsonPath("$.messages.length()").value(greaterThanOrEqualTo(3)))
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(greaterThanOrEqualTo(3)))
                 .andExpect(content().string(containsString("\"status\":\"approved\"")))
                 .andExpect(content().string(containsString(changeId)))
                 .andExpect(content().string(containsString("Recorded in your ledger")))
@@ -283,7 +281,7 @@ class RuntimeSurfaceE2ETest {
                                 .header(REQUEST_ID_HEADER, "req-e2e-submit-for-outcome")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                        {"action":{"name":"submit_change","surfaceId":"main","sourceComponentId":"submit-btn","timestamp":"2026-05-19T00:00:00Z","context":{"service":"payments-api","changeType":"migration","summary":"Cut over retry index on payments-api","rollback":"15-minute window; restore payments-api 2.3."}}}
+                                        {"version":"1.0","action":{"name":"submit_change","surfaceId":"main","sourceComponentId":"submit-btn","timestamp":"2026-05-19T00:00:00Z","context":{"service":"payments-api","changeType":"migration","summary":"Cut over retry index on payments-api","rollback":"15-minute window; restore payments-api 2.3."}}}
                                         """))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -294,10 +292,10 @@ class RuntimeSurfaceE2ETest {
                                 .header(REQUEST_ID_HEADER, "req-e2e-approve-outcome")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                        {"action":{"name":"approve","surfaceId":"main","sourceComponentId":"approve-btn","timestamp":"2026-05-19T00:00:00Z","context":{"changeId":"%s"}}}
+                                        {"version":"1.0","action":{"name":"approve","surfaceId":"main","sourceComponentId":"approve-btn","timestamp":"2026-05-19T00:00:00Z","context":{"changeId":"%s"}}}
                                         """.formatted(changeId)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accepted").value(true))
+                .andExpect(jsonPath("$").isArray())
                 .andExpect(content().string(containsString(changeId)))
                 .andExpect(content().string(containsString("Recorded in your ledger")))
                 .andExpect(content().string(containsString("15-minute window; restore payments-api 2.3.")))
@@ -314,10 +312,10 @@ class RuntimeSurfaceE2ETest {
                                 .header(REQUEST_ID_HEADER, "req-e2e-action-reject")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                        {"action":{"name":"reject","surfaceId":"main","sourceComponentId":"reject-btn","timestamp":"2026-05-19T00:00:00Z","context":{"changeId":"%s"}}}
+                                        {"version":"1.0","action":{"name":"reject","surfaceId":"main","sourceComponentId":"reject-btn","timestamp":"2026-05-19T00:00:00Z","context":{"changeId":"%s"}}}
                                         """.formatted(changeId)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accepted").value(true))
+                .andExpect(jsonPath("$").isArray())
                 .andExpect(content().string(containsString("\"status\":\"rejected\"")))
                 .andExpect(content().string(containsString("Write was not applied")))
                 .andExpect(content().string(containsString("\"nextStep\":\"outcome\"")));
@@ -335,7 +333,7 @@ class RuntimeSurfaceE2ETest {
                                 .header(REQUEST_ID_HEADER, "req-e2e-approve-missing-id")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                        {"action":{"name":"approve","surfaceId":"main","sourceComponentId":"approve-btn","timestamp":"2026-05-19T00:00:00Z","context":{}}}
+                                        {"version":"1.0","action":{"name":"approve","surfaceId":"main","sourceComponentId":"approve-btn","timestamp":"2026-05-19T00:00:00Z","context":{}}}
                                         """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_USER_ACTION"));
@@ -356,7 +354,7 @@ class RuntimeSurfaceE2ETest {
                                 .header(REQUEST_ID_HEADER, "req-e2e-action-approve-first")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                        {"action":{"name":"approve","surfaceId":"main","sourceComponentId":"approve-btn","timestamp":"2026-05-19T00:00:00Z","context":{"changeId":"%s"}}}
+                                        {"version":"1.0","action":{"name":"approve","surfaceId":"main","sourceComponentId":"approve-btn","timestamp":"2026-05-19T00:00:00Z","context":{"changeId":"%s"}}}
                                         """.formatted(firstId)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString(firstId)));
@@ -375,7 +373,7 @@ class RuntimeSurfaceE2ETest {
                                 .header(REQUEST_ID_HEADER, "req-e2e-action-1")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                        {"action":{"name":"confirm","surfaceId":"main","sourceComponentId":"confirm-btn","timestamp":"2026-05-19T00:00:00Z","context":{}}}
+                                        {"version":"1.0","action":{"name":"confirm","surfaceId":"main","sourceComponentId":"confirm-btn","timestamp":"2026-05-19T00:00:00Z","context":{}}}
                                         """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("UNKNOWN_ACTION"));
@@ -389,13 +387,11 @@ class RuntimeSurfaceE2ETest {
                                 .header(REQUEST_ID_HEADER, "req-e2e-renderer-error-1")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                        {"error":{"code":"VALIDATION_FAILED","surfaceId":"main","path":"/children/0","message":"children must be an array"}}
+                                        {"version":"1.0","error":{"code":"VALIDATION_FAILED","surfaceId":"main","path":"/children/0","message":"children must be an array"}}
                                         """))
                 .andExpect(status().isOk())
                 .andExpect(header().string(REQUEST_ID_HEADER, "req-e2e-renderer-error-1"))
-                .andExpect(jsonPath("$.accepted").value(true))
-                .andExpect(jsonPath("$.eventType").value("error"))
-                .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"));
+                .andExpect(content().json("[]"));
     }
 
     @Test
@@ -425,7 +421,7 @@ class RuntimeSurfaceE2ETest {
                                 .header(REQUEST_ID_HEADER, "req-e2e-unregistered")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                        {"action":{"name":"unknown-action","surfaceId":"main","sourceComponentId":"btn-1","timestamp":"2026-05-19T00:00:00Z","context":{}}}
+                                        {"version":"1.0","action":{"name":"unknown-action","surfaceId":"main","sourceComponentId":"btn-1","timestamp":"2026-05-19T00:00:00Z","context":{}}}
                                         """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("UNKNOWN_ACTION"));
@@ -466,7 +462,7 @@ class RuntimeSurfaceE2ETest {
                                 .header(REQUEST_ID_HEADER, requestId)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-                                        {"action":{"name":"submit_change","surfaceId":"main","sourceComponentId":"submit-btn","timestamp":"2026-05-19T00:00:00Z","context":{"service":"%s","changeType":"%s","summary":"%s"}}}
+                                        {"version":"1.0","action":{"name":"submit_change","surfaceId":"main","sourceComponentId":"submit-btn","timestamp":"2026-05-19T00:00:00Z","context":{"service":"%s","changeType":"%s","summary":"%s"}}}
                                         """.formatted(service, changeType, summary)))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -475,7 +471,8 @@ class RuntimeSurfaceE2ETest {
 
     private String extractChangeId(MvcResult result) throws Exception {
         JsonNode root = objectMapper.readTree(result.getResponse().getContentAsString());
-        for (JsonNode message : root.path("messages")) {
+        JsonNode messages = root.isArray() ? root : root.path("messages");
+        for (JsonNode message : messages) {
             if ("/actionResult".equals(message.path("updateDataModel").path("path").asText())) {
                 return message.path("updateDataModel").path("value").path("changeId").asText();
             }

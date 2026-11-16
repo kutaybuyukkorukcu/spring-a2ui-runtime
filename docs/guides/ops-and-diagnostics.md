@@ -19,11 +19,14 @@ With Actuator + Micrometer (showcase enables `metrics` / `prometheus`):
 | `a2ui.dynamic.validation.retry.failed` | Retry still invalid → fail-fast error |
 | `a2ui.template.rendered` | Template rendered (`templateId` tag) |
 | `a2ui.runtime.transform.success` / `.failure` | Stream transform outcomes |
-| `a2ui.runtime.action.event` | Action ingress events |
+| `a2ui.runtime.action.event` | Ingress that ran or replayed. Tags: `kind` (`event`, `function`, `renderer_response`, `error`), `outcome` (`executed`, `duplicate`), `name` |
+| `a2ui.action.latency` | Same ingress. Tags: `kind`, `outcome`, `name`. No `surfaceId` tag |
 | `a2ui.generation.context.chars` | Distribution of planner **static prefix** character length (digest + rules + examples + hard requirements) |
-| `a2ui.policy.rejected` | Application policy deny (`reason` tag: `confirmation` or `component`) |
-| `a2ui.action.rejected` | Action POST deny (`reason` tag) |
-| `a2ui.action.executed` | Action POST handled successfully |
+| `a2ui.policy.rejected` | Confirmation or hidden-component deny only. Tags include `kind`, `outcome`, `name`, `reason` (`confirmation` or `component`) |
+| `a2ui.action.rejected` | Denied or unhandled ingress. Tags: `kind`, `outcome` (`rejected`, `unhandled`), `name`, `reason` |
+| `a2ui.action.executed` | Handled or replayed ingress. Tags: `kind`, `outcome` (`executed`, `duplicate`), `name` |
+
+`name` is a declared event name, a function `@call`, or the literal `unknown`. Raw client strings are not tags. `UNKNOWN_ACTION` increments `kind=event`, `reason=unknown_action`. `UNKNOWN_FUNCTION` increments `kind=function`, `reason=unknown_function`. `a2ui.policy.rejected` does not count those. Logs may include `surfaceId`, `functionCallId`, and a registered `catalogId`. Logs do not include `context`.
 
 ### Showcase example
 

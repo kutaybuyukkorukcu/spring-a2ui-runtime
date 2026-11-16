@@ -3,7 +3,7 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogIds;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
-import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiUserAction;
+import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiAction;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionAllowList;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionHandler;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.policy.A2UiSurfacePolicy;
@@ -125,7 +125,7 @@ class A2UiGenerationContextFactoryTest {
 
     private static A2UiGenerationRequest request(String content, String hints, Set<String> allowedTypes) {
         return new A2UiGenerationRequest(
-                A2UiCatalogIds.BASIC_V0_9,
+                A2UiCatalogIds.BASIC_V1,
                 allowedTypes,
                 content,
                 hints,
@@ -149,17 +149,17 @@ class A2UiGenerationContextFactoryTest {
         }
 
         @Override
-        public Set<String> actionNames() {
-            return names;
+        public Set<com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiEventName> eventNames() {
+            return names.stream().map(com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiEventName::new).collect(java.util.stream.Collectors.toUnmodifiableSet());
         }
 
         @Override
-        public boolean supports(A2UiUserAction userAction) {
+        public boolean supports(A2UiAction userAction) {
             return false;
         }
 
         @Override
-        public List<A2UiMessage> handle(A2UiUserAction userAction, String requestId) {
+        public List<A2UiMessage> handle(A2UiAction userAction, String requestId) {
             return List.of();
         }
     }

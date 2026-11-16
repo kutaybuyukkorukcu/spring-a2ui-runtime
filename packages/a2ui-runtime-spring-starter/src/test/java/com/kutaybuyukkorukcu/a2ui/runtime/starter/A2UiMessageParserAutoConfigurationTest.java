@@ -19,8 +19,8 @@ class A2UiMessageParserAutoConfigurationTest {
 
     @Test
     void autoConfiguredParserParsesCreateSurfaceWithoutInjectedObjectMapper() {
-        String json = "{\"version\":\"v0.9.1\",\"createSurface\":{\"surfaceId\":\"main\",\"catalogId\":\""
-                + A2UiCatalogIds.BASIC_V0_9 + "\"}}";
+        String json = "{\"version\":\"1.0\",\"createSurface\":{\"surfaceId\":\"main\",\"catalogId\":\""
+                + A2UiCatalogIds.BASIC_V1 + "\"}}";
 
         contextRunner
                 .withBean(ObjectMapper.class, ObjectMapper::new)
@@ -31,7 +31,7 @@ class A2UiMessageParserAutoConfigurationTest {
                     assertThat(messages).hasSize(1);
                     assertThat(messages.get(0)).isInstanceOf(A2UiMessage.CreateSurface.class);
                     assertThat(((A2UiMessage.CreateSurface) messages.get(0)).catalogId())
-                            .isEqualTo(A2UiCatalogIds.BASIC_V0_9);
+                            .isEqualTo(A2UiCatalogIds.BASIC_V1);
                 });
     }
 }

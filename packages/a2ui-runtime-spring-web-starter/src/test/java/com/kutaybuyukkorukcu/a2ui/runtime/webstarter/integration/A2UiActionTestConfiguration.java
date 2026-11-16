@@ -1,7 +1,7 @@
 package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.integration;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
-import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiUserAction;
+import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiAction;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionHandler;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiRuntimeMetrics;
 import org.mockito.Mockito;
@@ -47,12 +47,12 @@ public class A2UiActionTestConfiguration {
     public A2UiActionHandler testActionHandler() {
         return new A2UiActionHandler() {
             @Override
-            public boolean supports(A2UiUserAction userAction) {
+            public boolean supports(A2UiAction userAction) {
                 return true;
             }
 
             @Override
-            public List<A2UiMessage> handle(A2UiUserAction userAction, String requestId) {
+            public List<A2UiMessage> handle(A2UiAction userAction, String requestId) {
                 return List.of();
             }
         };

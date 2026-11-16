@@ -52,7 +52,7 @@ class A2UiDynamicComponentNormalizerTest {
                 Map.of("id", "root", "component", "Text", "text", "/title")));
 
         assertThat(components.get(0).componentProperties().get("text"))
-                .isEqualTo(Map.of("path", "/title"));
+                .isEqualTo(Map.of("@path", "/title"));
     }
 
     @Test
@@ -61,7 +61,7 @@ class A2UiDynamicComponentNormalizerTest {
                 Map.of("id", "root", "component", "Text", "text", "{data.regionSales.North}")));
 
         assertThat(components.get(0).componentProperties().get("text"))
-                .isEqualTo(Map.of("path", "/regionSales/North"));
+                .isEqualTo(Map.of("@path", "/regionSales/North"));
     }
 
     @Test
@@ -108,8 +108,8 @@ class A2UiDynamicComponentNormalizerTest {
         Map<String, Object> event = (Map<String, Object>) action.get("event");
         @SuppressWarnings("unchecked")
         Map<String, Object> context = (Map<String, Object>) event.get("context");
-        assertThat(context).containsEntry("notes", Map.of("path", "/notes"));
-        assertThat(context).containsEntry("summary", Map.of("path", "/summary"));
+        assertThat(context).containsEntry("notes", Map.of("@path", "/notes"));
+        assertThat(context).containsEntry("summary", Map.of("@path", "/summary"));
     }
 
     @Test

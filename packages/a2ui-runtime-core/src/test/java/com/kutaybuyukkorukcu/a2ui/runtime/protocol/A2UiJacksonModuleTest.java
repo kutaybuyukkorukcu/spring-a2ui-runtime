@@ -29,12 +29,12 @@ class A2UiJacksonModuleTest {
         String json = mapper.writeValueAsString((A2UiMessage) uc);
         assertThat(json).contains("\"updateComponents\"");
         assertThat(json).contains("\"surfaceId\"");
-        assertThat(json).contains("\"version\":\"v0.9.1\"");
+        assertThat(json).contains("\"version\":\"1.0\"");
     }
 
     @Test
     void shouldDeserializeUpdateComponents() throws Exception {
-        String json = "{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"s1\",\"components\":[]}}";
+        String json = "{\"version\":\"1.0\",\"updateComponents\":{\"surfaceId\":\"s1\",\"components\":[]}}";
         A2UiMessage msg = mapper.readValue(json, A2UiMessage.class);
         assertThat(msg).isInstanceOf(A2UiMessage.UpdateComponents.class);
         A2UiMessage.UpdateComponents uc = (A2UiMessage.UpdateComponents) msg;
@@ -44,7 +44,7 @@ class A2UiJacksonModuleTest {
     @Test
     void shouldRoundtripAllMessageTypes() throws Exception {
         ComponentDefinition text = new ComponentDefinition("root", "Text", Map.of("text", "Hi"));
-        A2UiMessage.CreateSurface cs = new A2UiMessage.CreateSurface("s1", A2UiCatalogIds.BASIC_V0_9);
+        A2UiMessage.CreateSurface cs = new A2UiMessage.CreateSurface("s1", A2UiCatalogIds.BASIC_V1);
         A2UiMessage.UpdateComponents uc = new A2UiMessage.UpdateComponents("s1", List.of(text));
         A2UiMessage.UpdateDataModel udm = new A2UiMessage.UpdateDataModel("s1", "/", Map.of("k", "v"));
         A2UiMessage.DeleteSurface ds = new A2UiMessage.DeleteSurface("s1");
@@ -58,14 +58,14 @@ class A2UiJacksonModuleTest {
 
     @Test
     void shouldRejectUnknownMessageType() {
-        String json = "{\"version\":\"v0.9.1\",\"unknownType\":{\"surfaceId\":\"s1\"}}";
+        String json = "{\"version\":\"1.0\",\"unknownType\":{\"surfaceId\":\"s1\"}}";
         assertThatThrownBy(() -> mapper.readValue(json, A2UiMessage.class))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void shouldSerializeListOfMessages() throws Exception {
-        A2UiMessage.CreateSurface cs = new A2UiMessage.CreateSurface("s1", A2UiCatalogIds.BASIC_V0_9);
+        A2UiMessage.CreateSurface cs = new A2UiMessage.CreateSurface("s1", A2UiCatalogIds.BASIC_V1);
         A2UiMessage.DeleteSurface ds = new A2UiMessage.DeleteSurface("s2");
         String json = mapper.writeValueAsString(List.of(cs, ds));
         assertThat(json).contains("\"createSurface\"");

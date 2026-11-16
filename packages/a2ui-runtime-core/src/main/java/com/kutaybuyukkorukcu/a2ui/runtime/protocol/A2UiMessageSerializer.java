@@ -27,17 +27,60 @@ public class A2UiMessageSerializer extends JsonSerializer<A2UiMessage> {
 
     @Override
     public void serialize(A2UiMessage value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-        String key = switch (value) {
-            case A2UiMessage.CreateSurface ignored -> "createSurface";
-            case A2UiMessage.UpdateComponents ignored -> "updateComponents";
-            case A2UiMessage.UpdateDataModel ignored -> "updateDataModel";
-            case A2UiMessage.DeleteSurface ignored -> "deleteSurface";
-        };
-
         gen.writeStartObject();
         gen.writeStringField("version", A2UiProtocol.SUPPORTED_VERSION);
-        gen.writeFieldName(key);
-        PLAIN_MAPPER.writeValue(gen, value);
+        switch (value) {
+            case A2UiMessage.CreateSurface ignored -> {
+                gen.writeFieldName("createSurface");
+                PLAIN_MAPPER.writeValue(gen, value);
+            }
+            case A2UiMessage.UpdateComponents ignored -> {
+                gen.writeFieldName("updateComponents");
+                PLAIN_MAPPER.writeValue(gen, value);
+            }
+            case A2UiMessage.UpdateDataModel ignored -> {
+                gen.writeFieldName("updateDataModel");
+                PLAIN_MAPPER.writeValue(gen, value);
+            }
+            case A2UiMessage.DeleteSurface ignored -> {
+                gen.writeFieldName("deleteSurface");
+                PLAIN_MAPPER.writeValue(gen, value);
+            }
+            case A2UiMessage.CallRendererFunction call -> writeCallRendererFunction(gen, call);
+            case A2UiMessage.AgentFunctionResponse response -> writeAgentFunctionResponse(gen, response);
+        }
+        gen.writeEndObject();
+    }
+
+    private static void writeCallRendererFunction(JsonGenerator gen, A2UiMessage.CallRendererFunction call)
+            throws IOException {
+        gen.writeObjectFieldStart("callRendererFunction");
+        if (call.surfaceId() != null) {
+            gen.writeStringField("surfaceId", call.surfaceId());
+        }
+        gen.writeStringField("functionCallId", call.functionCallId());
+        gen.writeObjectFieldStart("callFunction");
+        gen.writeStringField("@call", call.call());
+        gen.writeStringField("catalogId", call.catalogId());
+        if (call.args() != null) {
+            gen.writeObjectField("args", call.args());
+        }
+        gen.writeEndObject();
+        gen.writeEndObject();
+    }
+
+    private static void writeAgentFunctionResponse(JsonGenerator gen, A2UiMessage.AgentFunctionResponse response)
+            throws IOException {
+        gen.writeObjectFieldStart("agentFunctionResponse");
+        gen.writeStringField("functionCallId", response.functionCallId());
+        if (response.failed()) {
+            gen.writeObjectFieldStart("error");
+            gen.writeStringField("code", response.errorCode());
+            gen.writeStringField("message", response.errorMessage());
+            gen.writeEndObject();
+        } else {
+            gen.writeObjectField("value", response.value());
+        }
         gen.writeEndObject();
     }
 

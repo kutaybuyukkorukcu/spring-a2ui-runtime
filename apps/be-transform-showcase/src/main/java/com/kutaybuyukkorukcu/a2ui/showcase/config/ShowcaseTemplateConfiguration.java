@@ -119,7 +119,7 @@ public class ShowcaseTemplateConfiguration {
         column(
             "root",
             List.of("title-txt", "intro-txt", "service-field", "type-field", "summary-field", "submit-btn")),
-        text("title-txt", "/title", "h2"),
+        text("title-txt", "/title", "body"),
         text("intro-txt", "/intro", "caption"),
         textField("service-field", "/serviceLabel", "/service", "shortText"),
         textField("type-field", "/changeTypeLabel", "/changeType", "shortText"),
@@ -140,7 +140,7 @@ public class ShowcaseTemplateConfiguration {
         column(
             "root",
             List.of("title-txt", "flags-txt", "known-txt", "why-txt", "capture-btn")),
-        text("title-txt", "/title", "h2"),
+        text("title-txt", "/title", "body"),
         text("flags-txt", "/flags", "caption"),
         text("known-txt", "/knownFacts", "body"),
         text("why-txt", "/whyCompose", "body"),
@@ -170,7 +170,7 @@ public class ShowcaseTemplateConfiguration {
 
     List<ComponentDefinition> components = new ArrayList<>();
     components.add(column("root", children));
-    components.add(text("title-txt", "/title", "h2"));
+    components.add(text("title-txt", "/title", "body"));
     if (hasMeta) {
       components.add(text("meta-txt", "/meta", "caption"));
     }
@@ -202,7 +202,7 @@ public class ShowcaseTemplateConfiguration {
 
     List<ComponentDefinition> components = new ArrayList<>();
     components.add(column("root", children));
-    components.add(text("title-txt", "/title", "h2"));
+    components.add(text("title-txt", "/title", "body"));
     if (hasMeta) {
       components.add(text("meta-txt", "/meta", "caption"));
     }
@@ -230,7 +230,7 @@ public class ShowcaseTemplateConfiguration {
 
   private static ComponentDefinition text(String id, String path, String variant) {
     Map<String, Object> props = new LinkedHashMap<>();
-    props.put("text", Map.of("path", path));
+    props.put("text", Map.of("@path", path));
     if (variant != null) {
       props.put("variant", variant);
     }
@@ -240,8 +240,8 @@ public class ShowcaseTemplateConfiguration {
   private static ComponentDefinition textField(
       String id, String labelPath, String valuePath, String variant) {
     Map<String, Object> props = new LinkedHashMap<>();
-    props.put("label", Map.of("path", labelPath));
-    props.put("value", Map.of("path", valuePath));
+    props.put("label", Map.of("@path", labelPath));
+    props.put("value", Map.of("@path", valuePath));
     props.put("variant", variant);
     return new ComponentDefinition(id, "TextField", props);
   }
@@ -252,7 +252,7 @@ public class ShowcaseTemplateConfiguration {
     event.put("name", actionName);
     if (contextPaths != null && !contextPaths.isEmpty()) {
       Map<String, Object> context = new LinkedHashMap<>();
-      contextPaths.forEach((key, path) -> context.put(key, Map.of("path", path)));
+      contextPaths.forEach((key, path) -> context.put(key, Map.of("@path", path)));
       event.put("context", context);
     }
     Map<String, Object> props = new LinkedHashMap<>();

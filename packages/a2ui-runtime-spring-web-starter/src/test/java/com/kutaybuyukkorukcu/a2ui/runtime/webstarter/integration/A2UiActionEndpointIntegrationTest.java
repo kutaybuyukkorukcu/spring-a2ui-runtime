@@ -26,19 +26,19 @@ class A2UiActionEndpointIntegrationTest {
 
     @Test
     void shouldHandleUserAction() throws Exception {
-        A2UiUserAction userAction = new A2UiUserAction("submit", "main", "btn-1", null, Map.of());
-        A2UiClientEvent event = new A2UiClientEvent(userAction, null);
+        String body = """
+                {"version":"1.0","action":{"name":"submit","surfaceId":"main","sourceComponentId":"btn-1","timestamp":"2026-01-01T00:00:00Z","context":{}}}
+                """;
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("X-A2UI-Request-Id", "test-req-1");
-        String body = objectMapper.writeValueAsString(event);
         HttpEntity<String> entity = new HttpEntity<>(body, headers);
 
         ResponseEntity<String> response = restTemplate.postForEntity("/a2ui/actions", entity, String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).contains("accepted");
+        assertThat(response.getBody()).isEqualTo("[]");
         assertThat(response.getHeaders().getFirst("X-A2UI-Request-Id")).isEqualTo("test-req-1");
     }
 

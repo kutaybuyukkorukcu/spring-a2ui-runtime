@@ -1,8 +1,9 @@
 package com.kutaybuyukkorukcu.a2ui.showcase.config;
 
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiErrorCode;
+import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiEventName;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
-import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiUserAction;
+import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiAction;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.service.A2UiActionHandler;
 import com.kutaybuyukkorukcu.a2ui.showcase.demo.ShowcaseDemoSurfaces;
@@ -15,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 /**
@@ -43,17 +45,17 @@ public class ShowcaseChangeActionHandler implements A2UiActionHandler {
   }
 
   @Override
-  public Set<String> actionNames() {
-    return SUPPORTED_ACTIONS;
+  public Set<A2UiEventName> eventNames() {
+    return SUPPORTED_ACTIONS.stream().map(A2UiEventName::new).collect(Collectors.toUnmodifiableSet());
   }
 
   @Override
-  public boolean supports(A2UiUserAction userAction) {
+  public boolean supports(A2UiAction userAction) {
     return "main".equals(userAction.surfaceId()) && SUPPORTED_ACTIONS.contains(userAction.name());
   }
 
   @Override
-  public List<A2UiMessage> handle(A2UiUserAction userAction, String requestId) {
+  public List<A2UiMessage> handle(A2UiAction userAction, String requestId) {
     return switch (userAction.name()) {
       case "capture_remaining" -> handleCaptureRemaining(userAction, requestId);
       case "submit_change" -> handleSubmitChange(userAction, requestId);
@@ -63,7 +65,7 @@ public class ShowcaseChangeActionHandler implements A2UiActionHandler {
     };
   }
 
-  private List<A2UiMessage> handleCaptureRemaining(A2UiUserAction userAction, String requestId) {
+  private List<A2UiMessage> handleCaptureRemaining(A2UiAction userAction, String requestId) {
     Map<String, Object> context = safeContext(userAction);
     String recordId = firstPresent(context, "recordId");
     if (recordId == null) {
@@ -81,7 +83,7 @@ public class ShowcaseChangeActionHandler implements A2UiActionHandler {
     return List.copyOf(messages);
   }
 
-  private List<A2UiMessage> handleSubmitChange(A2UiUserAction userAction, String requestId) {
+  private List<A2UiMessage> handleSubmitChange(A2UiAction userAction, String requestId) {
     Map<String, Object> context = safeContext(userAction);
     String service = firstPresent(context, "service");
     String changeType = firstPresent(context, "changeType", "type");
@@ -131,7 +133,7 @@ public class ShowcaseChangeActionHandler implements A2UiActionHandler {
     return List.copyOf(messages);
   }
 
-  private List<A2UiMessage> handleDecision(A2UiUserAction userAction, String requestId) {
+  private List<A2UiMessage> handleDecision(A2UiAction userAction, String requestId) {
     boolean rejected = "reject".equals(userAction.name());
     ChangeStatus status = rejected ? ChangeStatus.REJECTED : ChangeStatus.APPROVED;
 
@@ -183,7 +185,7 @@ public class ShowcaseChangeActionHandler implements A2UiActionHandler {
     return List.copyOf(messages);
   }
 
-  private static Map<String, Object> safeContext(A2UiUserAction userAction) {
+  private static Map<String, Object> safeContext(A2UiAction userAction) {
     Map<String, Object> context = userAction.context();
     return context == null ? Map.of() : context;
   }
