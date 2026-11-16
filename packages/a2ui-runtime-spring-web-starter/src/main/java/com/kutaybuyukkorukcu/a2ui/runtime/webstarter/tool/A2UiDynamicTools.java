@@ -3,6 +3,8 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.tool;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
 import com.kutaybuyukkorukcu.a2ui.runtime.error.A2UiDiagnostic;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiMessage;
+import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.A2UiProviderResolver;
+import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.A2UiProviderType;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceErrorCodes;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.model.SurfaceExecutionException;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.prompt.A2UiPromptContext;
@@ -14,6 +16,7 @@ import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.A2UiDynamicAssembly
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.surface.RenderA2UiArgs;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
+import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.annotation.Tool;
@@ -51,6 +54,7 @@ public class A2UiDynamicTools {
     private final A2UiDynamicAssemblyService assemblyService;
     private final A2UiRuntimeMetrics runtimeMetrics;
     private final A2UiToolSchemaGenerator toolSchemaGenerator;
+    private final A2UiProviderResolver providerResolver;
 
     public A2UiDynamicTools(
             ChatClient.Builder chatClientBuilder,
@@ -59,7 +63,7 @@ public class A2UiDynamicTools {
             A2UiDynamicAssemblyService assemblyService,
             A2UiCatalogRegistry catalogRegistry) {
         this(chatClientBuilder, advisors, promptProvider, assemblyService,
-                A2UiRuntimeMetrics.noop(), catalogRegistry);
+                A2UiRuntimeMetrics.noop(), catalogRegistry, null);
     }
 
     public A2UiDynamicTools(
@@ -69,12 +73,25 @@ public class A2UiDynamicTools {
             A2UiDynamicAssemblyService assemblyService,
             A2UiRuntimeMetrics runtimeMetrics,
             A2UiCatalogRegistry catalogRegistry) {
+        this(chatClientBuilder, advisors, promptProvider, assemblyService,
+                runtimeMetrics, catalogRegistry, null);
+    }
+
+    public A2UiDynamicTools(
+            ChatClient.Builder chatClientBuilder,
+            List<Advisor> advisors,
+            DynamicA2UiPromptProvider promptProvider,
+            A2UiDynamicAssemblyService assemblyService,
+            A2UiRuntimeMetrics runtimeMetrics,
+            A2UiCatalogRegistry catalogRegistry,
+            A2UiProviderResolver providerResolver) {
         this.chatClientBuilder = chatClientBuilder;
         this.advisors = advisors == null ? List.of() : advisors;
         this.promptProvider = promptProvider;
         this.assemblyService = assemblyService;
         this.runtimeMetrics = runtimeMetrics == null ? A2UiRuntimeMetrics.noop() : runtimeMetrics;
         this.toolSchemaGenerator = new A2UiToolSchemaGenerator(catalogRegistry);
+        this.providerResolver = providerResolver;
     }
 
     @Tool(description = "Generate a rich A2UI visual surface when a visual UI would help the user.")
@@ -171,7 +188,7 @@ public class A2UiDynamicTools {
                         promptContext, session.surfaceId(), validationDiagnostics))
                 .toolCallbacks(renderToolCallback)
                 .toolContext(plannerToolContext)
-                .options(A2UiForcedToolChoiceFactory.forcedRenderA2UiToolChoice())
+                .options(forcedRenderOptions())
                 .call()
                 .content();
     }
@@ -224,6 +241,13 @@ public class A2UiDynamicTools {
 
     private ChatClient createPlannerClient() {
         return ChatClientFactories.cloneWithAdvisors(chatClientBuilder, advisors);
+    }
+
+    private ChatOptions forcedRenderOptions() {
+        A2UiProviderType provider = providerResolver == null
+                ? A2UiProviderType.UNKNOWN
+                : providerResolver.resolve(null);
+        return A2UiForcedToolChoiceFactory.forcedRenderA2UiToolChoice(provider);
     }
 
     private DynamicRenderSession requireSession(ToolContext toolContext) {

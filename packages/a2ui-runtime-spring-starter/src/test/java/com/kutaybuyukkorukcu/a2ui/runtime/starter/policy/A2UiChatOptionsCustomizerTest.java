@@ -3,6 +3,7 @@ package com.kutaybuyukkorukcu.a2ui.runtime.starter.policy;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.ai.openai.api.ResponseFormat;
 import org.springframework.ai.vertexai.gemini.VertexAiGeminiChatOptions;
 
@@ -28,6 +29,23 @@ class A2UiChatOptionsCustomizerTest {
 
         assertThat(customized.getMaxTokens()).isEqualTo(2048);
         assertThat(customized.getSeed()).isEqualTo(42);
+        assertThat(customized.getTemperature()).isEqualTo(0.0);
+    }
+
+    @Test
+    void openAiShouldPreserveForcedToolChoiceWhenPolicyClearsResponseFormat() {
+        OpenAiChatOptions incoming = OpenAiChatOptions.builder()
+                .toolChoice(OpenAiApi.ChatCompletionRequest.ToolChoiceBuilder.FUNCTION("generateA2Ui"))
+                .build();
+        A2UiGenerationPolicy policy = new A2UiGenerationPolicy();
+        policy.setTemperature(0.0);
+        policy.setResponseFormat(A2UiGenerationPolicyProperties.ResponseFormatMode.NONE);
+
+        OpenAiChatOptions customized = (OpenAiChatOptions) new OpenAiChatOptionsCustomizer()
+                .customize(incoming, policy);
+
+        assertThat(String.valueOf(customized.getToolChoice())).contains("generateA2Ui");
+        assertThat(customized.getResponseFormat()).isNull();
         assertThat(customized.getTemperature()).isEqualTo(0.0);
     }
 

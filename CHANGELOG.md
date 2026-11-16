@@ -11,6 +11,7 @@ Library versions (`2.x`) speak A2UI **protocol** v0.9.1. The `1.1.x` line remain
 
 ### Changed
 
+- **Dynamic compose tool forcing.** One-shot `generateA2Ui` / `renderA2Ui` stay forced and `returnDirect`. OpenAI, including OpenAI-compatible servers, sends a named `tool_choice`. Native Mistral sends `any` (the only force Spring AI 1.1.0-M2 exposes). Anthropic, Vertex Gemini, Google GenAI, Bedrock Converse, native Azure OpenAI, and native Ollama fail the stream with `TOOL_CHOICE_UNAVAILABLE` instead of continuing without a force. The active provider is the configured chat model property, or the only provider `ChatOptions` type on the classpath. Matrix: [multi-provider Spring AI](docs/guides/multi-provider-spring-ai.md).
 - **Planner retry feedback.** The one validation retry sends `VALIDATION_FAILED` objects (`code`, `surfaceId`, `path`, `message`) to the planner. The catalog code stays in `message`. SSE after a second failure stays `A2UI_VALIDATION_FAILED`. Fail-fast and the single retry are unchanged. The runtime passes the negotiated surface id.
 - **Identity language** — we are a **runtime**, not a platform. Page placements are **slots**, not islands ([ADR 002](docs/adr/002-in-product-surfaces.md), [CONTEXT.md](CONTEXT.md))
 - **Catalog few-shots** — vendored basic catalog ships no `examples.txt`; planner few-shots are host-owned via `A2UiCatalogContribution.examplesText()`. Showcase registers a closed Button + Text sibling graph (complete `components` array) as a host contribution

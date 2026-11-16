@@ -60,7 +60,7 @@ Ship a Maven Central Spring Boot runtime that turns host intent plus context int
 - ~~Tool API shape~~ → **Builder + runtime `@Tool` adapters**
 - ~~Is dynamic A2UI in scope?~~ → **Yes — Phase 2 (shipped)**
 - ~~Generation product: basic catalog only~~ → **basic + host `A2UiCatalogContribution` SPI** (Central `2.1.0`)
-- ~~Provider scope~~ → **OpenAI-first for MVP**; Groq via OpenAI-compatible API; Anthropic / Gemini **recipes** documented ([multi-provider guide](docs/guides/multi-provider-spring-ai.md)). **Dynamic force-tool still OpenAI-shaped** — Later residual below
+- ~~Provider scope~~ → **OpenAI-first for getting started**; Groq and other OpenAI-compatible servers use that path. Dynamic force is named OpenAI `tool_choice`, native Mistral `any`, and `TOOL_CHOICE_UNAVAILABLE` when Spring AI 1.1.0-M2 cannot force — in flight ([plan](docs/plans/dynamic-compose-tool-forcing.md), [multi-provider guide](docs/guides/multi-provider-spring-ai.md))
 - ~~Platform vs foreign protocol-as-core~~ → **Platform**; native SSE remains identity
 - ~~v0.8 / Central `1.1.0`~~ → **Published**
 - ~~Patch `1.1.1` dynamic fail-fast~~ → **Published**
@@ -621,7 +621,7 @@ Own plan file if starting. Not the architecture-revisions Spring AI hop adapter 
 
 ### Dynamic compose tool forcing beyond OpenAI
 
-**Status:** not started. **Independent** of the parallel two-hop → facts hop pair and of A2UI v1.0 wire. Library **2.x** (not `3.0.0`). Does not jump v1.0 as Next in this file.
+**Status:** in flight on `cursor/dynamic-compose-tool-forcing-ce02`. Plan: [dynamic compose tool forcing](docs/plans/dynamic-compose-tool-forcing.md). **Independent** of the parallel two-hop → facts hop pair and of A2UI v1.0 wire. Library **2.x** (not `3.0.0`). Does not jump v1.0 as Next in this file.
 
 **Does not reopen** [ADR 001](docs/adr/001-streaming-surface-generation.md): still two hops, still forced one-shot `generateA2Ui` / `renderA2Ui`, still `returnDirect`. Golden path stays OpenAI.
 

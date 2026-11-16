@@ -26,7 +26,10 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = A2UiTestConfiguration.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
-@TestPropertySource(properties = "a2ui.web.runtime.generation-mode=dynamic")
+@TestPropertySource(properties = {
+        "a2ui.web.runtime.generation-mode=dynamic",
+        "spring.ai.openai.chat.options.model=gpt-4.1"
+})
 class A2UiDynamicStreamIntegrationTest {
 
     @Autowired

@@ -56,6 +56,7 @@ public class A2UiProviderResolver {
         propertyKeys.put(A2UiProviderType.OLLAMA, List.of("spring.ai.ollama.chat.options.model"));
         propertyKeys.put(A2UiProviderType.MISTRAL, List.of("spring.ai.mistralai.chat.options.model"));
         propertyKeys.put(A2UiProviderType.BEDROCK_CONVERSE, List.of("spring.ai.bedrock.converse.chat.options.model"));
+        propertyKeys.put(A2UiProviderType.GOOGLE_GENAI, List.of("spring.ai.google.genai.chat.options.model"));
         return propertyKeys;
     }
 }

@@ -2,6 +2,7 @@ package com.kutaybuyukkorukcu.a2ui.runtime.webstarter.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kutaybuyukkorukcu.a2ui.runtime.catalog.A2UiCatalogRegistry;
+import com.kutaybuyukkorukcu.a2ui.runtime.starter.policy.A2UiProviderResolver;
 import com.kutaybuyukkorukcu.a2ui.runtime.protocol.A2UiJacksonModule;
 import com.kutaybuyukkorukcu.a2ui.runtime.validation.A2UiMessageValidator;
 import com.kutaybuyukkorukcu.a2ui.runtime.webstarter.controller.A2UiActionController;
@@ -206,22 +207,25 @@ public class A2UiWebAutoConfiguration {
                 DynamicA2UiPromptProvider dynamicPromptProvider,
                 A2UiDynamicAssemblyService dynamicAssemblyService,
                 A2UiRuntimeMetrics runtimeMetrics,
-                A2UiCatalogRegistry catalogRegistry) {
+                A2UiCatalogRegistry catalogRegistry,
+                A2UiProviderResolver providerResolver) {
             return new A2UiDynamicTools(
                     chatClientBuilder,
                     resolveAdvisors(advisors),
                     dynamicPromptProvider,
                     dynamicAssemblyService,
                     runtimeMetrics,
-                    catalogRegistry);
+                    catalogRegistry,
+                    providerResolver);
         }
 
         @Bean
         @ConditionalOnMissingBean(name = "dynamicGenerationAdapter")
         public GenerationModeAdapter dynamicGenerationAdapter(
                 DynamicA2UiPromptProvider dynamicPromptProvider,
-                A2UiDynamicTools dynamicTools) {
-            return new DynamicGenerationAdapter(dynamicPromptProvider, dynamicTools);
+                A2UiDynamicTools dynamicTools,
+                A2UiProviderResolver providerResolver) {
+            return new DynamicGenerationAdapter(dynamicPromptProvider, dynamicTools, providerResolver);
         }
     }
 
